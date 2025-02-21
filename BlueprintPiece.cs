@@ -83,19 +83,39 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
         if (Configs.AutoAddBlueprintsToUI.Value) BlueprintUI.AddEntry(root, true);
         return true;
     }
+    private void DestroyAllPiecesInside()
+    {
+        Piece[] pieces = _blueprintArea.GetObjectsInside(_piece);
+        for (int i = 0; i < pieces.Length; ++i)
+        {
+            Piece p = pieces[i];
+            p.m_nview?.ClaimOwnership();
+            ZNetScene.instance.Destroy(p.gameObject);
+        }   
+    }
     public bool Interact(Humanoid user, bool hold, bool alt)
     {
         if (user.GetHoverObject() is not {} obj) return false;
         if (obj != _interact.gameObject) return false;
-        TextInput.instance.RequestText(this, "$kg_blueprint_createblueprint_title", 30);
+        if (!alt) TextInput.instance.RequestText(this, "$kg_blueprint_createblueprint_title", 30);
+        else
+        {
+            UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_clear", "$kg_blueprint_clear_desc", () =>
+            {
+                UnifiedPopup.Pop();
+                DestroyAllPiecesInside();
+                MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, "$kg_blueprint_cleared".Localize());
+            }, UnifiedPopup.Pop));
+        } 
         return true;
     }
     public string GetHoverText()
     {
         if (Player.m_localPlayer.GetHoverObject() is not {} obj) return string.Empty;
         if (obj != _interact.gameObject) return string.Empty;
-        int currentPieces = _blueprintArea.GetObjectsInside(_piece).Length;
-        return $"[<color=yellow><b>$KEY_Use</b></color>] $kg_blueprint_openui\n[DBG] Current Pieces: {currentPieces}".Localize();
+        return $"[<color=yellow><b>$KEY_Use</b></color>] $kg_blueprint_openui\n" +
+               $"[<color=yellow><b>$KEY_Alt + $KEY_Use</b></color>] $kg_blueprint_clear"
+                   .Localize();
     }
     public bool UseItem(Humanoid user, ItemDrop.ItemData item) => false;
     public string GetHoverName() => "$kg_blueprint_piece";
@@ -113,12 +133,8 @@ public static class Player_HaveRequirements_Patch
     [UsedImplicitly] private static bool Prefix(Player.RequirementMode mode, ref bool __result)
     {
         if (mode != Player.RequirementMode.CanBuild) return true;
-        if (PlayerState.PlayerInsideBlueprint)
-        { 
-            __result = true;
-            return false;
-        }
-        return true;
+        if (!PlayerState.PlayerInsideBlueprint) return true;
+        __result = true; return false;
     }
 }
 [HarmonyPatch(typeof(Hud),nameof(Hud.SetupPieceInfo))]
@@ -145,28 +161,30 @@ public static class Hud_SetupPieceInfo_Patch
     {
         if (__state == null) return;
         piece.m_craftingStation = __state.Station;
-        piece.m_resources = __state.Requirements;
+        piece.m_resources = __state.Requirements; 
     }
 }
 [HarmonyPatch(typeof(Player),nameof(Player.TryPlacePiece))]
 public static class Player_TryPlacePiece_Patch
 {
     private static bool _skip;
-    [UsedImplicitly] private static bool Prefix(Player __instance, Piece piece)
+    [UsedImplicitly] private static bool Prefix(Player __instance, Piece piece, ref bool __result)
     {
         if (_skip) return true;
-        if (PlayerState.PlayerInsideBlueprint)
+        if (!PlayerState.PlayerInsideBlueprint) return true;
+        if (piece.name == "kg_Blueprint_Internal_PlacePiece")
         {
-            try
-            {
-                _skip = true;
-                __instance.TryPlacePiece(piece);
-                _skip = false;
-            } 
-            finally { _skip = false; }
+            __result = false;
             return false;
         }
-        return true; 
+        try
+        {
+            _skip = true;
+            __instance.TryPlacePiece(piece);
+            _skip = false;
+        } 
+        finally { _skip = false; }
+        return false;
     }
 }
 [HarmonyPatch(typeof(Hud), nameof(Hud.Awake))]
@@ -177,7 +195,6 @@ public static class Hud_Awake_Patch
     {
         GameObject go = Object.Instantiate(kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintMarker"));
         go.name = "BPMarker";
-        // ReSharper disable once Unity.InstantiateWithoutParent
         go.transform.SetParent(__instance.m_pieceIconPrefab.transform);
         go.transform.localPosition = new Vector3(14, -48, 0);
         go.SetActive(false); 
@@ -216,11 +233,9 @@ public static class Player_PlacePiece_Patch
     public static void PlacedPiece(GameObject obj)
     {
         if (obj?.GetComponent<Piece>() is not { } piece || !piece.m_nview) return;
-        if (PlayerState.PlayerInsideBlueprint)
-        {
-            piece.m_nview.m_zdo.Set("kg_Blueprint", true);
-            Piece_Awake_Patch.DeactivatePiece(piece);
-        }
+        if (!PlayerState.PlayerInsideBlueprint) return;
+        piece.m_nview.m_zdo.Set("kg_Blueprint", true);
+        Piece_Awake_Patch.DeactivatePiece(piece);
     } 
     
     [UsedImplicitly] private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
@@ -229,11 +244,9 @@ public static class Player_PlacePiece_Patch
         foreach (CodeInstruction instruction in instructions)
         {
             yield return instruction;
-            if (instruction.opcode == OpCodes.Stloc_0)
-            {
-                yield return new CodeInstruction(OpCodes.Ldloc_S, 0);
-                yield return new CodeInstruction(OpCodes.Call, method);
-            }
+            if (instruction.opcode != OpCodes.Stloc_0) continue;
+            yield return new CodeInstruction(OpCodes.Ldloc_S, 0);
+            yield return new CodeInstruction(OpCodes.Call, method);
         }
     }
 }
@@ -264,12 +277,10 @@ public static class Hud_UpdatePieceList_Patch
         foreach (CodeInstruction instruction in code)
         { 
             yield return instruction;
-            if (instruction.opcode == OpCodes.Callvirt && ReferenceEquals(instruction.operand, method))
-            {
-                yield return new CodeInstruction(OpCodes.Ldloc_S, 12);
-                yield return new CodeInstruction(OpCodes.Ldloc_S, 11);
-                yield return new CodeInstruction(OpCodes.Call, AccessTools.DeclaredMethod(typeof(Hud_UpdatePieceList_Patch), nameof(SpriteEnabler)));
-            }
+            if (instruction.opcode != OpCodes.Callvirt || !ReferenceEquals(instruction.operand, method)) continue;
+            yield return new CodeInstruction(OpCodes.Ldloc_S, 12);
+            yield return new CodeInstruction(OpCodes.Ldloc_S, 11);
+            yield return new CodeInstruction(OpCodes.Call, AccessTools.DeclaredMethod(typeof(Hud_UpdatePieceList_Patch), nameof(SpriteEnabler)));
         }
     }
 }

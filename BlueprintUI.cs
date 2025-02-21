@@ -38,6 +38,7 @@ public static class BlueprintUI
     {
         if (_Internal_SelectedPiece.Key) Object.DestroyImmediate(_Internal_SelectedPiece.Key.gameObject);
         _Internal_SelectedPiece = default;
+        Player.m_localPlayer?.SetupPlacementGhost();
         Content.RemoveAllChildrenExceptFirst();
         for (int i = 0; i < blueprints.Count; i++)
         {
@@ -60,7 +61,7 @@ public static class BlueprintUI
         });
         entry.transform.Find("Delete").GetComponent<Button>().onClick.AddListener(() =>
         {
-            UnifiedPopup.Pop();
+            Hide();
             UnifiedPopup.Push(new YesNoPopup("Delete Blueprint", $"Are you sure you want to delete blueprint {root.Name}?", () =>
             {
                UnifiedPopup.Pop();
@@ -116,7 +117,7 @@ public static class BlueprintUI
         }
         _Internal_SelectedPiece.Key.m_resources = blueprint.GetRequirements();
         _Internal_SelectedPiece.Key.gameObject.SetActive(true);
-        Player.m_localPlayer.SetupPlacementGhost();
+        Player.m_localPlayer?.SetupPlacementGhost();
     }
 
     private static void Show() => UI.SetActive(true);
@@ -187,7 +188,7 @@ public static class BlueprintUI
             BlueprintRoot blueprint = _Internal_SelectedPiece.Value;
             if (!Input.GetKey(KeyCode.LeftShift))
             {
-                Object.Destroy(_Internal_SelectedPiece.Key);
+                if (_Internal_SelectedPiece.Key) Object.Destroy(_Internal_SelectedPiece.Key);
                 _Internal_SelectedPiece = default;
                 Player.m_localPlayer.SetupPlacementGhost();
             }

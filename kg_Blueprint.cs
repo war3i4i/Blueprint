@@ -13,9 +13,6 @@ public class kg_Blueprint : BaseUnityPlugin
     public new static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(GUID);
     public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");
     public static readonly string BlueprintsPath = Path.Combine(Paths.ConfigPath, "Blueprints");
-    
-    //public static readonly List<BlueprintRoot> Blueprints = [];
-    
     private void Awake()
     {
         _thistype = this;
@@ -37,7 +34,6 @@ public class kg_Blueprint : BaseUnityPlugin
         using Stream stream = execAssembly.GetManifestResourceStream(resourceName)!;
         return AssetBundle.LoadFromStream(stream);
     }
-
     public static void ReadBlueprints()
     {
         List<BlueprintRoot> Blueprints = [];

@@ -10,19 +10,7 @@ public static class Utils
     {
         string msg = $"[{Name}] {caller}({line})";
         if (pieces == null || pieces.Count == 0) throw new Exception($"No pieces found [{msg}]");
-        for (int i = 0; i < pieces.Count; ++i) if (pieces[i] == null) throw new Exception($"List contains a null piece [{msg}]");
-    }
-    public static int CustomCountItems(string prefab)
-    {
-        int num = 0;
-        foreach (ItemDrop.ItemData itemData in Player.m_localPlayer.m_inventory.m_inventory)
-        {
-            if (itemData.m_dropPrefab.name == prefab)
-            {
-                num += itemData.m_stack;
-            }
-        }
-        return num;
+        if (pieces.Any(t => t == null)) throw new Exception($"List contains a null piece [{msg}]");
     }
     public static string Localize(this string str) => Localization.instance.Localize(str);
     public static string ValidPath(this string path, [CallerMemberName] string caller = "", [CallerLineNumber] int line = 0)
@@ -35,7 +23,7 @@ public static class Utils
     public static void WriteWithDupes(this string path, string data)
     {
         path = path.ValidPath();
-        string directory = Path.GetDirectoryName(path);
+        string directory = Path.GetDirectoryName(path)!;
         string fileNameNoExt = Path.GetFileNameWithoutExtension(path);
         string ext = Path.GetExtension(path);
         int increment = 1;
@@ -93,31 +81,6 @@ public static class Utils
         bool result = Vector3.Distance(closestPoint, point) < 0.2f;
         box.gameObject.SetActive(false);
         return result;
-    }
-    public static byte[] Compress(this byte[] array, [CallerMemberName] string caller = "", [CallerLineNumber] int line = 0)
-    {
-        if (array == null || array.Length == 0) throw new Exception($"Array is null or empty [{caller}({line})]");
-        using (MemoryStream memoryStream = new MemoryStream())
-        {
-            using (GZipStream gzipStream = new GZipStream(memoryStream, CompressionLevel.Optimal)) gzipStream.Write(array, 0, array.Length);
-            return memoryStream.ToArray();
-        }
-    }
-    public static byte[] Decompress(this byte[] array, [CallerMemberName] string caller = "", [CallerLineNumber] int line = 0)
-    {
-        if (array == null || array.Length == 0) throw new Exception($"Array is null or empty [{caller}({line})]");
-        using (MemoryStream memoryStream = new MemoryStream(array))
-        {
-            using (GZipStream gzipStream = new GZipStream(memoryStream, CompressionMode.Decompress))
-            {
-                using (MemoryStream resultStream = new MemoryStream())
-                {
-                    gzipStream.CopyTo(resultStream);
-                    byte[] result = resultStream.ToArray();
-                    return result;
-                }
-            }
-        }
     }
     public static void Explorer_SelectFile(this string path)
     {
