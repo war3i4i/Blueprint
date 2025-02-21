@@ -147,9 +147,8 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
     {
         if (Player.m_localPlayer.GetHoverObject() is not {} obj) return string.Empty;
         if (obj != _interact.gameObject) return string.Empty;
-        return $"[<color=yellow><b>$KEY_Use</b></color>] $kg_blueprint_openui\n" +
-               $"[<color=yellow><b>L.Shift + $KEY_Use</b></color>] $kg_blueprint_clear"
-                   .Localize();
+        return "[<color=yellow><b>$KEY_Use</b></color>] $kg_blueprint_saveblueprint\n".Localize() +
+               "[<color=yellow><b>L.Shift + $KEY_Use</b></color>] $kg_blueprint_clear".Localize();
     }
     public bool UseItem(Humanoid user, ItemDrop.ItemData item) => false;
     public string GetHoverName() => "$kg_blueprint_piece";
@@ -218,6 +217,7 @@ public static class Player_TryPlacePiece_Patch
         if (!PlayerState.PlayerInsideBlueprint) return true;
         if (piece.name == "kg_Blueprint_Internal_PlacePiece")
         {
+            MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, "$kg_blueprint_cantbuildblueprintinsidebox".Localize());
             __result = false;
             return false;
         }

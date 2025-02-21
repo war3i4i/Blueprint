@@ -1,4 +1,5 @@
 ﻿using ItemManager;
+using LocalizationManager;
 using PieceManager;
 
 namespace kg_Blueprint;
@@ -16,7 +17,8 @@ public class kg_Blueprint : BaseUnityPlugin
     private void Awake()
     {
         _thistype = this;
-        if (!Directory.Exists(BlueprintsPath)) Directory.CreateDirectory(BlueprintsPath);
+        Localizer.Load();
+        if (!Directory.Exists(BlueprintsPath)) Directory.CreateDirectory(BlueprintsPath); 
         new BuildPiece(Asset, "kg_BlueprintBox").Prefab.AddComponent<BlueprintPiece>();
         new Item(Asset, "kg_BlueprintHammer"){ Configurable = Configurability.Recipe };
         Configs.Init();

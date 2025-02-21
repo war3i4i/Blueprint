@@ -195,7 +195,7 @@ public static class BuildProgress
                 material.SetFloat(Visibility, setCurrentWorldSpaceVisibility);
         }
 
-        public string GetHoverText() => $"$kg_blueprint_building... (<color=yellow>{Math.Round(_MaxTime - _Time, 0)}s</color>)";
+        public string GetHoverText() => $"$kg_blueprint_building... (<color=yellow>{Math.Round(_MaxTime - _Time, 0)}s</color>)".Localize();
         public string GetHoverName() => "";
         public bool UseItem(Humanoid user, ItemDrop.ItemData item) => false;
     }

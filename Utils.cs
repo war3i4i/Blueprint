@@ -13,6 +13,7 @@ public static class Utils
         if (pieces.Any(t => t == null)) throw new Exception($"List contains a null piece [{msg}]");
     }
     public static string Localize(this string str) => Localization.instance.Localize(str);
+    public static string Localize(this string str, params string[] args) => Localization.instance.Localize(str, args);
     public static string ValidPath(this string path, [CallerMemberName] string caller = "", [CallerLineNumber] int line = 0)
     {
         string msg = $"{caller}({line})";
@@ -66,6 +67,21 @@ public static class Utils
         catch
         {
             // ignored
+        }
+    }
+    public static Texture2D ToIcon(this string s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return null;
+        try
+        {
+            byte[] bytes = Convert.FromBase64String(s);
+            Texture2D tex = new(2, 2);
+            tex.LoadImage(bytes);
+            return tex;
+        }
+        catch
+        {
+            return null;
         }
     }
     public static void RemoveAllChildrenExceptFirst(this Transform t)

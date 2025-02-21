@@ -147,6 +147,13 @@ public class BlueprintRoot
             }
             Vector3 pos = center + rootRot * Objects[i].RelativePosition;
             Quaternion rot = Quaternion.Euler(Objects[i].Rotation) * rootRot;
+
+            if (snapToGround)
+            {
+                pos.y = Mathf.Max(ZoneSystem.instance.GetGroundHeight(pos), pos.y);
+                ZoneSystem.instance.FindFloor(pos, out pos.y);
+            }
+            
             if (instantBuild)
             {
                 Piece p = Object.Instantiate(prefab, pos, rot).GetComponent<Piece>();

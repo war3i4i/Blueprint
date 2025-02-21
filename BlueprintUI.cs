@@ -5,7 +5,10 @@ public static class BlueprintUI
     private static KeyValuePair<Piece, BlueprintRoot> _Internal_SelectedPiece;
     private static GameObject CopyFrom;
     private static GameObject UI;
-    private static GameObject Entry;
+    private static GameObject BlueprintEntry;
+    private static GameObject ResourcesTab;
+    private static Transform ResourceContent;
+    private static GameObject ResourceEntry;
     private static Transform Content;
     public static bool IsVisible => UI && UI.activeSelf;
     public static void Init()
@@ -14,9 +17,13 @@ public static class BlueprintUI
         CopyFrom = kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintCopyFrom");
         Object.DontDestroyOnLoad(UI);
         UI.SetActive(false);
-        Entry = UI.transform.Find("Canvas/UI/Scroll View/Viewport/Content/BlueprintEntry").gameObject;
-        Entry.SetActive(false);
-        Content = Entry.transform.parent;
+        BlueprintEntry = UI.transform.Find("Canvas/UI/Scroll View/Viewport/Content/BlueprintEntry").gameObject;
+        ResourcesTab = UI.transform.Find("Canvas/UI/Resources").gameObject;
+        ResourceEntry = ResourcesTab.transform.Find("Scroll View/Viewport/Content/ResourceEntry").gameObject;
+        ResourceContent = ResourcesTab.transform.Find("Scroll View/Viewport/Content");
+        BlueprintEntry.SetActive(false);
+        Content = BlueprintEntry.transform.parent;
+        Localization.instance.Localize(UI.transform);
     }
     private static void UpdateCanvases()
     {
@@ -49,20 +56,34 @@ public static class BlueprintUI
     }
     public static void AddEntry(BlueprintRoot root, bool updateCanvases)
     {
-        GameObject entry = Object.Instantiate(Entry, Content);
+        GameObject entry = Object.Instantiate(BlueprintEntry, Content);
         entry.SetActive(true);
         entry.transform.Find("Name").GetComponent<TMP_Text>().text = root.Name;
-        if (!string.IsNullOrWhiteSpace(root.Icon) && ObjectDB.instance.m_itemByHash.TryGetValue(root.Icon.GetStableHashCode(), out GameObject item)) 
-            entry.transform.Find("Icon").GetComponent<Image>().sprite = item.GetComponent<ItemDrop>().m_itemData.GetIcon();
-        entry.transform.Find("Selection").GetComponent<Button>().onClick.AddListener(() =>
+        if (root.Icon.ToIcon() is {} icon) entry.transform.Find("Icon").GetComponent<RawImage>().texture = icon;
+
+        Transform selection = entry.transform.Find("Selection");
+        UIInputHandler selectionHandler = selection.GetComponent<UIInputHandler>();
+        selectionHandler.m_onLeftClick += (_) =>
         {
             Hide();
             OnSelect(root);
-        });
+        };
+        selectionHandler.m_onPointerEnter += (_) =>
+        { 
+            Image img = selection.GetComponent<Image>();
+            img.color = new Color(img.color.r, img.color.g, img.color.b, 0.2f);
+            ShowResources(root);
+        };
+        selectionHandler.m_onPointerExit += (_) =>
+        { 
+            Image img = selection.GetComponent<Image>();
+            img.color = new Color(img.color.r, img.color.g, img.color.b, 0f);
+            HideResources();
+        };
         entry.transform.Find("Delete").GetComponent<Button>().onClick.AddListener(() =>
         {
             Hide();
-            UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_delete", $"$kg_blueprint_confirmdelete {root.Name}?", () =>
+            UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_delete", $"$kg_blueprint_confirmdelete <color=yellow>{root.Name}</color>?", () =>
             {
                UnifiedPopup.Pop();
                root.Delete();
@@ -75,6 +96,7 @@ public static class BlueprintUI
         });
         entry.transform.Find("Rename").GetComponent<Button>().onClick.AddListener(() =>
         {
+            Hide();
             RenameBlueprintRoot renamer = new(root, (newName) =>
             {
                 entry.transform.Find("Name").GetComponent<TMP_Text>().text = newName;
@@ -82,14 +104,14 @@ public static class BlueprintUI
             TextInput.instance.RequestText(renamer, "$kg_blueprint_rename", 40);
         });
         entry.transform.Find("Load").GetComponent<Button>().onClick.AddListener(() =>
-        {
+        { 
             Hide();
             if (!PlayerState.PlayerInsideBlueprint || !PlayerState.BlueprintPiece)
             {
                 UnifiedPopup.Push(new WarningPopup("$kg_blueprint_load_error", "$kg_blueprint_load_error_desc", UnifiedPopup.Pop));
                 return;
             }
-            UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_load", $"$kg_blueprint_confirmload {root.Name}?", () =>
+            UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_load", "$kg_blueprint_confirmload".Localize(root.Name), () =>
             {
                 UnifiedPopup.Pop();
                 PlayerState.BlueprintPiece.DestroyAllPiecesInside();
@@ -134,9 +156,39 @@ public static class BlueprintUI
         _Internal_SelectedPiece.Key.gameObject.SetActive(true);
         Player.m_localPlayer?.SetupPlacementGhost();
     }
-
+    private static void ShowResources(BlueprintRoot root)
+    {
+        ResourcesTab.SetActive(true);
+        ResourceContent.RemoveAllChildrenExceptFirst();
+        Piece.Requirement[] reqs = root.GetRequirements();
+        Recipe temp = ScriptableObject.CreateInstance<Recipe>();
+        temp.name = "kg_Blueprint_Temp";
+        temp.m_resources = new Piece.Requirement[1];
+        for (int i = 0; i < reqs.Length; i++)
+        { 
+            Piece.Requirement req = reqs[i];
+            temp.m_resources[0] = req;
+            string text = $"{req.m_resItem.m_itemData.m_shared.m_name} x{req.m_amount}";
+            GameObject entry = Object.Instantiate(ResourceEntry, ResourceContent);
+            entry.SetActive(true);
+            entry.transform.Find("Icon").GetComponent<Image>().sprite = req.m_resItem.m_itemData.GetIcon();
+            entry.transform.Find("Name").GetComponent<TMP_Text>().text = text.Localize();
+            entry.transform.Find("Name").GetComponent<TMP_Text>().color = Player.m_localPlayer.HaveRequirementItems(temp, false, 1) ? Color.green : Color.red;
+        }
+        Object.DestroyImmediate(temp);
+    }
+    private static void HideResources() => ResourcesTab.SetActive(false);
     private static void Show() => UI.SetActive(true);
-    public static void Hide() => UI.SetActive(false);
+    public static void Hide()
+    {
+        UI.SetActive(false);
+        foreach (var componentsInChild in Content.GetComponentsInChildren<UIInputHandler>())
+        {
+            Image img = componentsInChild.GetComponent<Image>();
+            img.color = new Color(img.color.r, img.color.g, img.color.b, 0f);
+        }
+        HideResources();
+    }
     [HarmonyPatch(typeof(Hud),nameof(Hud.IsPieceSelectionVisible))]
     private static class Hud_IsPieceSelectionVisible_Patch
     {
@@ -196,7 +248,7 @@ public static class BlueprintUI
         public static void PlacedPiece(GameObject obj)
         {
             if (obj?.GetComponent<Piece>() is not { } piece) return;
-            if (piece.name != "kg_Blueprint_Internal_PlacePiece") return;
+            if (piece.name.Replace("(Clone)", "") != "kg_Blueprint_Internal_PlacePiece") return;
             Vector3 pos = obj.transform.position;
             Quaternion rot = obj.transform.rotation;
             Object.Destroy(obj);
@@ -219,6 +271,19 @@ public static class BlueprintUI
                 yield return new CodeInstruction(OpCodes.Ldloc_S, 0);
                 yield return new CodeInstruction(OpCodes.Call, method);
             }
+        }
+    }
+    [HarmonyPatch(typeof(FejdStartup), nameof(FejdStartup.Awake))]
+    private static class FejdStartup_Awake_Patch
+    {
+        private static bool done;
+        [UsedImplicitly]
+        private static void Postfix(FejdStartup __instance)
+        {
+            if (done) return;
+            done = true;
+            if (__instance.transform.Find("StartGame/Panel/JoinPanel/serverCount")?.GetComponent<TextMeshProUGUI>() is not { } tmp) return;
+            foreach (var componentsInChild in UI.GetComponentsInChildren<TMP_Text>()) componentsInChild.font = tmp.font;
         }
     }
 }
