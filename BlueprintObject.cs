@@ -44,17 +44,19 @@ public class BlueprintRoot
     private string FilePath;
     public string Name;
     public string Icon;
+    public SimpleVector3 BoxRotation;
     public BlueprintObject[] Objects;
     public string[] Previews;
     public void AssignPath(string path) => FilePath = path;
     public bool TryGetFilePath(out string path) { path = FilePath; return !string.IsNullOrEmpty(FilePath); }
-    public static BlueprintRoot CreateNew(string Name, Vector3 start, Piece[] objects)
+    public static BlueprintRoot CreateNew(string Name, Vector3 boxRotation, Vector3 start, Piece[] objects)
     {
         objects.ThrowIfBad(Name);
         BlueprintRoot root = new BlueprintRoot
         {
             Name = Name,
-            Objects = new BlueprintObject[objects.Length]
+            Objects = new BlueprintObject[objects.Length],
+            BoxRotation = boxRotation
         };
         objects = objects.OrderBy(x => x.transform.position.y).ToArray();
         for (int i = 0; i < objects.Length; ++i)
@@ -130,8 +132,8 @@ public class BlueprintRoot
         }
         return requirements.Select(x => new Piece.Requirement() { m_resItem = x.Key, m_amount = x.Value }).ToArray();
     }
-    public void Apply(Vector3 center, Quaternion rootRot) => ZNetScene.instance.StartCoroutine(Internal_Apply(center, rootRot));
-    private IEnumerator Internal_Apply(Vector3 center, Quaternion rootRot)
+    public void Apply(Vector3 center, Quaternion rootRot) => ZNetScene.instance.StartCoroutine(Internal_Apply(Configs.InstantBuild.Value, Input.GetKey(KeyCode.LeftControl), center, rootRot));
+    private IEnumerator Internal_Apply(bool instantBuild, bool snapToGround, Vector3 center, Quaternion rootRot)
     {
         const int maxPerFrame = 3;
         int count = 0;
@@ -145,12 +147,17 @@ public class BlueprintRoot
             }
             Vector3 pos = center + rootRot * Objects[i].RelativePosition;
             Quaternion rot = Quaternion.Euler(Objects[i].Rotation) * rootRot;
-            /*Piece p = Object.Instantiate(prefab, pos, rot).GetComponent<Piece>();
-            p.m_placeEffect.Create(pos, rot, p.transform);*/
-                
-            BuildProgress.BuildProgressComponent component = Object.Instantiate(BuildProgress._piece, pos, rot).GetComponent<BuildProgress.BuildProgressComponent>();
-            component.Setup(prefab.name, Game.instance.m_playerProfile.m_playerID, 30f, 0);
-            
+            if (instantBuild)
+            {
+                Piece p = Object.Instantiate(prefab, pos, rot).GetComponent<Piece>();
+                p.m_placeEffect.Create(pos, rot, p.transform);
+                p.SetCreator(Game.instance.m_playerProfile.m_playerID);
+            }
+            else
+            {
+                BuildProgress.BuildProgressComponent component = Object.Instantiate(BuildProgress._piece, pos, rot).GetComponent<BuildProgress.BuildProgressComponent>();
+                component.Setup(prefab.name, Game.instance.m_playerProfile.m_playerID, Mathf.Max(1f, Configs.BuildTime.Value));
+            }
             count++;
             if (count < maxPerFrame) continue;
             count = 0;

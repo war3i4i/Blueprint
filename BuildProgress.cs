@@ -63,7 +63,7 @@ public static class BuildProgress
             CreatePieceObject(_Prefab, _Health > 0);
         }
 
-        public void Setup(string prefab, long creatorID, float maxTime, int health) =>
+        public void Setup(string prefab, long creatorID, float maxTime, int health = 0) =>
             _znet.InvokeRPC(ZNetView.Everybody, "Setup", prefab, creatorID, maxTime, health);
 
         private void RPC_Setup(long sender, string prefab, long creator, float maxTime, int health)

@@ -62,7 +62,7 @@ public static class BlueprintUI
         entry.transform.Find("Delete").GetComponent<Button>().onClick.AddListener(() =>
         {
             Hide();
-            UnifiedPopup.Push(new YesNoPopup("Delete Blueprint", $"Are you sure you want to delete blueprint {root.Name}?", () =>
+            UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_delete", $"$kg_blueprint_confirmdelete {root.Name}?", () =>
             {
                UnifiedPopup.Pop();
                root.Delete();
@@ -79,7 +79,22 @@ public static class BlueprintUI
             {
                 entry.transform.Find("Name").GetComponent<TMP_Text>().text = newName;
             });
-            TextInput.instance.RequestText(renamer, "Rename Blueprint", 40);
+            TextInput.instance.RequestText(renamer, "$kg_blueprint_rename", 40);
+        });
+        entry.transform.Find("Load").GetComponent<Button>().onClick.AddListener(() =>
+        {
+            Hide();
+            if (!PlayerState.PlayerInsideBlueprint || !PlayerState.BlueprintPiece)
+            {
+                UnifiedPopup.Push(new WarningPopup("$kg_blueprint_load_error", "$kg_blueprint_load_error_desc", UnifiedPopup.Pop));
+                return;
+            }
+            UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_load", $"$kg_blueprint_confirmload {root.Name}?", () =>
+            {
+                UnifiedPopup.Pop();
+                PlayerState.BlueprintPiece.DestroyAllPiecesInside();
+                PlayerState.BlueprintPiece.Load(root);
+            }, UnifiedPopup.Pop));
         });
         if (root.Previews.Length > 0)
         {
@@ -110,7 +125,7 @@ public static class BlueprintUI
             GameObject go = Object.Instantiate(prefab, _Internal_SelectedPiece.Key.transform);
             go.transform.position = obj.RelativePosition;
             go.transform.rotation = Quaternion.Euler(obj.Rotation);
-            foreach (Component comp in go.GetComponentsInChildren<Component>(true))
+            foreach (Component comp in go.GetComponentsInChildren<Component>(true).Reverse())
             {
                 if (comp is not Renderer and not MeshFilter and not Transform and not Animator) Object.DestroyImmediate(comp);
             }

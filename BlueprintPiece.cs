@@ -2,14 +2,15 @@
 public static class PlayerState
 {
     public static bool PlayerInsideBlueprint;
+    public static BlueprintPiece BlueprintPiece;
     private static float _counter;
     public static void Update()
     {
         if (!Player.m_localPlayer) return;
         _counter += Time.fixedDeltaTime;
-        if (_counter < 0.1f) return;
+        if (_counter < 1f) return;
         _counter = 0f;
-        PlayerInsideBlueprint = BlueprintPiece.IsInside(Player.m_localPlayer.transform.position);
+        PlayerInsideBlueprint = BlueprintPiece.IsInside(Player.m_localPlayer.transform.position, out BlueprintPiece);
     }
 }
 public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiver
@@ -21,6 +22,11 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
     private Transform _interact;
     private BoxCollider _blueprintArea;
     public static bool IsInside(Vector3 point) => _instances.Any(t => t._blueprintArea.IsInside(point));
+    public static bool IsInside(Vector3 point, out BlueprintPiece piece)
+    {
+        piece = _instances.FirstOrDefault(t => t._blueprintArea.IsInside(point));
+        return piece;
+    }
     private void Awake()
     {
         _znv = GetComponent<ZNetView>();
@@ -53,7 +59,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
             reason = "$kg_blueprint_createblueprint_no_objects";
             return false;
         }
-        BlueprintRoot root = BlueprintRoot.CreateNew(bpName, start, pieces);
+        BlueprintRoot root = BlueprintRoot.CreateNew(bpName, transform.rotation.eulerAngles, start, pieces);
         Quaternion oldRotation = transform.rotation;
         _view.gameObject.SetActive(false);
         _interact.gameObject.SetActive(false);
@@ -83,7 +89,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
         if (Configs.AutoAddBlueprintsToUI.Value) BlueprintUI.AddEntry(root, true);
         return true;
     }
-    private void DestroyAllPiecesInside()
+    public void DestroyAllPiecesInside()
     {
         Piece[] pieces = _blueprintArea.GetObjectsInside(_piece);
         for (int i = 0; i < pieces.Length; ++i)
@@ -92,6 +98,34 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
             p.m_nview?.ClaimOwnership();
             ZNetScene.instance.Destroy(p.gameObject);
         }   
+    }
+    public void Load(BlueprintRoot root)
+    {
+        if (root == null) return;
+        StartCoroutine(_Internal_Load(root));
+    }
+    private IEnumerator _Internal_Load(BlueprintRoot root)
+    {
+        Vector3 center = StartPoint_BottomCenter;
+        const int maxPerFrame = 1;
+        for (int i = 0; i < root.Objects.Length; ++i)
+        {
+            BlueprintObject obj = root.Objects[i];
+            GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
+            if (!prefab)
+            {
+                kg_Blueprint.Logger.LogError($"Failed to load {obj.Id}");
+                continue;
+            }
+            Quaternion deltaRotation = transform.rotation * Quaternion.Inverse(Quaternion.Euler(root.BoxRotation));
+            Vector3 pos = center + deltaRotation * obj.RelativePosition;
+            Quaternion rot = Quaternion.Euler(obj.Rotation) * deltaRotation;
+            GameObject go = Object.Instantiate(prefab, pos, rot);
+            Piece p = go.GetComponent<Piece>();
+            p.m_nview.m_zdo.Set("kg_Blueprint", true);
+            Piece_Awake_Patch.DeactivatePiece(p);
+            if (i % maxPerFrame == 0) yield return null;
+        }
     }
     public bool Interact(Humanoid user, bool hold, bool alt)
     {
@@ -114,7 +148,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
         if (Player.m_localPlayer.GetHoverObject() is not {} obj) return string.Empty;
         if (obj != _interact.gameObject) return string.Empty;
         return $"[<color=yellow><b>$KEY_Use</b></color>] $kg_blueprint_openui\n" +
-               $"[<color=yellow><b>$KEY_Alt + $KEY_Use</b></color>] $kg_blueprint_clear"
+               $"[<color=yellow><b>L.Shift + $KEY_Use</b></color>] $kg_blueprint_clear"
                    .Localize();
     }
     public bool UseItem(Humanoid user, ItemDrop.ItemData item) => false;
@@ -164,6 +198,16 @@ public static class Hud_SetupPieceInfo_Patch
         piece.m_resources = __state.Requirements; 
     }
 }
+[HarmonyPatch(typeof(Player),nameof(Player.CheckCanRemovePiece))]
+public static class Player_CheckCanRemovePiece_Patch
+{
+    private static bool Prefix(ref bool __result)
+    {
+        if (!PlayerState.PlayerInsideBlueprint) return true;
+        __result = true;
+        return false;
+    }
+}
 [HarmonyPatch(typeof(Player),nameof(Player.TryPlacePiece))]
 public static class Player_TryPlacePiece_Patch
 {
@@ -208,7 +252,7 @@ public static class Piece_Awake_Patch
     private static readonly HashSet<Type> _permittedComponents = [typeof(Piece), typeof(ZNetView), typeof(ZSyncTransform)];
     public static void DeactivatePiece(Piece p)
     {
-        foreach (Component c in p.GetComponentsInChildren<Component>(true))
+        foreach (Component c in p.GetComponentsInChildren<Component>(true).Reverse())
         {
             if (c is Renderer or MeshFilter or Transform or Animator) continue;
             if (c is Collider || _permittedComponents.Contains(c.GetType())) continue;
@@ -219,6 +263,7 @@ public static class Piece_Awake_Patch
             p.m_resources[i].m_amount = 0;
             p.m_resources[i].m_recover = false;
         }
+        p.m_canBeRemoved = true;
     }
     [UsedImplicitly] private static void Postfix(Piece __instance) 
     {

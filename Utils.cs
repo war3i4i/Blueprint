@@ -31,6 +31,7 @@ public static class Utils
         while (File.Exists(newPath)) newPath = Path.Combine(directory, $"{fileNameNoExt} ({increment++}){ext}");
         File.WriteAllText(newPath, data);
     }
+    private static readonly LayerMask Layer = LayerMask.GetMask("piece", "piece_nonsolid");
     public static T[] GetObjectsInside<T>(this BoxCollider box, T exclude) where T : Component
     {
         box.gameObject.SetActive(true);
@@ -38,7 +39,7 @@ public static class Utils
         Vector3 center = box.transform.position + box.center;
         Vector3 halfExtents = Vector3.Scale(box.size * 0.5f, box.transform.lossyScale);
         Quaternion rotation = box.transform.rotation;
-        Collider[] colliders = Physics.OverlapBox(center, halfExtents, rotation, Piece.s_pieceRayMask);
+        Collider[] colliders = Physics.OverlapBox(center, halfExtents, rotation, Layer);
         box.gameObject.SetActive(false);
         foreach (Collider collider in colliders) if (collider.GetComponentInParent<T>() is {} p) hs.Add(p);
         hs.Remove(exclude);

@@ -93,8 +93,7 @@ public static class PhotoManager
     private static GameObject SpawnAndRemoveComponents(RenderRequest obj)
     {
         GameObject tempObj = Object.Instantiate(obj.Target, INACTIVE.transform);
-        List<Component> components = tempObj.GetComponents<Component>().ToList();
-        components.AddRange(tempObj.GetComponentsInChildren<Component>(true));
+        List<Component> components = tempObj.GetComponentsInChildren<Component>(true).ToList();
         List<Component> ToRemove = [];
         foreach (Component comp in components)
         {
@@ -117,7 +116,7 @@ public static class PhotoManager
         if (animator)
         {
             if (animator.HasState(0, Movement))
-                animator.Play(Movement);
+                animator.Play(Movement); 
             animator.Update(0f);
         }
 
