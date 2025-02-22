@@ -92,8 +92,8 @@ public static class BuildProgress
 
             PieceObject.gameObject.SetActive(false);
             GameObject piece = ZNetScene.instance.GetPrefab(prefab);
-            GetComponent<Piece>().m_resources = piece.GetComponent<Piece>().m_resources;
-
+            if (piece.GetComponent<Piece>() is {} p) GetComponent<Piece>().m_resources = p.m_resources;
+ 
             if (piece.GetComponent<BoxCollider>())
                 Utils.CopyComponent(piece.GetComponent<BoxCollider>(), PieceObject.gameObject);
 
@@ -178,11 +178,14 @@ public static class BuildProgress
                 GameObject orig = ZNetScene.instance.GetPrefab(_Prefab);
                 if (orig)
                 {
-                    Piece p = Instantiate(orig, transform.position, transform.rotation).GetComponent<Piece>();
-                    p.SetCreator(_Creator);
-                    p.m_placeEffect.Create(p.transform.position, p.transform.rotation, p.transform);
+                    GameObject newObj = Instantiate(orig, transform.position, transform.rotation);
+                    Piece p = newObj.GetComponent<Piece>();
+                    if (p)
+                    {
+                        p.SetCreator(_Creator);
+                        p.m_placeEffect.Create(p.transform.position, p.transform.rotation, p.transform);  
+                    }
                 }
-
                 _znet.Destroy();
                 return;
             }

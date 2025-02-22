@@ -6,7 +6,7 @@ namespace kg_Blueprint;
 
 public static class Utils
 {
-    public static void ThrowIfBad(this IList<Piece> pieces, string Name, [CallerMemberName] string caller = "", [CallerLineNumber] int line = 0)
+    public static void ThrowIfBad(this IList<GameObject> pieces, string Name, [CallerMemberName] string caller = "", [CallerLineNumber] int line = 0)
     {
         string msg = $"[{Name}] {caller}({line})";
         if (pieces == null || pieces.Count == 0) throw new Exception($"No pieces found [{msg}]");
@@ -32,19 +32,20 @@ public static class Utils
         while (File.Exists(newPath)) newPath = Path.Combine(directory, $"{fileNameNoExt} ({increment++}){ext}");
         File.WriteAllText(newPath, data);
     }
-    private static readonly LayerMask Layer = LayerMask.GetMask("piece", "piece_nonsolid");
-    public static T[] GetObjectsInside<T>(this BoxCollider box, T exclude) where T : Component
+    private static readonly LayerMask Layer = LayerMask.GetMask("piece", "piece_nonsolid", "Default", "character_noenv");
+    public static GameObject[] GetObjectsInside(this BoxCollider box, GameObject[] exclude, params Type[] types)
     {
         box.gameObject.SetActive(true);
-        HashSet<T> hs = [];
+        HashSet<GameObject> hs = [];
         Vector3 center = box.transform.position + box.center;
         Vector3 halfExtents = Vector3.Scale(box.size * 0.5f, box.transform.lossyScale);
         Quaternion rotation = box.transform.rotation;
         Collider[] colliders = Physics.OverlapBox(center, halfExtents, rotation, Layer);
         box.gameObject.SetActive(false);
-        foreach (Collider collider in colliders) if (collider.GetComponentInParent<T>() is {} p) hs.Add(p);
-        hs.Remove(exclude);
-        T[] result = new T[hs.Count];
+        foreach (Collider collider in colliders)
+            for (int i = 0; i < types.Length; ++i) if (collider.GetComponentInParent(types[i]) is {} p) hs.Add(p.gameObject);
+        if (exclude != null) hs.ExceptWith(exclude);
+        GameObject[] result = new GameObject[hs.Count];
         hs.CopyTo(result);
         return result;
     }

@@ -54,7 +54,7 @@ public class BlueprintRoot
     public string[] Previews;
     public void AssignPath(string path) => FilePath = path;
     public bool TryGetFilePath(out string path) { path = FilePath; return !string.IsNullOrEmpty(FilePath); }
-    public static BlueprintRoot CreateNew(string Name, Vector3 boxRotation, Vector3 start, Piece[] objects)
+    public static BlueprintRoot CreateNew(string Name, Vector3 boxRotation, Vector3 start, GameObject[] objects)
     {
         objects.ThrowIfBad(Name);
         BlueprintRoot root = new BlueprintRoot
@@ -111,22 +111,20 @@ public class BlueprintRoot
             reason = "Name is null or empty";
             return false;
         }
-        if (Objects.Length == 0)
-        {
-            reason = "No objects in blueprint";
-            return false;
-        }
-        return true;
+        if (Objects.Length != 0) return true;
+        reason = "No objects in blueprint";
+        return false;
     }
     public Piece.Requirement[] GetRequirements()
     {
-        Piece[] pieces = new Piece[Objects.Length];
-        for (int i = 0; i < Objects.Length; ++i) pieces[i] = ZNetScene.instance.GetPrefab(Objects[i].Id)?.GetComponent<Piece>();
-        pieces.ThrowIfBad(Name);
+        GameObject[] gameObjects = new GameObject[Objects.Length];
+        for (int i = 0; i < Objects.Length; ++i) gameObjects[i] = ZNetScene.instance.GetPrefab(Objects[i].Id);
+        gameObjects.ThrowIfBad(Name);
         Dictionary<ItemDrop, int> requirements = new Dictionary<ItemDrop, int>();
-        for (int i = 0; i < pieces.Length; ++i)
+        for (int i = 0; i < gameObjects.Length; ++i)
         {
-            Piece p = pieces[i];
+            Piece p = gameObjects[i].GetComponent<Piece>();
+            if (!p) continue;
             for (int r = 0; r < p.m_resources.Length; ++r)
             {
                 if (requirements.ContainsKey(p.m_resources[r].m_resItem))
@@ -139,14 +137,16 @@ public class BlueprintRoot
     }
     public IOrderedEnumerable<KeyValuePair<Piece, int>> GetPiecesNumbered()
     {
-        Piece[] pieces = new Piece[Objects.Length];
-        for (int i = 0; i < Objects.Length; ++i) pieces[i] = ZNetScene.instance.GetPrefab(Objects[i].Id)?.GetComponent<Piece>();
+        GameObject[] pieces = new GameObject[Objects.Length];
+        for (int i = 0; i < Objects.Length; ++i) pieces[i] = ZNetScene.instance.GetPrefab(Objects[i].Id);
         pieces.ThrowIfBad(Name);
         Dictionary<Piece, int> numbered = new Dictionary<Piece, int>();
         for (int i = 0; i < pieces.Length; ++i)
         {
-            if (numbered.ContainsKey(pieces[i])) numbered[pieces[i]]++;
-            else numbered[pieces[i]] = 1;
+            Piece p = pieces[i].GetComponent<Piece>();
+            if (!p) continue;
+            if (numbered.ContainsKey(p)) numbered[p]++;
+            else numbered[p] = 1;
         }
         return numbered.OrderByDescending(x => x.Value);
     }
@@ -170,9 +170,13 @@ public class BlueprintRoot
             }
             if (instantBuild)
             {
-                Piece p = Object.Instantiate(prefab, pos, rot).GetComponent<Piece>();
-                p.m_placeEffect.Create(pos, rot, p.transform);
-                p.SetCreator(Game.instance.m_playerProfile.m_playerID);
+                GameObject newObj = Object.Instantiate(prefab, pos, rot);
+                Piece p = newObj.GetComponent<Piece>();
+                if (p)
+                {
+                    p.m_placeEffect.Create(pos, rot, p.transform);
+                    p.SetCreator(Game.instance.m_playerProfile.m_playerID);
+                }
             }
             else
             {

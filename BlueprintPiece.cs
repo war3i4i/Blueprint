@@ -71,21 +71,21 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
     {
         reason = null;
         Vector3 start = StartPoint_BottomCenter;
-        Piece[] pieces = _blueprintArea.GetObjectsInside(_piece);
-        if (pieces.Length == 0)
+        GameObject[] objects = _blueprintArea.GetObjectsInside([_piece.gameObject], typeof(Piece), typeof(TreeBase), typeof(Destructible));
+        if (objects.Length == 0)
         {
             reason = "$kg_blueprint_createblueprint_no_objects";
             return false;
         }
-        BlueprintRoot root = BlueprintRoot.CreateNew(bpName, transform.rotation.eulerAngles, start, pieces);
+        BlueprintRoot root = BlueprintRoot.CreateNew(bpName, transform.rotation.eulerAngles, start, objects);
         Quaternion oldRotation = transform.rotation;
         _view.gameObject.SetActive(false);
         _interact.gameObject.SetActive(false);
         bool projectorsActive = _projectors.gameObject.activeSelf;
         _projectors.gameObject.SetActive(true);
-        for (int i = 0; i < pieces.Length; ++i)
+        for (int i = 0; i < objects.Length; ++i)
         {
-            Piece p = pieces[i];
+            GameObject p = objects[i];
             p.transform.SetParent(transform);
         }
         string[] previews = new string[3];
@@ -95,9 +95,9 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
         
         root.SetPreviews(previews); 
         transform.rotation = oldRotation; 
-        for (int i = 0; i < pieces.Length; ++i)
+        for (int i = 0; i < objects.Length; ++i)
         {
-            Piece p = pieces[i];
+            GameObject p = objects[i];
             p.transform.SetParent(null); 
         }
         _view.gameObject.SetActive(true);
@@ -112,13 +112,13 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
     }
     public void DestroyAllPiecesInside()
     {
-        Piece[] pieces = _blueprintArea.GetObjectsInside(_piece);
-        for (int i = 0; i < pieces.Length; ++i)
+        GameObject[] objects = _blueprintArea.GetObjectsInside([_piece.gameObject], typeof(Piece), typeof(TreeBase), typeof(Destructible));
+        for (int i = 0; i < objects.Length; ++i)
         {
-            Piece p = pieces[i];
-            p.m_nview?.ClaimOwnership();
-            ZNetScene.instance.Destroy(p.gameObject);
-        }   
+            GameObject go = objects[i];
+            if (go.GetComponent<ZNetView>() is {} znv) znv.ClaimOwnership();
+            ZNetScene.instance.Destroy(go);
+        }
     }
     public void Load(BlueprintRoot root)
     {
@@ -143,9 +143,11 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
             if (!IsInside(pos)) continue;
             Quaternion rot = Quaternion.Euler(obj.Rotation) * deltaRotation;
             GameObject go = Object.Instantiate(prefab, pos, rot);
-            Piece p = go.GetComponent<Piece>();
-            p.m_nview.m_zdo.Set("kg_Blueprint", true);
-            Piece_Awake_Patch.DeactivatePiece(p);
+            if (go.GetComponent<Piece>() is { } p)
+            {
+                p.m_nview?.m_zdo.Set("kg_Blueprint", true);
+                Piece_Awake_Patch.DeactivatePiece(p);
+            }
             yield return Utils.WaitFrames(Configs.BlueprintLoadFrameSkip.Value);
         }
     }

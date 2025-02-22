@@ -149,8 +149,6 @@ public static class BlueprintUI
             BlueprintObject obj = blueprint.Objects[i]; 
             GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
             if (!prefab) continue;
-            Piece piece = prefab.GetComponent<Piece>();  
-            if (!piece) continue;
             GameObject go = Object.Instantiate(prefab, _Internal_SelectedPiece.Key.transform);
             go.transform.position = obj.RelativePosition;
             go.transform.rotation = Quaternion.Euler(obj.Rotation);

@@ -49,4 +49,26 @@ public static class ValheimFixes
             Hud_Awake_Patch.Rect.sizeDelta = new Vector2(Hud_Awake_Patch.OriginalSize.x + amount * 50, Hud_Awake_Patch.Rect.sizeDelta.y);
         }
     }
+    [HarmonyPatch(typeof(StaticPhysics),nameof(StaticPhysics.Awake))] 
+    private static class StaticPhysics_Awake_Patch
+    {
+        private static void ActivateSolid(StaticPhysics physics)
+        {
+            physics.m_checkSolids = true;
+            Transform[] children = physics.GetComponentsInChildren<Transform>();
+            foreach (Transform child in children) child.gameObject.layer = nonsolidlayer;
+        }
+        private static readonly LayerMask nonsolidlayer = LayerMask.NameToLayer("character_noenv");
+        [UsedImplicitly] private static void Postfix(StaticPhysics __instance)
+        {
+            if (__instance.m_nview && __instance.m_nview.IsValid() && __instance.m_nview.m_zdo.GetBool("kg_Blueprint"))
+            {
+                ActivateSolid(__instance);
+                return;
+            }
+            if (!BlueprintPiece.IsInside(__instance.transform.position)) return;
+            __instance.m_nview?.m_zdo.Set("kg_Blueprint", true);
+            ActivateSolid(__instance);
+        }
+    }
 }
