@@ -14,14 +14,15 @@ public class kg_Blueprint : BaseUnityPlugin
     public new static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(GUID);
     public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");
     public static readonly string BlueprintsPath = Path.Combine(Paths.ConfigPath, "Blueprints");
-    private void Awake()
+    private void Awake() 
     {
         _thistype = this;
         Localizer.Load();
+        LoadAsm("kg_BlueprintScripts");
         if (!Directory.Exists(BlueprintsPath)) Directory.CreateDirectory(BlueprintsPath); 
         new BuildPiece(Asset, "kg_BlueprintBox").Prefab.AddComponent<BlueprintPiece>();
         new Item(Asset, "kg_BlueprintHammer"){ Configurable = Configurability.Recipe };
-        Configs.Init();
+        Configs.Init(); 
         BlueprintUI.Init();
         BuildProgress.Init();
         ReadBlueprints();
@@ -35,7 +36,7 @@ public class kg_Blueprint : BaseUnityPlugin
         string resourceName = execAssembly.GetManifestResourceNames().Single(str => str.EndsWith(filename));
         using Stream stream = execAssembly.GetManifestResourceStream(resourceName)!;
         return AssetBundle.LoadFromStream(stream);
-    }
+    } 
     public static void ReadBlueprints()
     {
         List<BlueprintRoot> Blueprints = [];
@@ -62,5 +63,20 @@ public class kg_Blueprint : BaseUnityPlugin
         }
         BlueprintUI.Load(Blueprints);
     }
-        
+    private static void LoadAsm(string name)
+    {
+        Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("kg_Blueprint.Assets." + name + ".dll")!;
+        byte[] buffer = new byte[stream.Length];
+        // ReSharper disable once MustUseReturnValue
+        stream.Read(buffer, 0, buffer.Length); 
+        try 
+        {
+            Assembly.Load(buffer);
+            stream.Dispose();
+        } 
+        catch(Exception ex)
+        {
+            Logger.LogError($"Error loading {name} assembly\n:{ex}");
+        }
+    }
 }

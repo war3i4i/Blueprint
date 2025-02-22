@@ -68,40 +68,40 @@ public static class BlueprintUI
         entry.transform.Find("Name").GetComponent<TMP_Text>().text = root.Name;
         if (root.Icon.ToIcon() is {} icon) entry.transform.Find("Icon").GetComponent<RawImage>().texture = icon;
 
-        Transform selection = entry.transform.Find("Selection");
-        UIInputHandler selectionHandler = selection.GetComponent<UIInputHandler>();
-        selectionHandler.m_onLeftClick += (_) =>
-        {
-            Hide();
-            OnSelect(root);
-        };
+        var selectionHandler = entry.GetComponent<UIInputHandler>();
+        var selection = entry.transform.Find("Selection").gameObject;
         selectionHandler.m_onPointerEnter += (_) =>
         { 
             Image img = selection.GetComponent<Image>();
-            img.color = new Color(img.color.r, img.color.g, img.color.b, 0.2f);
+            img.color = new Color(0.1223255f, 0.2358491f, 0.0745372f, 0.509804f);
             ShowResources(root);
         };
         selectionHandler.m_onPointerExit += (_) =>
         { 
             Image img = selection.GetComponent<Image>();
-            img.color = new Color(img.color.r, img.color.g, img.color.b, 0f);
+            img.color = new Color(0f, 0f, 0f, 0.509804f);
             HideResources();
         };
-        entry.transform.Find("Delete").GetComponent<Button>().onClick.AddListener(() =>
+        entry.transform.Find("Buttons/Delete").GetComponent<Button>().onClick.AddListener(() =>
         {
             Hide();
             UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_delete", $"$kg_blueprint_confirmdelete <color=yellow>{root.Name}</color>?", () =>
             {
                UnifiedPopup.Pop();
-               root.Delete();
+               root.Delete();  
                Object.Destroy(entry);
             }, UnifiedPopup.Pop));
-        });
-        entry.transform.Find("ShowFile").GetComponent<Button>().onClick.AddListener(() =>
+        }); 
+        entry.transform.Find("Select").GetComponent<Button>().onClick.AddListener(() =>
         {
+            Hide();
+            OnSelect(root);
+        });
+        entry.transform.Find("Buttons/ShowFile").GetComponent<Button>().onClick.AddListener(() =>
+        { 
             if (root.TryGetFilePath(out string path)) path.Explorer_SelectFile();
         });
-        entry.transform.Find("Rename").GetComponent<Button>().onClick.AddListener(() =>
+        entry.transform.Find("Buttons/Rename").GetComponent<Button>().onClick.AddListener(() =>
         {
             Hide();
             RenameBlueprintRoot renamer = new(root, (newName) =>
@@ -110,7 +110,7 @@ public static class BlueprintUI
             });
             TextInput.instance.RequestText(renamer, "$kg_blueprint_rename", 40);
         });
-        entry.transform.Find("Load").GetComponent<Button>().onClick.AddListener(() =>
+        entry.transform.Find("Buttons/Load").GetComponent<Button>().onClick.AddListener(() =>
         { 
             Hide();
             if (!PlayerState.PlayerInsideBlueprint || !PlayerState.BlueprintPiece)
@@ -130,8 +130,8 @@ public static class BlueprintUI
             for (int p = 3; p >= 1; --p)
             {
                 if (p > root.Previews.Length) continue;
-                entry.transform.Find($"Preview{p}").gameObject.SetActive(true);
-                entry.transform.Find($"Preview{p}/Img").GetComponent<RawImage>().texture = root.GetPreview(p - 1);
+                entry.transform.Find($"Previews/Preview{p}").gameObject.SetActive(true);
+                entry.transform.Find($"Previews/Preview{p}/Img").GetComponent<RawImage>().texture = root.GetPreview(p - 1);
             }
         }
         if (updateCanvases) UpdateCanvases();
@@ -200,8 +200,8 @@ public static class BlueprintUI
         UI.SetActive(false);
         foreach (var componentsInChild in Content.GetComponentsInChildren<UIInputHandler>())
         {
-            Image img = componentsInChild.GetComponent<Image>();
-            img.color = new Color(img.color.r, img.color.g, img.color.b, 0f);
+            Image img = componentsInChild.transform.Find("Selection").GetComponent<Image>();
+            img.color = new Color(0f, 0f, 0f, 0.509804f);
         }
         HideResources();
     }

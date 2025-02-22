@@ -21,25 +21,43 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
     private Transform _view;
     private Transform _interact;
     private BoxCollider _blueprintArea;
+    private Transform _projectors;
     public static bool IsInside(Vector3 point) => _instances.Any(t => t._blueprintArea.IsInside(point));
     public static bool IsInside(Vector3 point, out BlueprintPiece piece)
     {
         piece = _instances.FirstOrDefault(t => t._blueprintArea.IsInside(point));
         return piece;
-    }
+    } 
     private void Awake()
     {
-        _znv = GetComponent<ZNetView>();
+        _znv = GetComponent<ZNetView>();  
+        _projectors = transform.Find("Scale/Projectors");
+        _projectors.gameObject.SetActive(false);
         if (!_znv.IsValid()) return;
         _instances.Add(this);
         _piece = GetComponent<Piece>();
         _view = transform.Find("Scale/View");
         _interact = transform.Find("Scale/Interact");
         _blueprintArea = transform.Find("Scale/BlueprintArea").GetComponent<BoxCollider>();
+     
+        _projectors.Find("Side1").GetComponent<SquareProjector>().rotation = transform.rotation.eulerAngles.y;
+        _projectors.Find("Side2").GetComponent<SquareProjector>().rotation = transform.rotation.eulerAngles.y;
+        _projectors.Find("Side3").GetComponent<SquareProjector>().rotation = transform.rotation.eulerAngles.y + 90f;
+        _projectors.Find("Side4").GetComponent<SquareProjector>().rotation = transform.rotation.eulerAngles.y + 90f;
+        
     }
+    private float _counter = 1f;
+    private void FixedUpdate()
+    {
+        _counter -= Time.fixedDeltaTime;
+        if (!(_counter < 0f)) return;
+        _counter = 1f;
+        _projectors.gameObject.SetActive(PlayerState.BlueprintPiece == this);
+    }
+
     private void OnDestroy() => _instances.Remove(this);
     private Vector3 StartPoint_BottomCenter
-    {
+    { 
         get
         {
             _blueprintArea.gameObject.SetActive(true);
