@@ -170,7 +170,6 @@ public static class BuildProgress
                 wnt.m_autoCreateFragments = false;
             }
         }
-
         private void FixedUpdate()
         {
             if (!_znet.IsOwner()) return;
@@ -188,7 +187,6 @@ public static class BuildProgress
                 _znet.Destroy();
                 return;
             }
-
             float progress = _Time / _MaxTime;
             float setCurrentWorldSpaceVisibility = Mathf.Lerp(MinY, MaxY, progress);
             foreach (Material material in _materials)

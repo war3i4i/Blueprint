@@ -28,8 +28,6 @@ public static class BlueprintUI
         BlueprintEntry.SetActive(false);
         ResourceEntry.SetActive(false);
         Content = BlueprintEntry.transform.parent;
-        ResourcesTab.SetActive(false);  
-        PiecesTab.SetActive(false);
         Localization.instance.Localize(UI.transform);
     }
     private static void UpdateCanvases() 
@@ -73,14 +71,15 @@ public static class BlueprintUI
         selectionHandler.m_onPointerEnter += (_) =>
         { 
             Image img = selection.GetComponent<Image>();
-            img.color = new Color(0.1223255f, 0.2358491f, 0.0745372f, 0.509804f);
+            img.color = new Color(0.36f, 0.57f, 0.13f, 0.51f);
             ShowResources(root);
         };
         selectionHandler.m_onPointerExit += (_) =>
         { 
             Image img = selection.GetComponent<Image>();
             img.color = new Color(0f, 0f, 0f, 0.509804f);
-            HideResources();
+            ResourceContent.RemoveAllChildrenExceptFirst();
+            PiecesContent.RemoveAllChildrenExceptFirst();
         };
         entry.transform.Find("Buttons/Delete").GetComponent<Button>().onClick.AddListener(() =>
         {
@@ -88,7 +87,7 @@ public static class BlueprintUI
             UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_delete", $"$kg_blueprint_confirmdelete <color=yellow>{root.Name}</color>?", () =>
             {
                UnifiedPopup.Pop();
-               root.Delete();  
+               root.Delete();   
                Object.Destroy(entry);
             }, UnifiedPopup.Pop));
         }); 
@@ -193,7 +192,7 @@ public static class BlueprintUI
             entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{pair.Key.m_name} x{pair.Value}".Localize();
         }
     }
-    private static void HideResources() { ResourcesTab.SetActive(false); PiecesTab.SetActive(false); }
+    private static void HideResources() { ResourceContent.RemoveAllChildrenExceptFirst(); ResourcesTab.SetActive(false); PiecesContent.RemoveAllChildrenExceptFirst(); PiecesTab.SetActive(false); }
     private static void Show() => UI.SetActive(true);
     public static void Hide()
     {

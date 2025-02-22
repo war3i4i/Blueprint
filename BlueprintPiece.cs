@@ -149,6 +149,13 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
     {
         if (user.GetHoverObject() is not {} obj) return false;
         if (obj != _interact.gameObject) return false;
+        if (Input.GetKey(KeyCode.C))
+        {
+            DestroyAllPiecesInside();
+            this._znv.ClaimOwnership();
+            ZNetScene.instance.Destroy(gameObject);
+            return true;
+        }
         if (!alt) TextInput.instance.RequestText(this, "$kg_blueprint_createblueprint_title", 30);
         else
         {
@@ -166,7 +173,8 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
         if (Player.m_localPlayer.GetHoverObject() is not {} obj) return string.Empty;
         if (obj != _interact.gameObject) return string.Empty;
         return "[<color=yellow><b>$KEY_Use</b></color>] $kg_blueprint_saveblueprint\n".Localize() +
-               "[<color=yellow><b>L.Shift + $KEY_Use</b></color>] $kg_blueprint_clear".Localize();
+               "[<color=yellow><b>L.Shift + $KEY_Use</b></color>] $kg_blueprint_clear\n".Localize() +
+               "<color=red>[<color=yellow><b>C + $KEY_Use</b></color>] $kg_blueprint_delete</color>".Localize();
     }
     public bool UseItem(Humanoid user, ItemDrop.ItemData item) => false;
     public string GetHoverName() => "$kg_blueprint_piece";
@@ -218,8 +226,9 @@ public static class Hud_SetupPieceInfo_Patch
 [HarmonyPatch(typeof(Player),nameof(Player.CheckCanRemovePiece))]
 public static class Player_CheckCanRemovePiece_Patch
 {
-    private static bool Prefix(ref bool __result)
+    private static bool Prefix(Piece piece, ref bool __result)
     {
+        if (piece.name == "kg_BlueprintBox(Clone)") return false;
         if (!PlayerState.PlayerInsideBlueprint) return true;
         __result = true;
         return false;

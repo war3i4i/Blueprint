@@ -22,6 +22,8 @@ public class RenameBlueprintRoot(BlueprintRoot root, Action<string> callback) : 
         try
         {
             string newPath = Path.Combine(Path.GetDirectoryName(path)!, $"{text}.yml");
+            int count = 1;
+            while (File.Exists(newPath)) newPath = Path.Combine(Path.GetDirectoryName(path)!, $"{text} ({++count}).yml");
             File.Delete(path);
             root.AssignPath(newPath);
             root.Name = text;
