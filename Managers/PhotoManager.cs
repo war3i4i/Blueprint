@@ -70,14 +70,14 @@ public static class PhotoManager
         Light.transform.position = SpawnPoint;
         Light.transform.rotation = Quaternion.Euler(5f, 180f, 5f);
         Light.type = LightType.Directional;
-        Light.intensity = 0.5f;
+        Light.intensity = 2f; 
         Light.cullingMask = 1 << MAINLAYER;
         Object.DontDestroyOnLoad(Light);
 
         rendererCamera.gameObject.SetActive(false);
         Light.gameObject.SetActive(false);
     }
-
+ 
     private static void ClearRendering()
     {
         rendererCamera.gameObject.SetActive(false);

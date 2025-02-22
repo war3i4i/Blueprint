@@ -8,6 +8,8 @@ public static class BlueprintUI
     private static GameObject BlueprintEntry;
     private static GameObject ResourcesTab;
     private static Transform ResourceContent;
+    private static GameObject PiecesTab;
+    private static Transform PiecesContent;
     private static GameObject ResourceEntry;
     private static Transform Content;
     public static bool IsVisible => UI && UI.activeSelf;
@@ -21,11 +23,16 @@ public static class BlueprintUI
         ResourcesTab = UI.transform.Find("Canvas/UI/Resources").gameObject;
         ResourceEntry = ResourcesTab.transform.Find("Scroll View/Viewport/Content/ResourceEntry").gameObject;
         ResourceContent = ResourcesTab.transform.Find("Scroll View/Viewport/Content");
+        PiecesTab = UI.transform.Find("Canvas/UI/Pieces").gameObject;
+        PiecesContent = UI.transform.Find("Canvas/UI/Pieces/Scroll View/Viewport/Content");
         BlueprintEntry.SetActive(false);
+        ResourceEntry.SetActive(false);
         Content = BlueprintEntry.transform.parent;
+        ResourcesTab.SetActive(false);  
+        PiecesTab.SetActive(false);
         Localization.instance.Localize(UI.transform);
     }
-    private static void UpdateCanvases()
+    private static void UpdateCanvases() 
     {
         List<ContentSizeFitter> fitters = UI.GetComponentsInChildren<ContentSizeFitter>().ToList();
         Canvas.ForceUpdateCanvases();
@@ -176,8 +183,17 @@ public static class BlueprintUI
             entry.transform.Find("Name").GetComponent<TMP_Text>().color = Player.m_localPlayer.HaveRequirementItems(temp, false, 1) ? Color.green : Color.red;
         }
         Object.DestroyImmediate(temp);
+        PiecesTab.SetActive(true);
+        PiecesContent.RemoveAllChildrenExceptFirst();
+        foreach (KeyValuePair<Piece, int> pair in root.GetPiecesNumbered())
+        {
+            GameObject entry = Object.Instantiate(ResourceEntry, PiecesContent);
+            entry.SetActive(true);
+            entry.transform.Find("Icon").GetComponent<Image>().sprite = pair.Key.m_icon;
+            entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{pair.Key.m_name} x{pair.Value}".Localize();
+        }
     }
-    private static void HideResources() => ResourcesTab.SetActive(false);
+    private static void HideResources() { ResourcesTab.SetActive(false); PiecesTab.SetActive(false); }
     private static void Show() => UI.SetActive(true);
     public static void Hide()
     {

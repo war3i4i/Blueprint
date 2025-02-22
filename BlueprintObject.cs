@@ -1,4 +1,6 @@
-﻿namespace kg_Blueprint;
+﻿using YamlDotNet.Helpers;
+
+namespace kg_Blueprint;
 
 [Serializable]
 public class SimpleVector3
@@ -20,9 +22,10 @@ public class RenameBlueprintRoot(BlueprintRoot root, Action<string> callback) : 
         try
         {
             string newPath = Path.Combine(Path.GetDirectoryName(path)!, $"{text}.yml");
-            File.Move(path, newPath);
+            File.Delete(path);
             root.AssignPath(newPath);
             root.Name = text;
+            File.WriteAllText(newPath, new Serializer().Serialize(root));
             callback?.Invoke(text);
         }
         catch (Exception e)
@@ -131,6 +134,19 @@ public class BlueprintRoot
             }
         }
         return requirements.Select(x => new Piece.Requirement() { m_resItem = x.Key, m_amount = x.Value }).ToArray();
+    }
+    public IOrderedEnumerable<KeyValuePair<Piece, int>> GetPiecesNumbered()
+    {
+        Piece[] pieces = new Piece[Objects.Length];
+        for (int i = 0; i < Objects.Length; ++i) pieces[i] = ZNetScene.instance.GetPrefab(Objects[i].Id)?.GetComponent<Piece>();
+        pieces.ThrowIfBad(Name);
+        Dictionary<Piece, int> numbered = new Dictionary<Piece, int>();
+        for (int i = 0; i < pieces.Length; ++i)
+        {
+            if (numbered.ContainsKey(pieces[i])) numbered[pieces[i]]++;
+            else numbered[pieces[i]] = 1;
+        }
+        return numbered.OrderByDescending(x => x.Value);
     }
     public void Apply(Vector3 center, Quaternion rootRot) => ZNetScene.instance.StartCoroutine(Internal_Apply(Configs.InstantBuild.Value, Input.GetKey(KeyCode.LeftControl), center, rootRot));
     private IEnumerator Internal_Apply(bool instantBuild, bool snapToGround, Vector3 center, Quaternion rootRot)
