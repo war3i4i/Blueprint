@@ -37,7 +37,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
         _instances.Add(this);
         _piece = GetComponent<Piece>();
         _view = transform.Find("Scale/View");
-        _interact = transform.Find("Scale/Interact");
+        _interact = transform.Find("Interact");
         _blueprintArea = transform.Find("Scale/BlueprintArea").GetComponent<BoxCollider>();
      
         _projectors.Find("Side1").GetComponent<SquareProjector>().rotation = transform.rotation.eulerAngles.y;
@@ -145,7 +145,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
             Piece p = go.GetComponent<Piece>();
             p.m_nview.m_zdo.Set("kg_Blueprint", true);
             Piece_Awake_Patch.DeactivatePiece(p);
-            yield return null;
+            yield return null; yield return null; yield return null;
         }
     }
     public bool Interact(Humanoid user, bool hold, bool alt)
@@ -231,7 +231,7 @@ public static class Player_CheckCanRemovePiece_Patch
 {
     private static bool Prefix(Piece piece, ref bool __result)
     {
-        if (piece.name == "kg_BlueprintBox(Clone)") return false;
+        if (piece.name.Contains("kg_BlueprintBox")) return false;
         if (!PlayerState.PlayerInsideBlueprint) return true;
         __result = true;
         return false;

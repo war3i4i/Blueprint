@@ -140,12 +140,13 @@ public static class BlueprintUI
         if (_Internal_SelectedPiece.Key) Object.DestroyImmediate(_Internal_SelectedPiece.Key.gameObject);
         _Internal_SelectedPiece = new KeyValuePair<Piece, BlueprintRoot>(Object.Instantiate(CopyFrom, Vector3.zero, Quaternion.identity).GetComponent<Piece>(), blueprint);
         _Internal_SelectedPiece.Key.gameObject.SetActive(false); 
-        _Internal_SelectedPiece.Key.name = $"kg_Blueprint_Internal_PlacePiece";
+        _Internal_SelectedPiece.Key.name = "kg_Blueprint_Internal_PlacePiece";
         _Internal_SelectedPiece.Key.m_name = blueprint.Name;
         _Internal_SelectedPiece.Key.m_icon = string.IsNullOrWhiteSpace(blueprint.Icon) ? _Internal_SelectedPiece.Key.m_icon : ZNetScene.instance.GetPrefab(blueprint.Icon)?.GetComponent<ItemDrop>().m_itemData.GetIcon();
+        _Internal_SelectedPiece.Key.m_extraPlacementDistance = 20;
         for (int i = 0; i < blueprint.Objects.Length; ++i)
         {
-            BlueprintObject obj = blueprint.Objects[i];
+            BlueprintObject obj = blueprint.Objects[i]; 
             GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
             if (!prefab) continue;
             Piece piece = prefab.GetComponent<Piece>();  
@@ -305,7 +306,7 @@ public static class BlueprintUI
     private static class KeyHints_Awake_Patch 
     {
         public static GameObject KeyHint_LeftControl_Snap;
-        private static void Postfix(KeyHints __instance)
+        [UsedImplicitly] private static void Postfix(KeyHints __instance)
         {
             var copyFrom = __instance.m_buildHints.transform.Find("Keyboard/Place");
             if (copyFrom is null) return;
@@ -322,7 +323,7 @@ public static class BlueprintUI
     [HarmonyPatch(typeof(KeyHints),nameof(KeyHints.UpdateHints))]
     private static class KeyHints_UpdateHints_Patch
     {
-        private static void Postfix(KeyHints __instance)
+        [UsedImplicitly] private static void Postfix(KeyHints __instance)
         {
             if(__instance.m_buildHints.activeSelf) KeyHints_Awake_Patch.KeyHint_LeftControl_Snap.SetActive(IsHoldingHammer);
         }

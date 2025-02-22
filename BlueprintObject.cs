@@ -163,13 +163,11 @@ public class BlueprintRoot
             }
             Vector3 pos = center + rootRot * Objects[i].RelativePosition;
             Quaternion rot = Quaternion.Euler(Objects[i].Rotation) * rootRot;
-
             if (snapToGround)
             {
                 pos.y = Mathf.Max(ZoneSystem.instance.GetGroundHeight(pos), pos.y);
                 ZoneSystem.instance.FindFloor(pos, out pos.y);
             }
-            
             if (instantBuild)
             {
                 Piece p = Object.Instantiate(prefab, pos, rot).GetComponent<Piece>();
@@ -181,7 +179,7 @@ public class BlueprintRoot
                 BuildProgress.BuildProgressComponent component = Object.Instantiate(BuildProgress._piece, pos, rot).GetComponent<BuildProgress.BuildProgressComponent>();
                 component.Setup(prefab.name, Game.instance.m_playerProfile.m_playerID, Mathf.Max(1f, Configs.BuildTime.Value));
             }
-            yield return null;
+            yield return null; yield return null; yield return null;
         }
     }
 }

@@ -75,8 +75,7 @@ public static class BuildProgress
                 _MaxTime = maxTime;
                 _Health = health;
             }
-
-            CreatePieceObject(prefab, health > 0);
+            CreatePieceObject(prefab, false);
         }
 
         private static readonly LayerMask layer_nonsolid = LayerMask.NameToLayer("piece_nonsolid");
@@ -164,11 +163,11 @@ public static class BuildProgress
                 child.SetParent(transform, true);
             }
 
-            if (isSolid)
+            /*if (isSolid)
             {
                 WearNTear wnt = gameObject.AddComponent<WearNTear>();
                 wnt.m_autoCreateFragments = false;
-            }
+            }*/
         }
         private void FixedUpdate()
         {

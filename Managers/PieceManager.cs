@@ -1341,7 +1341,7 @@ public static class PiecePrefabManager
     {
         if (assets == null)
         {
-            Debug.LogError($"Failed to load asset bundle. Please make sure to mark all asset bundles as embedded resources.");
+            Debug.LogError("Failed to load asset bundle. Please make sure to mark all asset bundles as embedded resources.");
             return null!;
         }
 

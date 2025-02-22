@@ -14,13 +14,15 @@ public class kg_Blueprint : BaseUnityPlugin
     public new static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(GUID);
     public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");
     public static readonly string BlueprintsPath = Path.Combine(Paths.ConfigPath, "Blueprints");
+    private static List<GameObject> ReplaceMaterials = new List<GameObject>();
     private void Awake() 
     {
         _thistype = this;
         Localizer.Load();
-        LoadAsm("kg_BlueprintScripts");
+        LoadAsm("kg_BlueprintScripts"); 
         if (!Directory.Exists(BlueprintsPath)) Directory.CreateDirectory(BlueprintsPath); 
-        new BuildPiece(Asset, "kg_BlueprintBox").Prefab.AddComponent<BlueprintPiece>();
+        ReplaceMaterials.Add(new BuildPiece(Asset, "kg_BlueprintBox").Prefab.AddComponent<BlueprintPiece>().gameObject);
+        ReplaceMaterials.Add(new BuildPiece(Asset, "kg_BlueprintBox_Large").Prefab.AddComponent<BlueprintPiece>().gameObject);
         new Item(Asset, "kg_BlueprintHammer"){ Configurable = Configurability.Recipe };
         Configs.Init(); 
         BlueprintUI.Init();
@@ -67,7 +69,6 @@ public class kg_Blueprint : BaseUnityPlugin
     {
         Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("kg_Blueprint.Assets." + name + ".dll")!;
         byte[] buffer = new byte[stream.Length];
-        // ReSharper disable once MustUseReturnValue
         stream.Read(buffer, 0, buffer.Length); 
         try 
         {
@@ -77,6 +78,20 @@ public class kg_Blueprint : BaseUnityPlugin
         catch(Exception ex)
         {
             Logger.LogError($"Error loading {name} assembly\n:{ex}");
+        } 
+    } 
+    [HarmonyPatch(typeof(ZNetScene),nameof(ZNetScene.Awake))] 
+    private static class ZNetScene_Awake_Patch
+    { 
+        [UsedImplicitly] private static void Postfix(ZNetScene __instance) 
+        {
+            foreach (GameObject obj in ReplaceMaterials) 
+            {
+                Transform View = obj.transform.Find("Scale/View");
+                MeshRenderer[] renderers = View.GetComponentsInChildren<MeshRenderer>(true);
+                var orig = __instance.GetPrefab("Piece_grausten_floor_2x2").transform.Find("new/high").GetComponent<MeshRenderer>().material;
+                foreach (MeshRenderer renderer in renderers) renderer.material = orig;
+            }
         }
     }
 }
