@@ -140,12 +140,13 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
             }
             Quaternion deltaRotation = transform.rotation * Quaternion.Inverse(Quaternion.Euler(root.BoxRotation));
             Vector3 pos = center + deltaRotation * obj.RelativePosition;
+            if (!IsInside(pos)) continue;
             Quaternion rot = Quaternion.Euler(obj.Rotation) * deltaRotation;
             GameObject go = Object.Instantiate(prefab, pos, rot);
             Piece p = go.GetComponent<Piece>();
             p.m_nview.m_zdo.Set("kg_Blueprint", true);
             Piece_Awake_Patch.DeactivatePiece(p);
-            yield return null; yield return null; yield return null;
+            yield return Utils.WaitFrames(Configs.BlueprintLoadFrameSkip.Value);
         }
     }
     public bool Interact(Humanoid user, bool hold, bool alt)

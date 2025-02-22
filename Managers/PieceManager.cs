@@ -233,7 +233,7 @@ public class BuildPiece
         Prefab = PiecePrefabManager.RegisterPrefab(bundle, prefabName);
         registeredPieces.Add(this);
     }
-
+ 
     private class ConfigurationManagerAttributes
     {
         [UsedImplicitly] public int? Order;
@@ -747,7 +747,7 @@ public class BuildPiece
         previewImage.Apply();
 
         RenderTexture.active = currentRenderTexture;
-
+        
         prefab.GetComponent<Piece>().m_icon = Sprite.Create(previewImage, new Rect(0, 0, (int)rect.width, (int)rect.height), Vector2.one / 2f);
         sideLight.gameObject.SetActive(false);
         camera.targetTexture.Release();

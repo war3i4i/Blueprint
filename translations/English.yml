@@ -1,14 +1,15 @@
 kg_blueprint_piece: Blueprint Box
+kg_blueprint_piece_large: Blueprint Box (Large)
 kg_blueprint_box: Box
 kg_blueprint_piece_desc: "Blueprint Box is a structure that allows you to create a blueprint of your base or any other structure you have built.\nPlacing Pieces inside box area is free and doen't require any resources.\nOnce you have placed all the pieces you want to blueprint, you can save the blueprint and load it later to build the same structure again with Blueprint tool."
 kg_blueprint_delete: Delete
-kg_blueprint_confirmdelete: "Are you sure you want to delete blueprint:"
+kg_blueprint_confirmdelete: "Are you sure want to delete blueprint:"
 kg_blueprint_rename: Rename
 kg_blueprint_showfile: Show File
 kg_blueprint_load: Load
 kg_blueprint_load_error: Blueprint load error
 kg_blueprint_load_error_desc: You must be inside the Blueprint Box to load a blueprint.
-kg_blueprint_confirmload: "Are you sure you want to load blueprint: <color=yellow>$1</color>?\n<color=red>This will clear the current blueprint area.</color>"
+kg_blueprint_confirmload: "Are you sure want to load blueprint: <color=yellow>$1</color>?\n<color=red>This will clear the current blueprint area.</color>"
 kg_blueprint_saveblueprint: Save Blueprint
 kg_blueprint_clear: Clear Blueprint area
 kg_blueprint_clear_desc: "Clear blueprint area of all pieces.\n<color=red>Note: this action cannot be undone.</color>"

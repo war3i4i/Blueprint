@@ -179,7 +179,7 @@ public class BlueprintRoot
                 BuildProgress.BuildProgressComponent component = Object.Instantiate(BuildProgress._piece, pos, rot).GetComponent<BuildProgress.BuildProgressComponent>();
                 component.Setup(prefab.name, Game.instance.m_playerProfile.m_playerID, Mathf.Max(1f, Configs.BuildTime.Value));
             }
-            yield return null; yield return null; yield return null;
+            yield return Utils.WaitFrames(Configs.BlueprintBuildFrameSkip.Value);
         }
     }
 }

@@ -14,7 +14,7 @@ public class kg_Blueprint : BaseUnityPlugin
     public new static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(GUID);
     public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");
     public static readonly string BlueprintsPath = Path.Combine(Paths.ConfigPath, "Blueprints");
-    private static List<GameObject> ReplaceMaterials = new List<GameObject>();
+    private static readonly List<GameObject> ReplaceMaterials = [];
     private void Awake() 
     {
         _thistype = this;
@@ -74,19 +74,19 @@ public class kg_Blueprint : BaseUnityPlugin
         {
             Assembly.Load(buffer);
             stream.Dispose();
-        } 
+        }
         catch(Exception ex)
         {
             Logger.LogError($"Error loading {name} assembly\n:{ex}");
         } 
     } 
-    [HarmonyPatch(typeof(ZNetScene),nameof(ZNetScene.Awake))] 
+    [HarmonyPatch(typeof(ZNetScene),nameof(ZNetScene.Awake))]
     private static class ZNetScene_Awake_Patch
     { 
         [UsedImplicitly] private static void Postfix(ZNetScene __instance) 
         {
             foreach (GameObject obj in ReplaceMaterials) 
-            {
+            { 
                 Transform View = obj.transform.Find("Scale/View");
                 MeshRenderer[] renderers = View.GetComponentsInChildren<MeshRenderer>(true);
                 var orig = __instance.GetPrefab("Piece_grausten_floor_2x2").transform.Find("new/high").GetComponent<MeshRenderer>().material;
