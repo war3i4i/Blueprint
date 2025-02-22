@@ -301,4 +301,30 @@ public static class BlueprintUI
             foreach (var componentsInChild in UI.GetComponentsInChildren<TMP_Text>()) componentsInChild.font = tmp.font;
         }
     }
+    [HarmonyPatch(typeof(KeyHints),nameof(KeyHints.Awake))]
+    private static class KeyHints_Awake_Patch 
+    {
+        public static GameObject KeyHint_LeftControl_Snap;
+        private static void Postfix(KeyHints __instance)
+        {
+            var copyFrom = __instance.m_buildHints.transform.Find("Keyboard/Place");
+            if (copyFrom is null) return;
+            KeyHint_LeftControl_Snap = Object.Instantiate(copyFrom.gameObject, copyFrom.parent);
+            KeyHint_LeftControl_Snap.name = "KeyHint_LeftControl_Snap";
+            KeyHint_LeftControl_Snap.transform.SetAsFirstSibling();
+            KeyHint_LeftControl_Snap.transform.Find("Text").GetComponent<TMP_Text>().text = "$kg_blueprint_snap".Localize();
+            KeyHint_LeftControl_Snap.transform.Find("Text").GetComponent<TMP_Text>().color = new Color(0.16f, 0.53f, 1f);
+            KeyHint_LeftControl_Snap.transform.Find("key_bkg/Key").GetComponent<TMP_Text>().text = "LeftCtrl";
+            KeyHint_LeftControl_Snap.transform.Find("key_bkg/Key").GetComponent<TMP_Text>().color = new Color(0.16f, 0.53f, 1f);
+            KeyHint_LeftControl_Snap.SetActive(false);
+        }
+    }
+    [HarmonyPatch(typeof(KeyHints),nameof(KeyHints.UpdateHints))]
+    private static class KeyHints_UpdateHints_Patch
+    {
+        private static void Postfix(KeyHints __instance)
+        {
+            if(__instance.m_buildHints.activeSelf) KeyHints_Awake_Patch.KeyHint_LeftControl_Snap.SetActive(IsHoldingHammer);
+        }
+    }
 }

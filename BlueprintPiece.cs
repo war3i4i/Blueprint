@@ -81,6 +81,8 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
         Quaternion oldRotation = transform.rotation;
         _view.gameObject.SetActive(false);
         _interact.gameObject.SetActive(false);
+        bool projectorsActive = _projectors.gameObject.activeSelf;
+        _projectors.gameObject.SetActive(true);
         for (int i = 0; i < pieces.Length; ++i)
         {
             Piece p = pieces[i];
@@ -100,6 +102,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
         }
         _view.gameObject.SetActive(true);
         _interact.gameObject.SetActive(true);
+        _projectors.gameObject.SetActive(projectorsActive);
         string path = Path.Combine(kg_Blueprint.BlueprintsPath, bpName + ".yml");
         string data = new Serializer().Serialize(root);
         path.WriteWithDupes(data);
@@ -142,7 +145,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
             Piece p = go.GetComponent<Piece>();
             p.m_nview.m_zdo.Set("kg_Blueprint", true);
             Piece_Awake_Patch.DeactivatePiece(p);
-            if (i % maxPerFrame == 0) yield return null;
+            yield return null;
         }
     }
     public bool Interact(Humanoid user, bool hold, bool alt)
@@ -160,13 +163,13 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
         else
         {
             UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_clear", "$kg_blueprint_clear_desc", () =>
-            {
+            { 
                 UnifiedPopup.Pop();
                 DestroyAllPiecesInside();
                 MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, "$kg_blueprint_cleared".Localize());
             }, UnifiedPopup.Pop));
         } 
-        return true;
+        return true; 
     }
     public string GetHoverText()
     {
@@ -174,8 +177,8 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
         if (obj != _interact.gameObject) return string.Empty;
         return "[<color=yellow><b>$KEY_Use</b></color>] $kg_blueprint_saveblueprint\n".Localize() +
                "[<color=yellow><b>L.Shift + $KEY_Use</b></color>] $kg_blueprint_clear\n".Localize() +
-               "<color=red>[<color=yellow><b>C + $KEY_Use</b></color>] $kg_blueprint_delete</color>".Localize();
-    }
+               "[<color=yellow><b>C + $KEY_Use</b></color>] <color=red>$kg_blueprint_delete $kg_blueprint_box</color>".Localize();
+    } 
     public bool UseItem(Humanoid user, ItemDrop.ItemData item) => false;
     public string GetHoverName() => "$kg_blueprint_piece";
     public string GetText() => "";
@@ -248,6 +251,13 @@ public static class Player_TryPlacePiece_Patch
             __result = false;
             return false;
         }
+        __instance.UpdatePlacementGhost(false);
+        if (__instance.m_placementGhost && !BlueprintPiece.IsInside(__instance.m_placementGhost.transform.position))
+        {
+            MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, "$kg_blueprint_cantbuildobjectsoutsideblueprint".Localize());
+            __result = false;
+            return false;
+        }
         try
         {
             _skip = true;
@@ -276,7 +286,7 @@ public static class Hud_Awake_Patch
 [HarmonyPatch(typeof(Piece),nameof(Piece.Awake))]
 public static class Piece_Awake_Patch
 {
-    private static readonly HashSet<Type> _permittedComponents = [typeof(Piece), typeof(ZNetView), typeof(ZSyncTransform)];
+    private static readonly HashSet<Type> _permittedComponents = [typeof(Piece), typeof(ZNetView), typeof(ZSyncTransform), typeof(Door)];
     public static void DeactivatePiece(Piece p)
     {
         foreach (Component c in p.GetComponentsInChildren<Component>(true).Reverse())
@@ -284,7 +294,7 @@ public static class Piece_Awake_Patch
             if (c is Renderer or MeshFilter or Transform or Animator) continue;
             if (c is Collider || _permittedComponents.Contains(c.GetType())) continue;
             Object.Destroy(c);
-        }
+        } 
         for (int i = 0; i < p.m_resources.Length; i++)
         {
             p.m_resources[i].m_amount = 0;

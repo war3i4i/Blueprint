@@ -153,8 +153,6 @@ public class BlueprintRoot
     public void Apply(Vector3 center, Quaternion rootRot) => ZNetScene.instance.StartCoroutine(Internal_Apply(Configs.InstantBuild.Value, Input.GetKey(KeyCode.LeftControl), center, rootRot));
     private IEnumerator Internal_Apply(bool instantBuild, bool snapToGround, Vector3 center, Quaternion rootRot)
     {
-        const int maxPerFrame = 3;
-        int count = 0;
         for (int i = 0; i < Objects.Length; ++i)
         {
             GameObject prefab = ZNetScene.instance.GetPrefab(Objects[i].Id);
@@ -183,9 +181,6 @@ public class BlueprintRoot
                 BuildProgress.BuildProgressComponent component = Object.Instantiate(BuildProgress._piece, pos, rot).GetComponent<BuildProgress.BuildProgressComponent>();
                 component.Setup(prefab.name, Game.instance.m_playerProfile.m_playerID, Mathf.Max(1f, Configs.BuildTime.Value));
             }
-            count++;
-            if (count < maxPerFrame) continue;
-            count = 0;
             yield return null;
         }
     }
