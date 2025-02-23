@@ -20,7 +20,7 @@ public static class Utils
         if (string.IsNullOrWhiteSpace(path)) throw new Exception($"Path is null or empty [{msg}]");
         return Path.GetInvalidPathChars().Aggregate(path, (current, c) => current.Replace(c.ToString(), string.Empty));
     }
-    public static void WriteNoDupes(this string path, string data) => File.WriteAllText(path.ValidPath(), data);
+    public static void WriteNoDupes(this string path, string data) => File.WriteAllText(path, data);
     public static void WriteWithDupes(this string path, string data, bool forget)
     {
         if (forget) Task.Run(() => WriteWithDupes_Internal(path, data));
@@ -28,7 +28,6 @@ public static class Utils
     }
     private static void WriteWithDupes_Internal(this string path, string data)
     {
-        path = path.ValidPath();
         string directory = Path.GetDirectoryName(path)!;
         string fileNameNoExt = Path.GetFileNameWithoutExtension(path);
         string ext = Path.GetExtension(path);

@@ -1,45 +1,27 @@
-﻿namespace kg_Blueprint;
+﻿using System.Diagnostics;
+
+namespace kg_Blueprint;
 
 public static class PhotoManager
 {
-    private static readonly int Hue = Shader.PropertyToID("_Hue");
-    private static readonly int Saturation = Shader.PropertyToID("_Saturation");
-    private static readonly int Value = Shader.PropertyToID("_Value");
-
     private static readonly GameObject INACTIVE;
     private static readonly Camera rendererCamera;
     private static readonly Light Light;
     private static readonly Vector3 SpawnPoint = new(10000f, 10000f, 10000f);
-
-
-    private class RenderObject
+    private class RenderObject(GameObject spawn, Vector3 size)
     {
-        public readonly GameObject Spawn;
-        public readonly Vector3 Size;
+        public readonly GameObject Spawn = spawn;
+        public readonly Vector3 Size = size;
         public RenderRequest Request;
-
-        public RenderObject(GameObject spawn, Vector3 size)
-        {
-            Spawn = spawn;
-            Size = size;
-        }
     }
-
-    private class RenderRequest
+    private class RenderRequest(GameObject target)
     {
-        public readonly GameObject Target;
+        public readonly GameObject Target = target;
         public int Width { get; set; } = 256;
         public int Height { get; set; } = 256;
-        public Quaternion Rotation { get; set; } = Quaternion.Euler(0f, -24f, 0); //25.8f);
         public float FieldOfView { get; set; } = 0.5f;
         public float offset = 0.25f;
-
         public float DistanceMultiplier { get; set; } = 1f;
-
-        public RenderRequest(GameObject target)
-        {
-            Target = target;
-        }
     }
 
     private const int MAINLAYER = 29;
@@ -93,110 +75,75 @@ public static class PhotoManager
     private static GameObject SpawnAndRemoveComponents(RenderRequest obj)
     {
         GameObject tempObj = Object.Instantiate(obj.Target, INACTIVE.transform);
-        List<Component> components = tempObj.GetComponentsInChildren<Component>(true).ToList();
+        List<Component> components = tempObj.GetComponentsInChildren<Component>().ToList();
         List<Component> ToRemove = [];
-        foreach (Component comp in components)
-        {
-            if (!IsVisualComponent(comp))
-            {
-                ToRemove.Add(comp);
-            }
-        }
-
+        ToRemove.AddRange(components.Where(comp => !IsVisualComponent(comp)));
         ToRemove.Reverse();
         ToRemove.ForEach(Object.DestroyImmediate);
-        GameObject retObj = Object.Instantiate(tempObj);
-        retObj.layer = MAINLAYER;
-        foreach (Transform VARIABLE in retObj.GetComponentsInChildren<Transform>())
-        {
-            VARIABLE.gameObject.layer = MAINLAYER;
-        }
-
-        Animator animator = retObj.GetComponentInChildren<Animator>();
-        if (animator)
-        {
-            if (animator.HasState(0, Movement))
-                animator.Play(Movement); 
-            animator.Update(0f);
-        }
-
-        retObj.SetActive(true);
-        retObj.name = obj.Target.name;
-        Object.Destroy(tempObj);
-        return retObj;
+        tempObj.layer = MAINLAYER;
+        foreach (Transform VARIABLE in tempObj.GetComponentsInChildren<Transform>()) VARIABLE.gameObject.layer = MAINLAYER;
+        tempObj.transform.SetParent(null);
+        tempObj.SetActive(true);
+        tempObj.name = obj.Target.name;
+        return tempObj;
     }
     
-
-    private static readonly int Movement = Animator.StringToHash("Movement");
-
-
-    public static Texture2D MakeSprite(GameObject prefabArg, float scale, float offset, Quaternion rotation)
+    public static Texture2D[] MakeBulkSprites(GameObject prefabArg, float scale, float offset, params Quaternion[] rotations)
     {
         try
-        {
-            int hashcode = prefabArg.name.GetStableHashCode();
+        { 
+            Texture2D[] tex = new Texture2D[rotations.Length];
             rendererCamera.gameObject.SetActive(true);
             Light.gameObject.SetActive(true);
-            RenderRequest request = new(prefabArg) { DistanceMultiplier = scale, offset = offset, Rotation = rotation };
+            RenderRequest request = new(prefabArg) { DistanceMultiplier = scale, offset = offset };
             GameObject spawn = SpawnAndRemoveComponents(request);
-            spawn.transform.position = Vector3.zero;
-            spawn.transform.rotation = request.Rotation;
-
-            Vector3 min = new Vector3(1000f, 1000f, 1000f);
-            Vector3 max = new Vector3(-1000f, -1000f, -1000f);
-            foreach (Renderer meshRenderer in spawn.GetComponentsInChildren<Renderer>())
+            Renderer[] renderers = spawn.GetComponentsInChildren<Renderer>();
+            for (int i = 0; i < rotations.Length; i++)
             {
-                if (meshRenderer is ParticleSystemRenderer) continue;
-                min = Vector3.Min(min, meshRenderer.bounds.min);
-                max = Vector3.Max(max, meshRenderer.bounds.max);
+                spawn.transform.position = Vector3.zero;
+                spawn.transform.rotation = rotations[i];
+                Vector3 min = new Vector3(1000f, 1000f, 1000f); 
+                Vector3 max = new Vector3(-1000f, -1000f, -1000f); 
+                foreach (Renderer meshRenderer in renderers) 
+                {
+                    if (meshRenderer is ParticleSystemRenderer) continue;
+                    min = Vector3.Min(min, meshRenderer.bounds.min);
+                    max = Vector3.Max(max, meshRenderer.bounds.max);
+                }
+                spawn.transform.position = SpawnPoint - (min + max) / 2f;
+                Vector3 size = new Vector3(Mathf.Abs(min.x) + Mathf.Abs(max.x), Mathf.Abs(min.y) + Mathf.Abs(max.y), Mathf.Abs(min.z) + Mathf.Abs(max.z));
+                RenderObject go = new RenderObject(spawn, size) { Request = request };
+                tex[i] = RenderSprite(go);
             }
-
-            spawn.transform.position = SpawnPoint - (min + max) / 2f;
-            Vector3 size = new Vector3(Mathf.Abs(min.x) + Mathf.Abs(max.x), Mathf.Abs(min.y) + Mathf.Abs(max.y), Mathf.Abs(min.z) + Mathf.Abs(max.z));
-            TimedDestruction timedDestruction = spawn.AddComponent<TimedDestruction>();
-            timedDestruction.Trigger(1f);
-
-            RenderObject go = new RenderObject(spawn, size)
-            {
-                Request = request
-            };
-            Texture2D tex = RenderSprite(go);
+            Object.Destroy(spawn);
             ClearRendering();
             return tex;
-        }
-        catch (Exception ex)
+        } 
+        catch (Exception)
         {
             ClearRendering();
-            return null;
+            return null; 
         }
     }
-
     private static Texture2D RenderSprite(RenderObject renderObject)
     {
         int width = renderObject.Request.Width;
         int height = renderObject.Request.Height;
-
         RenderTexture oldRenderTexture = RenderTexture.active;
         RenderTexture temp = RenderTexture.GetTemporary(width, height, 32);
         rendererCamera.targetTexture = temp;
         rendererCamera.fieldOfView = renderObject.Request.FieldOfView;
         RenderTexture.active = rendererCamera.targetTexture;
-
-        renderObject.Spawn.SetActive(true);
         float maxMeshSize = Mathf.Max(renderObject.Size.x, renderObject.Size.y) + 0.1f;
         float distance = maxMeshSize / Mathf.Tan(rendererCamera.fieldOfView * Mathf.Deg2Rad) * renderObject.Request.DistanceMultiplier;
         rendererCamera.transform.position = SpawnPoint + new Vector3(0, renderObject.Request.offset, distance);
         rendererCamera.Render();
-        renderObject.Spawn.SetActive(false);
-        Object.Destroy(renderObject.Spawn);
         Texture2D previewImage = new Texture2D(width, height, TextureFormat.RGBA32, false);
         previewImage.ReadPixels(new Rect(0, 0, width, height), 0, 0);
         previewImage.Apply();
         RenderTexture.active = oldRenderTexture;
         rendererCamera.targetTexture = null;
         RenderTexture.ReleaseTemporary(temp); 
-        rendererCamera.gameObject.SetActive(false);
-        Light.gameObject.SetActive(false);
         return previewImage;
     }
 }

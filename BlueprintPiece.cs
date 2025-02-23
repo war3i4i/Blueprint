@@ -71,6 +71,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
     }
     private bool CreateBlueprint(string bpName, out string reason)
     {
+        Stopwatch dbg_watch = Stopwatch.StartNew();
         reason = null;
         Vector3 start = StartPoint_BottomCenter;
         GameObject[] objects = _blueprintArea.GetObjectsInside([_piece.gameObject], typeof(Piece), typeof(TreeBase), typeof(Destructible));
@@ -90,37 +91,21 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
             GameObject p = objects[i];
             p.transform.SetParent(transform);
         }
-        
-        Texture2D[] previews = new Texture2D[3];
-        Stopwatch dbg_watch = Stopwatch.StartNew();
-        previews[0] = PhotoManager.MakeSprite(gameObject, 1f, 1f, Quaternion.Euler(30f, 0f, 0f));
-        kg_Blueprint.Logger.LogDebug($"MakeSprite 1 took {dbg_watch.ElapsedMilliseconds}ms");
-        dbg_watch.Restart();
-        
-        previews[1] = PhotoManager.MakeSprite(gameObject, 1f, 1f, Quaternion.Euler(-30f, 180f, 0f));
-        kg_Blueprint.Logger.LogDebug($"MakeSprite 2 took {dbg_watch.ElapsedMilliseconds}ms");
-        dbg_watch.Restart();
-        
-        previews[2] = PhotoManager.MakeSprite(gameObject, 1f, 1f, Quaternion.Euler(60f, 330f, 330f));
-        kg_Blueprint.Logger.LogDebug($"MakeSprite 3 took {dbg_watch.ElapsedMilliseconds}ms");
-        dbg_watch.Restart();
-        root.SetPreviews(previews); 
-        kg_Blueprint.Logger.LogDebug($"SetPreviews took {dbg_watch.ElapsedMilliseconds}ms");
-        dbg_watch.Restart();
-        transform.rotation = oldRotation; 
+        Texture2D[] previews = PhotoManager.MakeBulkSprites(gameObject, 1f, 1f, Quaternion.Euler(30f, 0f, 0f), Quaternion.Euler(-30f, 180f, 0f), Quaternion.Euler(60f, 330f, 330f));
+        root.SetPreviews(previews);
+        transform.rotation = oldRotation;
         for (int i = 0; i < objects.Length; ++i)
         {
             GameObject p = objects[i];
-            p.transform.SetParent(null); 
+            p.transform.SetParent(null);
         }
         _view.gameObject.SetActive(true);
         _interact.gameObject.SetActive(true);
         _projectors.gameObject.SetActive(projectorsActive);
-        root.AssignPath(Path.Combine(kg_Blueprint.BlueprintsPath, bpName + ".yml"));
-        root.Save();
-        dbg_watch.Restart();
+        root.AssignPath(Path.Combine(kg_Blueprint.BlueprintsPath, bpName + ".yml"), false);
+        root.Save(false);
         if (Configs.AutoAddBlueprintsToUI.Value) BlueprintUI.AddEntry(root, true, previews);
-        kg_Blueprint.Logger.LogDebug($"AddEntry took {dbg_watch.ElapsedMilliseconds}ms");
+        kg_Blueprint.Logger.LogDebug($"Blueprint {bpName} created in {dbg_watch.ElapsedMilliseconds}ms");
         return true;
     }
     public void DestroyAllPiecesInside()

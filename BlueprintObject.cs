@@ -24,8 +24,8 @@ public class RenameBlueprintRoot(BlueprintRoot root, Action<string> callback) : 
             File.Delete(path);
             string newPath = Path.Combine(Path.GetDirectoryName(path)!, $"{text}.yml");
             root.Name = text;
-            root.AssignPath(newPath);
-            root.Save();
+            root.AssignPath(newPath, false);
+            root.Save(false);
             callback?.Invoke(text);
         }
         catch (Exception e)
@@ -50,7 +50,22 @@ public class BlueprintRoot
     public SimpleVector3 BoxRotation;
     public BlueprintObject[] Objects;
     public string[] Previews;
-    public void AssignPath(string path) => FilePath = path;
+    public void AssignPath(string path, bool force)
+    {
+        path = path.ValidPath();
+        if (string.IsNullOrWhiteSpace(path)) return;
+        if (force)
+        {
+            FilePath = path;
+            return;
+        }
+        string directory = Path.GetDirectoryName(path)!;
+        string fileNameNoExt = Path.GetFileNameWithoutExtension(path);
+        string ext = Path.GetExtension(path);
+        int increment = 1;
+        while (File.Exists(path)) path = Path.Combine(directory, $"{fileNameNoExt} ({increment++}){ext}");
+        FilePath = path;
+    }
     public bool TryGetFilePath(out string path) { path = FilePath; return !string.IsNullOrEmpty(FilePath); }
     public static BlueprintRoot CreateNew(string Name, Vector3 boxRotation, Vector3 start, GameObject[] objects)
     {
@@ -186,14 +201,15 @@ public class BlueprintRoot
             yield return Utils.WaitFrames(Configs.BlueprintBuildFrameSkip.Value);
         }
     }
-    public void Save()
+    public void Save(bool overrideExisting)
     {
         if (!TryGetFilePath(out string path)) return;
         BlueprintRoot clone = (BlueprintRoot)MemberwiseClone();
         Task.Run(() =>
         {  
             string data = new Serializer().Serialize(clone);
-            path.WriteWithDupes(data, false);
+            if (overrideExisting) path.WriteNoDupes(data);
+            else path.WriteWithDupes(data, false);
         });
     }
 }

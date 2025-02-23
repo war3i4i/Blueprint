@@ -57,6 +57,7 @@ public static class BlueprintUI
             BlueprintRoot blueprint = blueprints[i];
             AddEntry(blueprint, false);
         }
+        SortEntriesByName();
         UpdateCanvases();
     }
     private static void AddEntry(BlueprintRoot root, bool updateCanvases)
@@ -139,13 +140,24 @@ public static class BlueprintUI
                 entry.transform.Find($"Previews/Preview{p}/Img").GetComponent<RawImage>().texture = previews[p - 1];
             }
         }
-        if (updateCanvases) UpdateCanvases();
+        if (updateCanvases)
+        {
+            SortEntriesByName();
+            UpdateCanvases();
+        }
+    }
+    private static void SortEntriesByName()
+    {
+        List<Transform> children = new(Content.childCount - 1);
+        for (int i = 1; i < Content.childCount; ++i) children.Add(Content.GetChild(i));
+        children.Sort((a, b) => string.Compare(a.Find("Name").GetComponent<TMP_Text>().text, b.Find("Name").GetComponent<TMP_Text>().text, StringComparison.CurrentCultureIgnoreCase));
+        foreach (Transform child in children) child.SetAsLastSibling();
     }
     private static void OnSelect(BlueprintRoot blueprint) 
     {
         if (_Internal_SelectedPiece.Key) Object.DestroyImmediate(_Internal_SelectedPiece.Key.gameObject);
         _Internal_SelectedPiece = new KeyValuePair<Piece, BlueprintRoot>(Object.Instantiate(CopyFrom, Vector3.zero, Quaternion.identity).GetComponent<Piece>(), blueprint);
-        _Internal_SelectedPiece.Key.gameObject.SetActive(false); 
+        _Internal_SelectedPiece.Key.gameObject.SetActive(false);
         _Internal_SelectedPiece.Key.name = "kg_Blueprint_Internal_PlacePiece";
         _Internal_SelectedPiece.Key.m_name = blueprint.Name;
         _Internal_SelectedPiece.Key.m_icon = string.IsNullOrWhiteSpace(blueprint.Icon) ? _Internal_SelectedPiece.Key.m_icon : ZNetScene.instance.GetPrefab(blueprint.Icon)?.GetComponent<ItemDrop>().m_itemData.GetIcon();
@@ -225,7 +237,15 @@ public static class BlueprintUI
         [UsedImplicitly] private static void Postfix(Humanoid __instance, ItemDrop.ItemData item)
         {
             if (Player.m_localPlayer != __instance) return;
-            if (item?.m_dropPrefab.name == "kg_BlueprintHammer") Hide();
+            if (item?.m_dropPrefab.name == "kg_BlueprintHammer")
+            {
+                Hide();
+                if (Configs.RemoveBlueprintPlacementOnUnequip.Value)
+                {
+                    if (_Internal_SelectedPiece.Key) Object.Destroy(_Internal_SelectedPiece.Key.gameObject);
+                    _Internal_SelectedPiece = default;
+                }
+            }
         }
     }
     private static bool IsHoldingHammer => Player.m_localPlayer?.m_rightItem?.m_dropPrefab?.name == "kg_BlueprintHammer";
@@ -303,7 +323,7 @@ public static class BlueprintUI
             if (done) return;
             done = true;
             if (__instance.transform.Find("StartGame/Panel/JoinPanel/serverCount")?.GetComponent<TextMeshProUGUI>() is not { } tmp) return;
-            foreach (var componentsInChild in UI.GetComponentsInChildren<TMP_Text>()) componentsInChild.font = tmp.font;
+            foreach (var componentsInChild in UI.GetComponentsInChildren<TMP_Text>(true)) componentsInChild.font = tmp.font;
         }
     }
     [HarmonyPatch(typeof(KeyHints),nameof(KeyHints.Awake))]

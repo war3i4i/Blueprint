@@ -1,4 +1,6 @@
-﻿using ItemManager;
+﻿using System.Diagnostics;
+using System.Threading;
+using ItemManager;
 using LocalizationManager;
 using PieceManager;
 
@@ -39,32 +41,55 @@ public class kg_Blueprint : BaseUnityPlugin
         using Stream stream = execAssembly.GetManifestResourceStream(resourceName)!;
         return AssetBundle.LoadFromStream(stream);
     } 
+    private static CancellationTokenSource _cts = new CancellationTokenSource();
     public static void ReadBlueprints()
     {
-        List<BlueprintRoot> Blueprints = [];
-        Deserializer deserializer = new Deserializer(); 
-        string[] files = Directory.GetFiles(BlueprintsPath, "*.yml", SearchOption.AllDirectories);
-        if (files.Length == 0) return;
-        for (int i = 0; i < files.Length; ++i)
+        _cts.Cancel();
+        _cts = new CancellationTokenSource();
+        CancellationToken token = _cts.Token;
+        Task.Run(() =>
         {
+            string lastFile = "";
             try
             {
-                BlueprintRoot root = deserializer.Deserialize<BlueprintRoot>(File.ReadAllText(files[i]));
-                if (!root.IsValid(out string reason))
+                token.ThrowIfCancellationRequested();
+                Stopwatch stopwatch = Stopwatch.StartNew();
+                List<BlueprintRoot> Blueprints = []; 
+                Deserializer deserializer = new Deserializer(); 
+                string[] files = Directory.GetFiles(BlueprintsPath, "*.yml", SearchOption.AllDirectories);
+                if (files.Length == 0) return;
+                for (int i = 0; i < files.Length; ++i)
                 {
-                    Logger.LogError($"Blueprint {files[i]} is invalid: {reason}");
-                    continue;
+                    lastFile = files[i];
+                    token.ThrowIfCancellationRequested();
+                    try
+                    {
+                        BlueprintRoot root = deserializer.Deserialize<BlueprintRoot>(File.ReadAllText(files[i]));
+                        if (!root.IsValid(out string reason))
+                        {
+                            Logger.LogError($"Blueprint {files[i]} is invalid: {reason}");
+                            continue;
+                        }
+                        root.AssignPath(files[i], true);
+                        Blueprints.Add(root);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.LogError($"Error reading blueprint {files[i]}: {e}");
+                    }
                 }
-                root.AssignPath(files[i]);
-                Blueprints.Add(root);
+                kg_Blueprint.Logger.LogDebug($"Loaded {Blueprints.Count} blueprints in {stopwatch.ElapsedMilliseconds}ms");
+                token.ThrowIfCancellationRequested();
+                ThreadingHelper.Instance.StartSyncInvoke(() => BlueprintUI.Load(Blueprints));
             }
-            catch(Exception e)
+            catch (Exception ex)
             {
-                Logger.LogError($"Error reading blueprint {files[i]}: {e}");
+                if (ex is OperationCanceledException) Logger.LogDebug("Blueprint loading canceled.");
+                else Logger.LogError($"Error loading blueprints [{lastFile}]: {ex}");
             }
-        }
-        BlueprintUI.Load(Blueprints);
+        }, token);
     }
+
     private static void LoadAsm(string name)
     {
         Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("kg_Blueprint.Assets." + name + ".dll")!;
