@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace kg_Blueprint;
+﻿namespace kg_Blueprint;
 
 [Serializable]
 public class SimpleVector3
@@ -13,9 +11,9 @@ public class SimpleVector3
 }
 public class RenameBlueprintRoot(BlueprintRoot root, Action<string> callback) : TextReceiver
 {
-    public string GetText() => root.TryGetFilePath(out string path) ? Path.GetFileNameWithoutExtension(path) : "";
+    public string GetText() => root.Name;
     public void SetText(string text)
-    {
+    { 
         if (!root.TryGetFilePath(out string path)) return;
         text = text.ValidPath();
         if (string.IsNullOrEmpty(text) || !File.Exists(path) || Path.GetFileNameWithoutExtension(path) == text) return;
@@ -25,7 +23,7 @@ public class RenameBlueprintRoot(BlueprintRoot root, Action<string> callback) : 
             string newPath = Path.Combine(Path.GetDirectoryName(path)!, $"{text}.yml");
             root.Name = text;
             root.AssignPath(newPath, false);
-            root.Save(false);
+            root.Save();
             callback?.Invoke(text);
         }
         catch (Exception e)
@@ -40,6 +38,7 @@ public class BlueprintObject
     public int Id;
     public SimpleVector3 RelativePosition;
     public SimpleVector3 Rotation;
+    public string ZDOData;
 }
 [Serializable]
 public class BlueprintRoot
@@ -80,11 +79,18 @@ public class BlueprintRoot
         for (int i = 0; i < objects.Length; ++i)
         { 
             root.Objects[i] = new BlueprintObject
-            {
+            { 
                 Id = objects[i].name.Replace("(Clone)", "").GetStableHashCode(),
                 RelativePosition = objects[i].transform.position - start,
                 Rotation = objects[i].transform.rotation.eulerAngles
             };
+            if (!Configs.SaveZDOHashset.Contains(root.Objects[i].Id)) continue;
+            ZPackage pkg = new();
+            ZDO zdo = objects[i].GetComponent<ZNetView>()?.GetZDO();
+            if (zdo == null) continue;
+            zdo.SerializeZDO(pkg);
+            byte[] data = pkg.GetArray();
+            root.Objects[i].ZDOData = Convert.ToBase64String(data);
         }
         return root;
     }
@@ -192,24 +198,30 @@ public class BlueprintRoot
                     p.m_placeEffect.Create(pos, rot, p.transform);
                     p.SetCreator(Game.instance.m_playerProfile.m_playerID);
                 }
+                try
+                {
+                    if (!string.IsNullOrEmpty(Objects[i].ZDOData) && newObj.GetComponent<ZNetView>() is {} znv)
+                    {
+                        znv.m_zdo.DeserializeZDO(new(Objects[i].ZDOData));
+                    }
+                } catch (Exception e) { kg_Blueprint.Logger.LogError(e); }
             }
             else
             {
                 BuildProgress.BuildProgressComponent component = Object.Instantiate(BuildProgress._piece, pos, rot).GetComponent<BuildProgress.BuildProgressComponent>();
-                component.Setup(prefab.name, Game.instance.m_playerProfile.m_playerID, Mathf.Max(1f, Configs.BuildTime.Value));
+                component.Setup(prefab.name, Game.instance.m_playerProfile.m_playerID, Mathf.Max(1f, Configs.BuildTime.Value), Objects[i].ZDOData);
             }
             yield return Utils.WaitFrames(Configs.BlueprintBuildFrameSkip.Value);
         }
     }
-    public void Save(bool overrideExisting)
+    public void Save()
     {
         if (!TryGetFilePath(out string path)) return;
         BlueprintRoot clone = (BlueprintRoot)MemberwiseClone();
         Task.Run(() =>
         {  
-            string data = new Serializer().Serialize(clone);
-            if (overrideExisting) path.WriteNoDupes(data);
-            else path.WriteWithDupes(data, false);
+            string data = new SerializerBuilder().ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitDefaults).Build().Serialize(clone);
+            path.WriteNoDupes(data, false);
         });
     }
 }

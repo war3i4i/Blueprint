@@ -28,6 +28,12 @@ public static class BuildProgress
             set => _znet.m_zdo.Set("Prefab", value);
         }
 
+        public string _ZDOData
+        {
+            get => _znet.m_zdo.GetString("ZDOData");
+            set => _znet.m_zdo.Set("ZDOData", value);
+        }
+
         public long _Creator
         {
             get => _znet.m_zdo.GetLong("Creator");
@@ -59,14 +65,14 @@ public static class BuildProgress
             _znet = GetComponent<ZNetView>();
             if (!_znet.IsValid()) return;
             PieceObject = transform.Find("PieceObject");
-            _znet.Register<string, long, float, int>("Setup", RPC_Setup);
+            _znet.Register<string, long, float, int, string>("Setup", RPC_Setup);
             CreatePieceObject(_Prefab, _Health > 0);
         }
 
-        public void Setup(string prefab, long creatorID, float maxTime, int health = 0) =>
-            _znet.InvokeRPC(ZNetView.Everybody, "Setup", prefab, creatorID, maxTime, health);
+        public void Setup(string prefab, long creatorID, float maxTime, string zdodata, int health = 0) =>
+            _znet.InvokeRPC(ZNetView.Everybody, "Setup", prefab, creatorID, maxTime, health, zdodata);
 
-        private void RPC_Setup(long sender, string prefab, long creator, float maxTime, int health)
+        private void RPC_Setup(long sender, string prefab, long creator, float maxTime, int health, string zdoData)
         {
             if (_znet.IsOwner())
             {
@@ -74,6 +80,7 @@ public static class BuildProgress
                 _Creator = creator;
                 _MaxTime = maxTime;
                 _Health = health;
+                _ZDOData = zdoData;
             }
             CreatePieceObject(prefab, false);
         }
@@ -162,7 +169,6 @@ public static class BuildProgress
                 Transform child = PieceObject.GetChild(0);
                 child.SetParent(transform, true);
             }
-
             /*if (isSolid)
             {
                 WearNTear wnt = gameObject.AddComponent<WearNTear>();
@@ -185,6 +191,14 @@ public static class BuildProgress
                         p.SetCreator(_Creator);
                         p.m_placeEffect.Create(p.transform.position, p.transform.rotation, p.transform);  
                     }
+                    try
+                    {
+                        string zdoData = _ZDOData;
+                        if (!string.IsNullOrEmpty(zdoData) && newObj.GetComponent<ZNetView>() is {} znv)
+                        {
+                            znv.m_zdo.DeserializeZDO(new(zdoData));
+                        }
+                    } catch (Exception e) { kg_Blueprint.Logger.LogError(e); }
                 }
                 _znet.Destroy();
                 return;

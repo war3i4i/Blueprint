@@ -1,6 +1,4 @@
-﻿using System.IO.Compression;
-using System.Runtime.CompilerServices;
-using CompressionLevel = System.IO.Compression.CompressionLevel;
+﻿using System.Runtime.CompilerServices;
 
 namespace kg_Blueprint;
 
@@ -20,7 +18,11 @@ public static class Utils
         if (string.IsNullOrWhiteSpace(path)) throw new Exception($"Path is null or empty [{msg}]");
         return Path.GetInvalidPathChars().Aggregate(path, (current, c) => current.Replace(c.ToString(), string.Empty));
     }
-    public static void WriteNoDupes(this string path, string data) => File.WriteAllText(path, data);
+    public static void WriteNoDupes(this string path, string data, bool forget)
+    {
+        if (forget) Task.Run(() => File.WriteAllText(path, data));
+        else File.WriteAllText(path, data);
+    }
     public static void WriteWithDupes(this string path, string data, bool forget)
     {
         if (forget) Task.Run(() => WriteWithDupes_Internal(path, data));
@@ -36,7 +38,7 @@ public static class Utils
         while (File.Exists(newPath)) newPath = Path.Combine(directory, $"{fileNameNoExt} ({increment++}){ext}");
         File.WriteAllText(newPath, data);
     }
-    private static readonly LayerMask Layer = LayerMask.GetMask("piece", "piece_nonsolid", "Default", "character_noenv");
+    private static readonly LayerMask Layer = LayerMask.GetMask("piece", "piece_nonsolid", "Default", "character_noenv", "character");
     public static GameObject[] GetObjectsInside(this BoxCollider box, GameObject[] exclude, params Type[] types)
     {
         box.gameObject.SetActive(true);
@@ -108,6 +110,170 @@ public static class Utils
     {
         if (!File.Exists(path)) return;
         System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{path}\"");
+    }
+    public static void SerializeZDO(this ZDO zdo, ZPackage pkg)
+    {
+        List<KeyValuePair<int, float>> saveFloats = ZDOExtraData.GetFloats(zdo.m_uid);
+        List<KeyValuePair<int, Vector3>> saveVec3s = ZDOExtraData.GetVec3s(zdo.m_uid);
+        List<KeyValuePair<int, Quaternion>> saveQuaternions = ZDOExtraData.GetQuaternions(zdo.m_uid);
+        List<KeyValuePair<int, int>> saveInts = ZDOExtraData.GetInts(zdo.m_uid);
+        List<KeyValuePair<int, long>> saveLongs = ZDOExtraData.GetLongs(zdo.m_uid);
+        List<KeyValuePair<int, string>> saveStrings = ZDOExtraData.GetStrings(zdo.m_uid);
+        List<KeyValuePair<int, byte[]>> saveByteArrays = ZDOExtraData.GetByteArrays(zdo.m_uid);
+        pkg.Write(saveFloats.Count > 0);
+        if (saveFloats.Count > 0)
+        {
+            pkg.WriteNumItems(saveFloats.Count);
+            foreach (KeyValuePair<int, float> keyValuePair in saveFloats)
+            {
+                pkg.Write(keyValuePair.Key);
+                pkg.Write(keyValuePair.Value);
+            }
+        }
+        pkg.Write(saveVec3s.Count > 0);
+        if (saveVec3s.Count > 0)
+        {
+            pkg.WriteNumItems(saveVec3s.Count);
+            foreach (KeyValuePair<int, Vector3> keyValuePair in saveVec3s)
+            {
+                pkg.Write(keyValuePair.Key);
+                pkg.Write(keyValuePair.Value);
+            }
+        }
+        pkg.Write(saveQuaternions.Count > 0);
+        if (saveQuaternions.Count > 0)
+        {
+            pkg.WriteNumItems(saveQuaternions.Count);
+            foreach (KeyValuePair<int, Quaternion> keyValuePair in saveQuaternions)
+            {
+                pkg.Write(keyValuePair.Key);
+                pkg.Write(keyValuePair.Value);
+            }
+        }
+        pkg.Write(saveInts.Count > 0);
+        if (saveInts.Count > 0)
+        {
+            pkg.WriteNumItems(saveInts.Count);
+            foreach (KeyValuePair<int, int> keyValuePair in saveInts)
+            {
+                pkg.Write(keyValuePair.Key);
+                pkg.Write(keyValuePair.Value);
+            }
+        }
+        pkg.Write(saveLongs.Count > 0);
+        if (saveLongs.Count > 0)
+        {
+            pkg.WriteNumItems(saveLongs.Count);
+            foreach (KeyValuePair<int, long> keyValuePair in saveLongs)
+            {
+                pkg.Write(keyValuePair.Key);
+                pkg.Write(keyValuePair.Value);
+            }
+        }
+        pkg.Write(saveStrings.Count > 0);
+        if (saveStrings.Count > 0)
+        {
+            pkg.WriteNumItems(saveStrings.Count);
+            foreach (KeyValuePair<int, string> keyValuePair in saveStrings)
+            {
+                pkg.Write(keyValuePair.Key);
+                pkg.Write(keyValuePair.Value);
+            }
+        }
+        pkg.Write(saveByteArrays.Count > 0);
+        if (saveByteArrays.Count > 0)
+        {
+            pkg.WriteNumItems(saveByteArrays.Count);
+            foreach (KeyValuePair<int, byte[]> keyValuePair in saveByteArrays)
+            {
+                pkg.Write(keyValuePair.Key);
+                pkg.Write(keyValuePair.Value);
+            }
+        }
+    }
+    public static void DeserializeZDO(this ZDO zdo, ZPackage pkg)
+    {
+        if (pkg.ReadBool())
+        {
+            int numItems = pkg.ReadNumItems();
+            ZDOExtraData.Reserve(zdo.m_uid, ZDOExtraData.Type.Float, numItems);
+            for (int i = 0; i < numItems; i++)
+            {
+                int key = pkg.ReadInt();
+                float value = pkg.ReadSingle();
+                ZDOExtraData.Set(zdo.m_uid, key, value);
+            }
+        }
+        if (pkg.ReadBool())
+        {
+            int numItems = pkg.ReadNumItems();
+            ZDOExtraData.Reserve(zdo.m_uid, ZDOExtraData.Type.Vec3, numItems);
+            for (int i = 0; i < numItems; i++)
+            {
+                int key = pkg.ReadInt();
+                Vector3 value = pkg.ReadVector3();
+                ZDOExtraData.Set(zdo.m_uid, key, value);
+            }
+        }
+        if (pkg.ReadBool())
+        {
+            int numItems = pkg.ReadNumItems();
+            ZDOExtraData.Reserve(zdo.m_uid, ZDOExtraData.Type.Quat, numItems);
+            for (int i = 0; i < numItems; i++)
+            {
+                int key = pkg.ReadInt();
+                Quaternion value = pkg.ReadQuaternion();
+                ZDOExtraData.Set(zdo.m_uid, key, value);
+            }
+        }
+        if (pkg.ReadBool())
+        {
+            int numItems = pkg.ReadNumItems();
+            ZDOExtraData.Reserve(zdo.m_uid, ZDOExtraData.Type.Int, numItems);
+            for (int i = 0; i < numItems; i++)
+            {
+                int key = pkg.ReadInt();
+                int value = pkg.ReadInt();
+                ZDOExtraData.Set(zdo.m_uid, key, value);
+            }
+        }
+        if (pkg.ReadBool())
+        {
+            int numItems = pkg.ReadNumItems();
+            ZDOExtraData.Reserve(zdo.m_uid, ZDOExtraData.Type.Long, numItems);
+            for (int i = 0; i < numItems; i++)
+            {
+                int key = pkg.ReadInt();
+                long value = pkg.ReadLong();
+                ZDOExtraData.Set(zdo.m_uid, key, value);
+            }
+        }
+        if (pkg.ReadBool())
+        {
+            int numItems = pkg.ReadNumItems();
+            ZDOExtraData.Reserve(zdo.m_uid, ZDOExtraData.Type.String, numItems);
+            for (int i = 0; i < numItems; i++)
+            {
+                int key = pkg.ReadInt();
+                string value = pkg.ReadString();
+                ZDOExtraData.Set(zdo.m_uid, key, value);
+            }
+        }
+        if (pkg.ReadBool())
+        {
+            int numItems = pkg.ReadNumItems();
+            ZDOExtraData.Reserve(zdo.m_uid, ZDOExtraData.Type.ByteArray, numItems);
+            for (int i = 0; i < numItems; i++)
+            {
+                int key = pkg.ReadInt();
+                byte[] value = pkg.ReadByteArray();
+                ZDOExtraData.Set(zdo.m_uid, key, value);
+            }
+        }
+    }
+    public static void Register<T, U, V, B, C>(this ZNetView znv, string name, RoutedMethod<T, U, V, B, C>.Method f)
+    {
+        znv.m_functions.Add(name.GetStableHashCode(), new RoutedMethod<T, U, V, B, C>(f));
     }
     private static CraftingStation _internal_fakeStation;
     public static CraftingStation GetBlueprintFakeStation() => _internal_fakeStation ??= kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintCS").GetComponent<CraftingStation>();

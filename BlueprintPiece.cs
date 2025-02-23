@@ -41,7 +41,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
         _view = transform.Find("Scale/View");
         _interact = transform.Find("Interact");
         _blueprintArea = transform.Find("Scale/BlueprintArea").GetComponent<BoxCollider>();
-     
+        
         _projectors.Find("Side1").GetComponent<SquareProjector>().rotation = transform.rotation.eulerAngles.y;
         _projectors.Find("Side2").GetComponent<SquareProjector>().rotation = transform.rotation.eulerAngles.y;
         _projectors.Find("Side3").GetComponent<SquareProjector>().rotation = transform.rotation.eulerAngles.y + 90f;
@@ -63,8 +63,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
         get
         {
             _blueprintArea.gameObject.SetActive(true);
-            float y = _blueprintArea.bounds.min.y;
-            Vector3 result = new Vector3(_blueprintArea.bounds.center.x, y, _blueprintArea.bounds.center.z);
+            Vector3 result = new Vector3(_blueprintArea.bounds.center.x, _blueprintArea.bounds.min.y, _blueprintArea.bounds.center.z);
             _blueprintArea.gameObject.SetActive(false);
             return result;
         }
@@ -86,24 +85,16 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
         _interact.gameObject.SetActive(false);
         bool projectorsActive = _projectors.gameObject.activeSelf;
         _projectors.gameObject.SetActive(false);
-        for (int i = 0; i < objects.Length; ++i)
-        {
-            GameObject p = objects[i];
-            p.transform.SetParent(transform);
-        }
+        for (int i = 0; i < objects.Length; ++i) objects[i].transform.SetParent(transform);
         Texture2D[] previews = PhotoManager.MakeBulkSprites(gameObject, 1f, 1f, Quaternion.Euler(30f, 0f, 0f), Quaternion.Euler(-30f, 180f, 0f), Quaternion.Euler(60f, 330f, 330f));
         root.SetPreviews(previews);
         transform.rotation = oldRotation;
-        for (int i = 0; i < objects.Length; ++i)
-        {
-            GameObject p = objects[i];
-            p.transform.SetParent(null);
-        }
+        for (int i = 0; i < objects.Length; ++i) objects[i].transform.SetParent(null);
         _view.gameObject.SetActive(true);
         _interact.gameObject.SetActive(true);
         _projectors.gameObject.SetActive(projectorsActive);
         root.AssignPath(Path.Combine(kg_Blueprint.BlueprintsPath, bpName + ".yml"), false);
-        root.Save(false);
+        root.Save();
         if (Configs.AutoAddBlueprintsToUI.Value) BlueprintUI.AddEntry(root, true, previews);
         kg_Blueprint.Logger.LogDebug($"Blueprint {bpName} created in {dbg_watch.ElapsedMilliseconds}ms");
         return true;
@@ -150,8 +141,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
     }
     public bool Interact(Humanoid user, bool hold, bool alt)
     {
-        if (user.GetHoverObject() is not {} obj) return false;
-        if (obj != _interact.gameObject) return false;
+        if (user.GetHoverObject() != _interact.gameObject) return false;
         if (Input.GetKey(KeyCode.C))
         {
             DestroyAllPiecesInside();
@@ -288,7 +278,7 @@ public static class Piece_Awake_Patch
 {
     private static readonly HashSet<Type> _permittedComponents = [typeof(Piece), typeof(ZNetView), typeof(ZSyncTransform), typeof(Door)];
     public static void DeactivatePiece(Piece p)
-    {
+    { 
         foreach (Component c in p.GetComponentsInChildren<Component>(true).Reverse())
         {
             if (c is Renderer or MeshFilter or Transform or Animator) continue;
@@ -316,6 +306,8 @@ public static class Player_PlacePiece_Patch
     {
         if (obj?.GetComponent<Piece>() is not { } piece || !piece.m_nview) return;
         if (!PlayerState.PlayerInsideBlueprint) return;
+        int id = obj.name.Replace("(Clone)", "").GetStableHashCode();
+        if (Configs.SaveZDOHashset.Contains(id)) return;
         piece.m_nview.m_zdo.Set("kg_Blueprint", true);
         Piece_Awake_Patch.DeactivatePiece(piece);
     } 
