@@ -151,17 +151,17 @@ public static class BlueprintUI
         UI = Object.Instantiate(kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintUI"));
         CopyFrom = kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintCopyFrom");
         NoIcon = kg_Blueprint.Asset.LoadAsset<Sprite>("kg_Blueprint_NoIcon");
-        Object.DontDestroyOnLoad(UI);
+        Object.DontDestroyOnLoad(UI); 
         UI.SetActive(false);
-        BlueprintEntry = UI.transform.Find("Canvas/UI/Scroll View/Viewport/Content/BlueprintEntry").gameObject;
+        BlueprintEntry = UI.transform.Find("Canvas/UI/Scroll View/Viewport/Content/Entry").gameObject;
         ResourcesTab = UI.transform.Find("Canvas/UI/Resources").gameObject;
-        ResourceEntry = ResourcesTab.transform.Find("Scroll View/Viewport/Content/ResourceEntry").gameObject;
+        ResourceEntry = ResourcesTab.transform.Find("Scroll View/Viewport/Content/Entry").gameObject;
         ResourceContent = ResourcesTab.transform.Find("Scroll View/Viewport/Content");
         PiecesTab = UI.transform.Find("Canvas/UI/Pieces").gameObject;
         PiecesContent = UI.transform.Find("Canvas/UI/Pieces/Scroll View/Viewport/Content");
-        BlueprintEntry.SetActive(false);
+        BlueprintEntry.SetActive(false); 
         ResourceEntry.SetActive(false);
-        Content = BlueprintEntry.transform.parent;
+        Content = BlueprintEntry.transform.parent; 
         Localization.instance.Localize(UI.transform);
         InteractionUI.Init();
     }
@@ -311,7 +311,7 @@ public static class BlueprintUI
             }
         }
         _Internal_SelectedPiece.Key.m_resources = blueprint.GetRequirements();
-        _Internal_SelectedPiece.Key.gameObject.SetActive(true);
+        _Internal_SelectedPiece.Key.gameObject.SetActive(false);
         Player.m_localPlayer?.SetupPlacementGhost();
     }
     private static void ShowResources(BlueprintRoot root)

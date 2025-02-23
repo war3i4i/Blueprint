@@ -10,7 +10,7 @@ public static class PhotoManager
     {
         public readonly GameObject Spawn = spawn;
         public readonly Vector3 Size = size;
-        public RenderRequest Request;
+        public RenderRequest Request; 
     }
     private class RenderRequest(GameObject target)
     {
@@ -18,11 +18,10 @@ public static class PhotoManager
         public int Width { get; set; } = 256;
         public int Height { get; set; } = 256;
         public float FieldOfView { get; set; } = 0.5f;
-        public float offset = 0.25f;
         public float DistanceMultiplier { get; set; } = 1f;
     }
 
-    private const int MAINLAYER = 29;
+    private const int MAINLAYER = 31;
 
     static PhotoManager()
     {
@@ -85,14 +84,14 @@ public static class PhotoManager
         return tempObj;
     }
     
-    public static Texture2D[] MakeBulkSprites(GameObject prefabArg, float scale, float offset, params Quaternion[] rotations)
+    public static Texture2D[] MakeBulkSprites(GameObject prefabArg, float scale, params Quaternion[] rotations)
     {
         try
         { 
             Texture2D[] tex = new Texture2D[rotations.Length];
             rendererCamera.gameObject.SetActive(true);
             Light.gameObject.SetActive(true);
-            RenderRequest request = new(prefabArg) { DistanceMultiplier = scale, offset = offset };
+            RenderRequest request = new(prefabArg) { DistanceMultiplier = scale };
             GameObject spawn = SpawnAndRemoveComponents(request);
             Renderer[] renderers = spawn.GetComponentsInChildren<Renderer>();
             for (int i = 0; i < rotations.Length; i++)
@@ -133,7 +132,7 @@ public static class PhotoManager
         RenderTexture.active = rendererCamera.targetTexture;
         float maxMeshSize = Mathf.Max(renderObject.Size.x, renderObject.Size.y) + 0.1f;
         float distance = maxMeshSize / Mathf.Tan(rendererCamera.fieldOfView * Mathf.Deg2Rad) * renderObject.Request.DistanceMultiplier;
-        rendererCamera.transform.position = SpawnPoint + new Vector3(0, renderObject.Request.offset, distance);
+        rendererCamera.transform.position = SpawnPoint + new Vector3(0, 0, distance);
         rendererCamera.Render();
         Texture2D previewImage = new Texture2D(width, height, TextureFormat.RGBA32, false);
         previewImage.ReadPixels(new Rect(0, 0, width, height), 0, 0);

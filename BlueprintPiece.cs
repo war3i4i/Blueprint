@@ -75,13 +75,16 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable
         bool projectorsActive = _projectors.gameObject.activeSelf;
         _projectors.gameObject.SetActive(false);
         for (int i = 0; i < inside.Length; ++i) inside[i].transform.SetParent(transform);
-        Texture2D[] previews = PhotoManager.MakeBulkSprites(gameObject, 1f, 1f, Quaternion.Euler(30f, 0f, 0f), Quaternion.Euler(-30f, 180f, 0f), Quaternion.Euler(60f, 330f, 330f));
+        Texture2D[] previews = PhotoManager.MakeBulkSprites(gameObject, 1f, 
+            Quaternion.Euler(30f, 0f, 0f),
+            Quaternion.Euler(23f, 51f, 25.8f),
+            Quaternion.Euler(23f, 51f, 25.8f) * Quaternion.Euler(0f, 180f, 0f));
         for (int i = 0; i < inside.Length; ++i) inside[i].transform.SetParent(null);
         _view.gameObject.SetActive(true);
         _interact.gameObject.SetActive(true);
-        _projectors.gameObject.SetActive(projectorsActive);
+        _projectors.gameObject.SetActive(projectorsActive);  
         return previews;
-    }
+    } 
     public GameObject[] GetObjectedInside => _blueprintArea.GetObjectsInside([_piece.gameObject], typeof(Piece), typeof(TreeBase), typeof(Destructible));
     public bool CreateBlueprint(string bpName, Texture2D icon, out string reason)
     {
