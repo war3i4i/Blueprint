@@ -68,8 +68,22 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable
             return result;
         }
     }
+    public Texture2D[] CreatePreviews(GameObject[] inside)
+    {
+        _view.gameObject.SetActive(false);
+        _interact.gameObject.SetActive(false);
+        bool projectorsActive = _projectors.gameObject.activeSelf;
+        _projectors.gameObject.SetActive(false);
+        for (int i = 0; i < inside.Length; ++i) inside[i].transform.SetParent(transform);
+        Texture2D[] previews = PhotoManager.MakeBulkSprites(gameObject, 1f, 1f, Quaternion.Euler(30f, 0f, 0f), Quaternion.Euler(-30f, 180f, 0f), Quaternion.Euler(60f, 330f, 330f));
+        for (int i = 0; i < inside.Length; ++i) inside[i].transform.SetParent(null);
+        _view.gameObject.SetActive(true);
+        _interact.gameObject.SetActive(true);
+        _projectors.gameObject.SetActive(projectorsActive);
+        return previews;
+    }
     public GameObject[] GetObjectedInside => _blueprintArea.GetObjectsInside([_piece.gameObject], typeof(Piece), typeof(TreeBase), typeof(Destructible));
-    private bool CreateBlueprint(string bpName, out string reason)
+    public bool CreateBlueprint(string bpName, Texture2D icon, out string reason)
     {
         Stopwatch dbg_watch = Stopwatch.StartNew();
         reason = null;
@@ -80,23 +94,12 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable
             reason = "$kg_blueprint_createblueprint_no_objects";
             return false;
         }
-        BlueprintRoot root = BlueprintRoot.CreateNew(bpName, transform.rotation.eulerAngles, start, objects);
-        Quaternion oldRotation = transform.rotation;
-        _view.gameObject.SetActive(false);
-        _interact.gameObject.SetActive(false);
-        bool projectorsActive = _projectors.gameObject.activeSelf;
-        _projectors.gameObject.SetActive(false);
-        for (int i = 0; i < objects.Length; ++i) objects[i].transform.SetParent(transform);
-        Texture2D[] previews = PhotoManager.MakeBulkSprites(gameObject, 1f, 1f, Quaternion.Euler(30f, 0f, 0f), Quaternion.Euler(-30f, 180f, 0f), Quaternion.Euler(60f, 330f, 330f));
+        BlueprintRoot root = BlueprintRoot.CreateNew(bpName, transform.rotation.eulerAngles, start, objects, icon);
+        Texture2D[] previews = CreatePreviews(objects);
         root.SetPreviews(previews);
-        transform.rotation = oldRotation;
-        for (int i = 0; i < objects.Length; ++i) objects[i].transform.SetParent(null);
-        _view.gameObject.SetActive(true);
-        _interact.gameObject.SetActive(true);
-        _projectors.gameObject.SetActive(projectorsActive);
         root.AssignPath(Path.Combine(kg_Blueprint.BlueprintsPath, bpName + ".yml"), false);
         root.Save();
-        if (Configs.AutoAddBlueprintsToUI.Value) BlueprintUI.AddEntry(root, true, previews);
+        BlueprintUI.AddEntry(root, true, previews);
         kg_Blueprint.Logger.LogDebug($"Blueprint {bpName} created in {dbg_watch.ElapsedMilliseconds}ms");
         return true;
     }
@@ -172,13 +175,6 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable
     } 
     public bool UseItem(Humanoid user, ItemDrop.ItemData item) => false;
     public string GetHoverName() => "$kg_blueprint_piece";
-    public string GetText() => "";
-    public void SetText(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text)) return;
-        if (CreateBlueprint(text, out string reason)) return;
-        MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, reason.Localize());
-    }
 }
 [HarmonyPatch(typeof(Player),nameof(Player.HaveRequirements), typeof(Piece), typeof(Player.RequirementMode))]
 public static class Player_HaveRequirements_Patch

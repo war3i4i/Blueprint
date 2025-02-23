@@ -13,6 +13,7 @@ public static class InteractionUI
     private static GameObject Entry;
     private static RawImage Icon;
     private static Texture OriginalIcon;
+    private static readonly RawImage[] Previews = new RawImage[3];
     public static void Init()
     {
         UI = Object.Instantiate(kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintInteractUI"));
@@ -24,14 +25,17 @@ public static class InteractionUI
         Icon = UI.transform.Find("Canvas/UI/Icon").GetComponent<RawImage>();
         OriginalIcon = Icon.texture;
         InputField = UI.transform.Find("Canvas/UI/Input").GetComponent<TMP_InputField>();
-         
+        InputField.onSubmit.AddListener(SaveBlueprint);
+        Previews[0] = UI.transform.Find("Canvas/UI/Preview1/Img").GetComponent<RawImage>();
+        Previews[1] = UI.transform.Find("Canvas/UI/Preview2/Img").GetComponent<RawImage>();
+        Previews[2] = UI.transform.Find("Canvas/UI/Preview3/Img").GetComponent<RawImage>();
         Button paste = UI.transform.Find("Canvas/UI/Paste").GetComponent<Button>();
         paste.onClick.AddListener(() =>
         {
             Stopwatch dbg_clipboard_watch = Stopwatch.StartNew();
             Texture2D icon = ClipboardHandler_Image.GetImage(256, 256);
             kg_Blueprint.Logger.LogDebug($"Trying to paste textured via clipboard. Icon is {icon}. Took {dbg_clipboard_watch.ElapsedMilliseconds}ms");
-            if (icon) Icon.texture = icon;
+            Icon.texture = icon ? icon : OriginalIcon;
         });
         Localization.instance.Localize(UI.transform);
     }
@@ -60,22 +64,31 @@ public static class InteractionUI
         {
             fitter.enabled = false;
             fitter.enabled = true;
-        }
+        } 
+    }
+    private static void SaveBlueprint(string name)
+    {
+        Hide();
+        if (string.IsNullOrWhiteSpace(name) || !Current) return;
+        Texture2D icon = Icon.texture == OriginalIcon ? null : Icon.texture as Texture2D;
+        if (Current.CreateBlueprint(name, icon, out string reason)) MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, $"<color=green>{name}</color> $kg_blueprint_saved".Localize());
+        else MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, reason.Localize());
     }
     public static void Show(BlueprintPiece piece) 
     {
-        if (!piece) return;
+        if (!piece) return; 
         InputField.text = "";
         Icon.texture = OriginalIcon;
         ReqsContent.RemoveAllChildrenExceptFirst();
         PiecesContent.RemoveAllChildrenExceptFirst();
         Current = piece;
-        int[] objects = piece.GetObjectedInside.Select(o => o.name.Replace("(Clone)", "").GetStableHashCode()).ToArray();
+        GameObject[] inside = piece.GetObjectedInside;
+        int[] objects = inside.Select(o => o.name.Replace("(Clone)", "").GetStableHashCode()).ToArray();
         Piece.Requirement[] reqs = objects.GetRequirements();
         for (int i = 0; i < reqs.Length; i++)
         {
             Piece.Requirement req = reqs[i];
-            GameObject entry = Object.Instantiate(Entry, ReqsContent);
+            GameObject entry = Object.Instantiate(Entry, ReqsContent); 
             entry.SetActive(true);
             entry.transform.Find("Icon").GetComponent<Image>().sprite = req.m_resItem.m_itemData.GetIcon();
             entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{req.m_resItem.m_itemData.m_shared.m_name} x{req.m_amount}".Localize();
@@ -83,11 +96,12 @@ public static class InteractionUI
         foreach (KeyValuePair<string, Utils.NumberedData> pair in objects.GetPiecesNumbered())
         {
             GameObject entry = Object.Instantiate(Entry, PiecesContent);
-            entry.SetActive(true);
-            entry.transform.Find("Icon").GetComponent<Image>().gameObject.SetActive(pair.Value.Icon);
-            entry.transform.Find("Icon").GetComponent<Image>().sprite = pair.Value.Icon;
+            entry.SetActive(true); 
+            entry.transform.Find("Icon").GetComponent<Image>().sprite = pair.Value.Icon ?? BlueprintUI.NoIcon;
             entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{pair.Key} x{pair.Value.Amount}".Localize();
         }
+        Texture2D[] previews = Current.CreatePreviews(inside);
+        for (int i = 0; i < 3; ++i) Previews[i].texture = previews[i];
         UpdateCanvases();
         UI.SetActive(true);
     }
@@ -105,6 +119,18 @@ public static class InteractionUI
     {
         [UsedImplicitly] private static void Postfix(ref bool __result) => __result |= IsVisible;
     }
+    [HarmonyPatch(typeof(FejdStartup), nameof(FejdStartup.Awake))]
+    private static class FejdStartup_Awake_Patch
+    {
+        private static bool done;
+        [UsedImplicitly] private static void Postfix(FejdStartup __instance)
+        {
+            if (done) return;
+            done = true;
+            if (__instance.transform.Find("StartGame/Panel/JoinPanel/serverCount")?.GetComponent<TextMeshProUGUI>() is not { } tmp) return;
+            foreach (var componentsInChild in UI.GetComponentsInChildren<TMP_Text>(true)) componentsInChild.font = tmp.font;
+        }
+    }
 }
 public static class BlueprintUI
 {
@@ -118,11 +144,13 @@ public static class BlueprintUI
     private static Transform PiecesContent;
     private static GameObject ResourceEntry;
     private static Transform Content;
+    public static Sprite NoIcon;
     private static bool IsVisible => UI && UI.activeSelf;
     public static void Init()
     {
         UI = Object.Instantiate(kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintUI"));
         CopyFrom = kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintCopyFrom");
+        NoIcon = kg_Blueprint.Asset.LoadAsset<Sprite>("kg_Blueprint_NoIcon");
         Object.DontDestroyOnLoad(UI);
         UI.SetActive(false);
         BlueprintEntry = UI.transform.Find("Canvas/UI/Scroll View/Viewport/Content/BlueprintEntry").gameObject;
@@ -268,7 +296,6 @@ public static class BlueprintUI
         _Internal_SelectedPiece.Key.gameObject.SetActive(false);
         _Internal_SelectedPiece.Key.name = "kg_Blueprint_Internal_PlacePiece";
         _Internal_SelectedPiece.Key.m_name = blueprint.Name;
-        _Internal_SelectedPiece.Key.m_icon = string.IsNullOrWhiteSpace(blueprint.Icon) ? _Internal_SelectedPiece.Key.m_icon : ZNetScene.instance.GetPrefab(blueprint.Icon)?.GetComponent<ItemDrop>().m_itemData.GetIcon();
         _Internal_SelectedPiece.Key.m_extraPlacementDistance = 20;
         for (int i = 0; i < blueprint.Objects.Length; ++i)
         {
@@ -313,8 +340,7 @@ public static class BlueprintUI
         {
             GameObject entry = Object.Instantiate(ResourceEntry, PiecesContent);
             entry.SetActive(true);
-            entry.transform.Find("Icon").GetComponent<Image>().gameObject.SetActive(pair.Value.Icon);
-            entry.transform.Find("Icon").GetComponent<Image>().sprite = pair.Value.Icon;
+            entry.transform.Find("Icon").GetComponent<Image>().sprite = pair.Value.Icon ?? NoIcon;
             entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{pair.Key} x{pair.Value.Amount}".Localize();
         }
     }
@@ -327,7 +353,7 @@ public static class BlueprintUI
         {
             Image img = componentsInChild.transform.Find("Selection").GetComponent<Image>();
             img.color = new Color(0f, 0f, 0f, 0.509804f);
-        }
+        } 
         HideResources(); 
     }
     [HarmonyPatch(typeof(Hud),nameof(Hud.IsPieceSelectionVisible))]
@@ -426,8 +452,7 @@ public static class BlueprintUI
     private static class FejdStartup_Awake_Patch
     {
         private static bool done;
-        [UsedImplicitly]
-        private static void Postfix(FejdStartup __instance)
+        [UsedImplicitly] private static void Postfix(FejdStartup __instance)
         {
             if (done) return;
             done = true;

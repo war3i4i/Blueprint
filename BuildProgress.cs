@@ -70,7 +70,7 @@ public static class BuildProgress
         }
 
         public void Setup(string prefab, long creatorID, float maxTime, string zdodata, int health = 0) =>
-            _znet.InvokeRPC(ZNetView.Everybody, "Setup", prefab, creatorID, maxTime, health, zdodata);
+            _znet.InvokeRPC(ZNetView.Everybody, "Setup", prefab, creatorID, maxTime, health, zdodata ?? "");
 
         private void RPC_Setup(long sender, string prefab, long creator, float maxTime, int health, string zdoData)
         {
@@ -80,7 +80,7 @@ public static class BuildProgress
                 _Creator = creator;
                 _MaxTime = maxTime;
                 _Health = health;
-                _ZDOData = zdoData;
+                if (!string.IsNullOrEmpty(zdoData)) _ZDOData = zdoData;
             }
             CreatePieceObject(prefab, false);
         }

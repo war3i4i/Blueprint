@@ -66,14 +66,15 @@ public class BlueprintRoot
         FilePath = path;
     }
     public bool TryGetFilePath(out string path) { path = FilePath; return !string.IsNullOrEmpty(FilePath); }
-    public static BlueprintRoot CreateNew(string Name, Vector3 boxRotation, Vector3 start, GameObject[] objects)
+    public static BlueprintRoot CreateNew(string Name, Vector3 boxRotation, Vector3 start, GameObject[] objects, Texture2D icon)
     {
         objects.ThrowIfBad(Name);
         BlueprintRoot root = new BlueprintRoot
         {
             Name = Name,
             Objects = new BlueprintObject[objects.Length],
-            BoxRotation = boxRotation
+            BoxRotation = boxRotation,
+            Icon = icon ? Convert.ToBase64String(icon.EncodeToPNG()) : null
         };
         objects = objects.OrderBy(x => x.transform.position.y).ToArray();
         for (int i = 0; i < objects.Length; ++i)
@@ -119,7 +120,7 @@ public class BlueprintRoot
     }
     public Texture2D GetPreview(int index)
     {
-        if (index < 0 || index >= Previews.Length || string.IsNullOrEmpty(Previews[index])) return null;
+        if ( index < 0 || index >= Previews.Length || Previews == null || string.IsNullOrEmpty(Previews[index])) return null;
         byte[] data = Convert.FromBase64String(Previews[index]);
         Texture2D tex = new Texture2D(1, 1);
         tex.LoadImage(data);
@@ -147,7 +148,7 @@ public class BlueprintRoot
             GameObject prefab = ZNetScene.instance.GetPrefab(Objects[i].Id);
             if (prefab == null)
             {
-                kg_Blueprint.Logger.LogError($"Failed to find prefab with id {Objects[i].Id} while applying blueprint ({Name})");
+                kg_Blueprint.Logger.LogDebug($"Failed to find prefab with id {Objects[i].Id} while applying blueprint ({Name})");
                 continue; 
             }
             Vector3 pos = center + rootRot * Objects[i].RelativePosition;
