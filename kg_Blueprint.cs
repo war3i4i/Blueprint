@@ -21,7 +21,7 @@ public class kg_Blueprint : BaseUnityPlugin
     {
         _thistype = this;
         Localizer.Load();
-        LoadAsm("kg_BlueprintScripts"); 
+        LoadAsm("kg_BlueprintScripts");
         if (!Directory.Exists(BlueprintsPath)) Directory.CreateDirectory(BlueprintsPath); 
         ReplaceMaterials.Add(new BuildPiece(Asset, "kg_BlueprintBox").Prefab.AddComponent<BlueprintPiece>().gameObject);
         ReplaceMaterials.Add(new BuildPiece(Asset, "kg_BlueprintBox_Large").Prefab.AddComponent<BlueprintPiece>().gameObject);

@@ -6,7 +6,7 @@ public static class InteractionUI
     private static GameObject UI;
 
     private static bool IsVisible => UI && UI.activeSelf;
-    private static BlueprintPiece Current;
+    private static BlueprintSource Current;
     private static TMP_InputField InputField;
     private static Transform ReqsContent;
     private static Transform PiecesContent;
@@ -47,8 +47,8 @@ public static class InteractionUI
             Hide();
             return;
         }
-        if (isVisible) InputField.Select(); 
-        if (isVisible && !Current) Hide();
+        if (isVisible) InputField.Select();
+        if (isVisible && Current is MonoBehaviour mono && !mono) Hide();
     }
     private static void UpdateCanvases() 
     {
@@ -69,20 +69,20 @@ public static class InteractionUI
     private static void SaveBlueprint(string name)
     {
         Hide();
-        if (string.IsNullOrWhiteSpace(name) || !Current) return;
+        if (string.IsNullOrWhiteSpace(name) || Current == null) return;
         Texture2D icon = Icon.texture == OriginalIcon ? null : Icon.texture as Texture2D;
         if (Current.CreateBlueprint(name, icon, out string reason)) MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, $"<color=green>{name}</color> $kg_blueprint_saved".Localize());
         else MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, reason.Localize());
-    }
-    public static void Show(BlueprintPiece piece) 
+    } 
+    public static void Show(BlueprintSource source) 
     {
-        if (!piece) return; 
+        if (source == null) return; 
         InputField.text = "";
         Icon.texture = OriginalIcon;
         ReqsContent.RemoveAllChildrenExceptFirst();
         PiecesContent.RemoveAllChildrenExceptFirst();
-        Current = piece;
-        GameObject[] inside = piece.GetObjectedInside;
+        Current = source;
+        GameObject[] inside = source.GetObjectedInside;
         int[] objects = inside.Select(o => o.name.Replace("(Clone)", "").GetStableHashCode()).ToArray();
         Piece.Requirement[] reqs = objects.GetRequirements();
         for (int i = 0; i < reqs.Length; i++)
@@ -102,8 +102,8 @@ public static class InteractionUI
         }
         Texture2D[] previews = Current.CreatePreviews(inside);
         for (int i = 0; i < 3; ++i) Previews[i].texture = previews[i];
-        UpdateCanvases();
         UI.SetActive(true);
+        UpdateCanvases();
     }
     private static void Hide()
     {
@@ -145,12 +145,14 @@ public static class BlueprintUI
     private static GameObject ResourceEntry;
     private static Transform Content;
     public static Sprite NoIcon;
+    private static GameObject Projector;
     private static bool IsVisible => UI && UI.activeSelf;
     public static void Init()
     {
         UI = Object.Instantiate(kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintUI"));
         CopyFrom = kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintCopyFrom");
         NoIcon = kg_Blueprint.Asset.LoadAsset<Sprite>("kg_Blueprint_NoIcon");
+        Projector = kg_Blueprint.Asset.LoadAsset<GameObject>("kg_Blueprint_Projector");
         Object.DontDestroyOnLoad(UI); 
         UI.SetActive(false);
         BlueprintEntry = UI.transform.Find("Canvas/UI/Scroll View/Viewport/Content/Entry").gameObject;
@@ -161,7 +163,12 @@ public static class BlueprintUI
         PiecesContent = UI.transform.Find("Canvas/UI/Pieces/Scroll View/Viewport/Content");
         BlueprintEntry.SetActive(false); 
         ResourceEntry.SetActive(false);
-        Content = BlueprintEntry.transform.parent; 
+        Content = BlueprintEntry.transform.parent;  
+        UI.transform.Find("Canvas/UI/Create").GetComponent<Button>().onClick.AddListener(() =>
+        {
+            Hide();
+            SelectBlueprintCreator();
+        });
         Localization.instance.Localize(UI.transform);
         InteractionUI.Init();
     }
@@ -263,7 +270,7 @@ public static class BlueprintUI
             UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_load", "$kg_blueprint_confirmload".Localize(root.Name), () =>
             {
                 UnifiedPopup.Pop();
-                PlayerState.BlueprintPiece.DestroyAllPiecesInside();
+                PlayerState.BlueprintPiece.DestroyAllPiecesInside(false);
                 PlayerState.BlueprintPiece.Load(root);
             }, UnifiedPopup.Pop));
         });
@@ -314,11 +321,27 @@ public static class BlueprintUI
         _Internal_SelectedPiece.Key.gameObject.SetActive(false);
         Player.m_localPlayer?.SetupPlacementGhost();
     }
+    private static void SelectBlueprintCreator()
+    {
+        if (_Internal_SelectedPiece.Key) Object.DestroyImmediate(_Internal_SelectedPiece.Key.gameObject);
+        _Internal_SelectedPiece = new KeyValuePair<Piece, BlueprintRoot>(Object.Instantiate(CopyFrom, Vector3.zero, Quaternion.identity).GetComponent<Piece>(), null);
+        _Internal_SelectedPiece.Key.gameObject.SetActive(false);
+        _Internal_SelectedPiece.Key.name = "kg_Blueprint_Internal_Creator";
+        _Internal_SelectedPiece.Key.m_name = "$kg_blueprint_creator";
+        _Internal_SelectedPiece.Key.m_description = "$kg_blueprint_creator_desc";
+        _Internal_SelectedPiece.Key.m_extraPlacementDistance = 20;
+        _Internal_SelectedPiece.Key.m_resources = [];
+        var proj = _Internal_SelectedPiece.Key.gameObject.AddComponent<CircleProjector>();
+        proj.m_prefab = BlueprintUI.Projector;
+        proj.m_radius = 20f;
+        proj.m_nrOfSegments = (int)(proj.m_radius * 3);
+        Player.m_localPlayer?.SetupPlacementGhost();
+    }
     private static void ShowResources(BlueprintRoot root)
     {
         ResourcesTab.SetActive(true);
         ResourceContent.RemoveAllChildrenExceptFirst();
-        Piece.Requirement[] reqs = root.GetRequirements();
+        Piece.Requirement[] reqs = root.GetRequirements(); 
         Recipe temp = ScriptableObject.CreateInstance<Recipe>();
         temp.name = "kg_Blueprint_Temp";
         temp.m_resources = new Piece.Requirement[1];
@@ -423,19 +446,30 @@ public static class BlueprintUI
         public static void PlacedPiece(GameObject obj)
         {
             if (obj?.GetComponent<Piece>() is not { } piece) return;
-            if (piece.name.Replace("(Clone)", "") != "kg_Blueprint_Internal_PlacePiece") return;
-            Vector3 pos = obj.transform.position;
-            Quaternion rot = obj.transform.rotation;
-            Object.Destroy(obj);
-            BlueprintRoot blueprint = _Internal_SelectedPiece.Value;
-            if (!Input.GetKey(KeyCode.LeftShift))
+            string name = piece.name.Replace("(Clone)", "");
+            if (name == "kg_Blueprint_Internal_PlacePiece")
             {
-                if (_Internal_SelectedPiece.Key) Object.Destroy(_Internal_SelectedPiece.Key);
-                _Internal_SelectedPiece = default;
-                Player.m_localPlayer.SetupPlacementGhost();
+                Vector3 pos = obj.transform.position;
+                Quaternion rot = obj.transform.rotation;
+                Object.Destroy(obj);
+                BlueprintRoot blueprint = _Internal_SelectedPiece.Value;
+                if (!Input.GetKey(KeyCode.LeftShift))
+                {
+                    if (_Internal_SelectedPiece.Key) Object.Destroy(_Internal_SelectedPiece.Key);
+                    _Internal_SelectedPiece = default;
+                    Player.m_localPlayer.SetupPlacementGhost();
+                }
+                blueprint?.Apply(pos, rot);
             }
-            blueprint?.Apply(pos, rot);
-        } 
+            if (name == "kg_Blueprint_Internal_Creator")
+            {
+                Vector3 pos = obj.transform.position;
+                float radius = obj.GetComponent<CircleProjector>().m_radius;
+                Object.Destroy(obj);
+                BlueprintCircleCreator circleCreator = new(pos, radius, 80f);
+                InteractionUI.Show(circleCreator);
+            }
+        }
         [UsedImplicitly] private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             MethodInfo method = AccessTools.Method(typeof(Player_PlacePiece_Patch), nameof(PlacedPiece), [typeof(GameObject)]);
@@ -484,6 +518,40 @@ public static class BlueprintUI
         [UsedImplicitly] private static void Postfix(KeyHints __instance)
         {
             if(__instance.m_buildHints.activeSelf) KeyHints_Awake_Patch.KeyHint_LeftControl_Snap.SetActive(IsHoldingHammer);
-        }
+        } 
     }
+    [HarmonyPatch(typeof(Player),nameof(Player.UpdatePlacement))]
+    [HarmonyEmitIL]
+    private static class Player_UpdatePlacement_Patch
+    {
+        private static void MouseScroll(Piece p, bool add)
+        {
+            if (p.name != "kg_Blueprint_Internal_Creator") return;
+            CircleProjector proj = p.GetComponent<CircleProjector>();
+            proj.m_radius = Mathf.Clamp(proj.m_radius + (add ? 1 : -1), 5, 30);
+            proj.m_nrOfSegments = (int)(proj.m_radius * 3);
+        }
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> code)
+        { 
+            CodeMatcher matcher = new(code);
+            var firstTarget = AccessTools.Method(typeof(ZInput), nameof(ZInput.GetMouseScrollWheel));
+            matcher.MatchForward(false, new CodeMatch(OpCodes.Call, firstTarget));
+            var field = AccessTools.Field(typeof(Player), nameof(Player.m_placeRotation));
+            matcher.MatchForward(false, new CodeMatch(OpCodes.Stfld, field));
+            matcher.Advance(1);
+            matcher.InsertAndAdvance(new CodeInstruction(OpCodes.Ldloc_S, 8));
+            matcher.InsertAndAdvance(new CodeInstruction(OpCodes.Ldc_I4_1));
+            matcher.InsertAndAdvance(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Player_UpdatePlacement_Patch), nameof(MouseScroll))));
+            matcher.MatchForward(false, new CodeMatch(OpCodes.Stfld, field));
+            matcher.Advance(1);
+            matcher.InsertAndAdvance(new CodeInstruction(OpCodes.Ldloc_S, 8)); 
+            matcher.InsertAndAdvance(new CodeInstruction(OpCodes.Ldc_I4_0));
+            matcher.InsertAndAdvance(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Player_UpdatePlacement_Patch), nameof(MouseScroll))));
+            matcher.MatchForward(false, new CodeMatch((i) => i.opcode == OpCodes.Leave || i.opcode == OpCodes.Leave_S));
+            if (!matcher.IsValid) return matcher.Instructions();
+            matcher.Advance(1);
+            matcher.InsertAndAdvance(new CodeInstruction(OpCodes.Nop));
+            return matcher.Instructions();
+        }
+    } 
 }

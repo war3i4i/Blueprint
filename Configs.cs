@@ -8,7 +8,7 @@ public static class Configs
     public static ConfigEntry<bool> RemoveBlueprintPlacementOnUnequip;
     private static ConfigEntry<string> SaveZDOForPrefabs;
     public static HashSet<int> SaveZDOHashset;
-    private static void UpdateHashset() => SaveZDOHashset = SaveZDOForPrefabs.Value.Replace(" ", "").Split(',').Select(x => x.GetStableHashCode()).ToHashSet();
+    private static void UpdateHashset() => SaveZDOHashset = [..SaveZDOForPrefabs.Value.Replace(" ", "").Split(',').Select(x => x.GetStableHashCode())];
     public static void Init()
     {
         InstantBuild = kg_Blueprint._thistype.Config.Bind("General", "InstantBuild", false, "Instantly build blueprints when they are placed");

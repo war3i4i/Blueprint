@@ -12,7 +12,7 @@ kg_blueprint_load_error_desc: You must be inside the Blueprint Box to load a blu
 kg_blueprint_confirmload: "Are you sure want to load blueprint: <color=yellow>$1</color>?\n<color=red>This will clear the current blueprint area.</color>"
 kg_blueprint_saveblueprint: Save Blueprint
 kg_blueprint_clear: Clear Blueprint area
-kg_blueprint_clear_desc: "Clear blueprint area of all pieces.\n<color=red>Note: this action cannot be undone.</color>"
+kg_blueprint_clear_desc: "Clear blueprint area of all pieces. It will also remove non-blueprint pieces\n<color=red>Note: this action cannot be undone.</color>"
 kg_blueprint_cleared: Blueprint area cleared
 kg_blueprint_createblueprint_title: Enter blueprint name
 kg_blueprint_cantbuildblueprintinsidebox: You can't build a blueprint inside a Blueprint Box
@@ -23,7 +23,12 @@ kg_blueprint_hammer: Blueprint Scroll
 kg_blueprint_hammer_desc: "Blueprint Scroll is a tool that allows you to build a structure from blueprints you have saved.\nTo build a blueprint, you must have the required resources."
 kg_blueprint_snap: Snap Blueprint to ground
 kg_blueprint_pieces: Structures
-kg_blueprint_requirements: Requirements
+kg_blueprint_requirements: Requirements 
 kg_blueprint_clipboardimage: Clipboard Image
 kg_blueprint_entername: Enter blueprint name
 kg_blueprint_saved: successfully saved
+kg_blueprint_piece_delete: Delete Box
+kg_blueprint_piece_delete_desc: "Are you sure want to delete this box? It will remove all blueprint-made pieces inside this it.\n<color=red>Note: this action cannot be undone.</color>"
+kg_blueprint_blueprintcreator: Create New
+kg_blueprint_creator: Create new blueprint
+kg_blueprint_creator_desc: "Use mouse wheel to change radius of captured area."

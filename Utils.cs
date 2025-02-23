@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace kg_Blueprint;
@@ -49,6 +50,17 @@ public static class Utils
         Quaternion rotation = box.transform.rotation;
         Collider[] colliders = Physics.OverlapBox(center, halfExtents, rotation, Layer);
         box.gameObject.SetActive(false);
+        foreach (Collider collider in colliders)
+            for (int i = 0; i < types.Length; ++i) if (collider.GetComponentInParent(types[i]) is {} p) hs.Add(p.gameObject);
+        if (exclude != null) hs.ExceptWith(exclude);
+        GameObject[] result = new GameObject[hs.Count];
+        hs.CopyTo(result);
+        return result;
+    }
+    public static GameObject[] GetObjectsInsideCylinder(Vector3 center, float radius, float height, GameObject[] exclude, params Type[] types)
+    {
+        HashSet<GameObject> hs = [];
+        Collider[] colliders = Physics.OverlapCapsule(center, center + Vector3.up * height, radius, Layer);
         foreach (Collider collider in colliders)
             for (int i = 0; i < types.Length; ++i) if (collider.GetComponentInParent(types[i]) is {} p) hs.Add(p.gameObject);
         if (exclude != null) hs.ExceptWith(exclude);
@@ -319,5 +331,25 @@ public static class Utils
             else numbered[name] = new NumberedData() { Amount = 1, Icon = icon };
         }
         return numbered.OrderByDescending(x => x.Value.Amount);
+    }
+    public static bool CreateBlueprint(this BlueprintSource source, string bpName, Texture2D icon, out string reason)
+    {
+        Stopwatch dbg_watch = Stopwatch.StartNew();
+        reason = null;
+        Vector3 start = source.StartPoint;
+        GameObject[] objects = source.GetObjectedInside;
+        if (objects.Length == 0)
+        {
+            reason = "$kg_blueprint_createblueprint_no_objects";
+            return false;
+        }
+        BlueprintRoot root = BlueprintRoot.CreateNew(bpName, source.Rotation, start, objects, icon);
+        Texture2D[] previews = source.CreatePreviews(objects);
+        root.SetPreviews(previews);
+        root.AssignPath(Path.Combine(kg_Blueprint.BlueprintsPath, bpName + ".yml"), false);
+        root.Save();
+        BlueprintUI.AddEntry(root, true, previews);
+        kg_Blueprint.Logger.LogDebug($"Blueprint {bpName} created in {dbg_watch.ElapsedMilliseconds}ms");
+        return true;
     }
 }

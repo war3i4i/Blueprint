@@ -1,7 +1,32 @@
 ﻿namespace kg_Blueprint;
-
+public interface BlueprintSource
+{
+    public Texture2D[] CreatePreviews(GameObject[] inside);
+    public GameObject[] GetObjectedInside { get; }
+    public Vector3 StartPoint { get; }
+    public Vector3 Rotation { get; }
+}
+public class BlueprintCircleCreator(Vector3 pos, float radius, float height) : BlueprintSource
+{
+    public Texture2D[] CreatePreviews(GameObject[] inside)
+    { 
+        GameObject empty = new GameObject("BlueprintCircle");
+        empty.transform.position = pos;
+        for (int i = 0; i < inside.Length; ++i) inside[i].transform.SetParent(empty.transform);
+        Texture2D[] previews = PhotoManager.MakeBulkSprites(empty, 1f, 
+            Quaternion.Euler(30f, 0f, 0f),
+            Quaternion.Euler(23f, 51f, 25.8f),
+            Quaternion.Euler(23f, 51f, 25.8f) * Quaternion.Euler(0f, 180f, 0f));
+        for (int i = 0; i < inside.Length; ++i) inside[i].transform.SetParent(null);
+        Object.Destroy(empty);
+        return previews;
+    }
+    public GameObject[] GetObjectedInside => Utils.GetObjectsInsideCylinder(pos, radius, height, null, typeof(Piece), typeof(TreeBase), typeof(Destructible));
+    public Vector3 StartPoint => pos;
+    public Vector3 Rotation => Quaternion.identity.eulerAngles;
+}
 [Serializable]
-public class SimpleVector3
+public class SimpleVector3 
 {
     public float x;
     public float y; 

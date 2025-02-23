@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace kg_Blueprint;
+﻿namespace kg_Blueprint;
 public static class PlayerState
 {
     public static bool PlayerInsideBlueprint;
@@ -15,7 +13,7 @@ public static class PlayerState
         PlayerInsideBlueprint = BlueprintPiece.IsInside(Player.m_localPlayer.transform.position, out BlueprintPiece);
     }
 }
-public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable
+public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, BlueprintSource
 {
     private static readonly List<BlueprintPiece> _instances = [];
     private ZNetView _znv;
@@ -56,18 +54,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable
         _counter = 1f;
         _projectors.gameObject.SetActive(PlayerState.BlueprintPiece == this);
     }
-
     private void OnDestroy() => _instances.Remove(this);
-    private Vector3 StartPoint_BottomCenter
-    { 
-        get
-        {
-            _blueprintArea.gameObject.SetActive(true);
-            Vector3 result = new Vector3(_blueprintArea.bounds.center.x, _blueprintArea.bounds.min.y, _blueprintArea.bounds.center.z);
-            _blueprintArea.gameObject.SetActive(false);
-            return result;
-        }
-    }
     public Texture2D[] CreatePreviews(GameObject[] inside)
     {
         _view.gameObject.SetActive(false);
@@ -86,33 +73,26 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable
         return previews;
     } 
     public GameObject[] GetObjectedInside => _blueprintArea.GetObjectsInside([_piece.gameObject], typeof(Piece), typeof(TreeBase), typeof(Destructible));
-    public bool CreateBlueprint(string bpName, Texture2D icon, out string reason)
+    public Vector3 StartPoint
     {
-        Stopwatch dbg_watch = Stopwatch.StartNew();
-        reason = null;
-        Vector3 start = StartPoint_BottomCenter;
-        GameObject[] objects = GetObjectedInside;
-        if (objects.Length == 0)
+        get
         {
-            reason = "$kg_blueprint_createblueprint_no_objects";
-            return false;
-        }
-        BlueprintRoot root = BlueprintRoot.CreateNew(bpName, transform.rotation.eulerAngles, start, objects, icon);
-        Texture2D[] previews = CreatePreviews(objects);
-        root.SetPreviews(previews);
-        root.AssignPath(Path.Combine(kg_Blueprint.BlueprintsPath, bpName + ".yml"), false);
-        root.Save();
-        BlueprintUI.AddEntry(root, true, previews);
-        kg_Blueprint.Logger.LogDebug($"Blueprint {bpName} created in {dbg_watch.ElapsedMilliseconds}ms");
-        return true;
+            _blueprintArea.gameObject.SetActive(true);
+            Vector3 result = new Vector3(_blueprintArea.bounds.center.x, _blueprintArea.bounds.min.y, _blueprintArea.bounds.center.z);
+            _blueprintArea.gameObject.SetActive(false);
+            return result;
+        }    
     }
-    public void DestroyAllPiecesInside()
+    public Vector3 Rotation => transform.rotation.eulerAngles;
+    public void DestroyAllPiecesInside(bool onlyBlueprint)
     {
         GameObject[] objects = _blueprintArea.GetObjectsInside([_piece.gameObject], typeof(Piece), typeof(TreeBase), typeof(Destructible));
         for (int i = 0; i < objects.Length; ++i)
         {
             GameObject go = objects[i];
-            if (go.GetComponent<ZNetView>() is {} znv) znv.ClaimOwnership();
+            ZNetView znv = go.GetComponent<ZNetView>();
+            if (onlyBlueprint && (!znv || !znv.m_zdo.GetBool("kg_Blueprint"))) continue;
+            znv?.ClaimOwnership();
             ZNetScene.instance.Destroy(go);
         }
     }
@@ -123,7 +103,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable
     }
     private IEnumerator _Internal_Load(BlueprintRoot root)
     {
-        Vector3 center = StartPoint_BottomCenter;
+        Vector3 center = StartPoint;
         for (int i = 0; i < root.Objects.Length; ++i)
         {
             BlueprintObject obj = root.Objects[i];
@@ -151,9 +131,12 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable
         if (user.GetHoverObject() != _interact.gameObject) return false;
         if (Input.GetKey(KeyCode.C))
         {
-            DestroyAllPiecesInside();
-            this._znv.ClaimOwnership();
-            ZNetScene.instance.Destroy(gameObject);
+            UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_piece_delete", "$kg_blueprint_piece_delete_desc", () =>
+            {
+                UnifiedPopup.Pop();
+                DestroyAllPiecesInside(true);
+                MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, "$kg_blueprint_piece_deleted".Localize());
+            }, UnifiedPopup.Pop));
             return true;
         }
         if (!alt) InteractionUI.Show(this);
@@ -162,7 +145,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable
             UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_clear", "$kg_blueprint_clear_desc", () =>
             { 
                 UnifiedPopup.Pop();
-                DestroyAllPiecesInside();
+                DestroyAllPiecesInside(false);
                 MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, "$kg_blueprint_cleared".Localize());
             }, UnifiedPopup.Pop));
         } 
@@ -174,7 +157,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable
         if (obj != _interact.gameObject) return string.Empty;
         return "[<color=yellow><b>$KEY_Use</b></color>] $kg_blueprint_saveblueprint\n".Localize() +
                "[<color=yellow><b>L.Shift + $KEY_Use</b></color>] $kg_blueprint_clear\n".Localize() +
-               "[<color=yellow><b>C + $KEY_Use</b></color>] <color=red>$kg_blueprint_delete $kg_blueprint_box</color>".Localize();
+               "[<color=yellow><b>C + $KEY_Use</b></color>] <color=red>$kg_blueprint_piece_delete</color>".Localize();
     } 
     public bool UseItem(Humanoid user, ItemDrop.ItemData item) => false;
     public string GetHoverName() => "$kg_blueprint_piece";

@@ -46,7 +46,7 @@ public static class ValheimFixes
             int pieceReqs = piece.m_resources.Length;
             if (pieceReqs + 1 > __instance.m_requirementItems.Length) EnsureArray(__instance, pieceReqs + 1);
             int amount = Mathf.Max(0, piece.m_resources.Length - 5);
-            Hud_Awake_Patch.Rect.sizeDelta = new Vector2(Hud_Awake_Patch.OriginalSize.x + amount * 50, Hud_Awake_Patch.Rect.sizeDelta.y);
+            Hud_Awake_Patch.Rect.sizeDelta = new Vector2(Hud_Awake_Patch.OriginalSize.x + amount * 66, Hud_Awake_Patch.Rect.sizeDelta.y);
         }
     }
     [HarmonyPatch(typeof(StaticPhysics),nameof(StaticPhysics.Awake))] 
