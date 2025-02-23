@@ -78,9 +78,11 @@ public class BlueprintRoot
         objects = objects.OrderBy(x => x.transform.position.y).ToArray();
         for (int i = 0; i < objects.Length; ++i)
         { 
+            int id = objects[i].name.Replace("(Clone)", "").GetStableHashCode();
+            if (!ZNetScene.instance.GetPrefab(id)) continue;
             root.Objects[i] = new BlueprintObject
-            { 
-                Id = objects[i].name.Replace("(Clone)", "").GetStableHashCode(),
+            {
+                Id = id,
                 RelativePosition = objects[i].transform.position - start,
                 Rotation = objects[i].transform.rotation.eulerAngles
             };
@@ -135,41 +137,8 @@ public class BlueprintRoot
         reason = "No objects in blueprint";
         return false;
     }
-    public Piece.Requirement[] GetRequirements()
-    {
-        GameObject[] gameObjects = new GameObject[Objects.Length];
-        for (int i = 0; i < Objects.Length; ++i) gameObjects[i] = ZNetScene.instance.GetPrefab(Objects[i].Id);
-        gameObjects.ThrowIfBad(Name);
-        Dictionary<ItemDrop, int> requirements = new Dictionary<ItemDrop, int>();
-        for (int i = 0; i < gameObjects.Length; ++i)
-        {
-            Piece p = gameObjects[i].GetComponent<Piece>();
-            if (!p) continue;
-            for (int r = 0; r < p.m_resources.Length; ++r)
-            {
-                if (requirements.ContainsKey(p.m_resources[r].m_resItem))
-                    requirements[p.m_resources[r].m_resItem] += p.m_resources[r].m_amount;
-                else
-                    requirements[p.m_resources[r].m_resItem] = p.m_resources[r].m_amount;
-            }
-        }
-        return requirements.Select(x => new Piece.Requirement() { m_resItem = x.Key, m_amount = x.Value }).ToArray();
-    }
-    public IOrderedEnumerable<KeyValuePair<Piece, int>> GetPiecesNumbered()
-    {
-        GameObject[] pieces = new GameObject[Objects.Length];
-        for (int i = 0; i < Objects.Length; ++i) pieces[i] = ZNetScene.instance.GetPrefab(Objects[i].Id);
-        pieces.ThrowIfBad(Name);
-        Dictionary<Piece, int> numbered = new Dictionary<Piece, int>();
-        for (int i = 0; i < pieces.Length; ++i)
-        {
-            Piece p = pieces[i].GetComponent<Piece>();
-            if (!p) continue;
-            if (numbered.ContainsKey(p)) numbered[p]++;
-            else numbered[p] = 1;
-        }
-        return numbered.OrderByDescending(x => x.Value);
-    }
+    public Piece.Requirement[] GetRequirements() => Objects.Select(x => x.Id).ToArray().GetRequirements();
+    public IOrderedEnumerable<KeyValuePair<string, Utils.NumberedData>> GetPiecesNumbered() => Objects.Select(x => x.Id).ToArray().GetPiecesNumbered();
     public void Apply(Vector3 center, Quaternion rootRot) => ZNetScene.instance.StartCoroutine(Internal_Apply(Configs.InstantBuild.Value, Input.GetKey(KeyCode.LeftControl), center, rootRot));
     private IEnumerator Internal_Apply(bool instantBuild, bool snapToGround, Vector3 center, Quaternion rootRot)
     {

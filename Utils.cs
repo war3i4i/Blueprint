@@ -1,12 +1,13 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace kg_Blueprint;
 
 public static class Utils
 {
-    public static void ThrowIfBad(this IList<GameObject> pieces, string Name, [CallerMemberName] string caller = "", [CallerLineNumber] int line = 0)
+    public static void ThrowIfBad(this IList<GameObject> pieces, [CallerMemberName] string caller = "", [CallerLineNumber] int line = 0)
     {
-        string msg = $"[{Name}] {caller}({line})";
+        string msg = $"{caller}({line})";
         if (pieces == null || pieces.Count == 0) throw new Exception($"No pieces found [{msg}]");
         if (pieces.Any(t => t == null)) throw new Exception($"List contains a null piece [{msg}]");
     }
@@ -278,4 +279,45 @@ public static class Utils
     private static CraftingStation _internal_fakeStation;
     public static CraftingStation GetBlueprintFakeStation() => _internal_fakeStation ??= kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintCS").GetComponent<CraftingStation>();
     public static IEnumerator WaitFrames(int frames) { frames = Mathf.Max(4, frames); for (int i = 0; i < frames; ++i) yield return null; }
+    public static Piece.Requirement[] GetRequirements(this int[] Objects)
+    {
+        GameObject[] gameObjects = new GameObject[Objects.Length];
+        for (int i = 0; i < Objects.Length; ++i) gameObjects[i] = ZNetScene.instance.GetPrefab(Objects[i]);
+        Dictionary<ItemDrop, int> requirements = new Dictionary<ItemDrop, int>();
+        for (int i = 0; i < gameObjects.Length; ++i)
+        {
+            if (!gameObjects[i]) continue;
+            Piece p = gameObjects[i].GetComponent<Piece>();
+            if (!p) continue;
+            for (int r = 0; r < p.m_resources.Length; ++r)
+            {
+                if (requirements.ContainsKey(p.m_resources[r].m_resItem))
+                    requirements[p.m_resources[r].m_resItem] += p.m_resources[r].m_amount;
+                else
+                    requirements[p.m_resources[r].m_resItem] = p.m_resources[r].m_amount;
+            } 
+        }
+        return requirements.Select(x => new Piece.Requirement() { m_resItem = x.Key, m_amount = x.Value }).ToArray();
+    }
+    public class NumberedData
+    {
+        public int Amount;
+        public Sprite Icon;
+    }
+    public static IOrderedEnumerable<KeyValuePair<string, NumberedData>> GetPiecesNumbered(this int[] Objects)
+    {
+        GameObject[] pieces = new GameObject[Objects.Length];
+        for (int i = 0; i < Objects.Length; ++i) pieces[i] = ZNetScene.instance.GetPrefab(Objects[i]);
+        Dictionary<string, NumberedData> numbered = new Dictionary<string, NumberedData>();
+        for (int i = 0; i < pieces.Length; ++i)
+        {
+            if (!pieces[i]) continue;
+            Piece p = pieces[i].GetComponent<Piece>();
+            Sprite icon = p?.m_icon;
+            string name = p ? p.m_name.Localize() : pieces[i].name;
+            if (numbered.TryGetValue(name, out var value)) value.Amount++;
+            else numbered[name] = new NumberedData() { Amount = 1, Icon = icon };
+        }
+        return numbered.OrderByDescending(x => x.Value.Amount);
+    }
 }

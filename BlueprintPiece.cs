@@ -15,7 +15,7 @@ public static class PlayerState
         PlayerInsideBlueprint = BlueprintPiece.IsInside(Player.m_localPlayer.transform.position, out BlueprintPiece);
     }
 }
-public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiver
+public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable
 {
     private static readonly List<BlueprintPiece> _instances = [];
     private ZNetView _znv;
@@ -68,12 +68,13 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
             return result;
         }
     }
+    public GameObject[] GetObjectedInside => _blueprintArea.GetObjectsInside([_piece.gameObject], typeof(Piece), typeof(TreeBase), typeof(Destructible));
     private bool CreateBlueprint(string bpName, out string reason)
     {
         Stopwatch dbg_watch = Stopwatch.StartNew();
         reason = null;
         Vector3 start = StartPoint_BottomCenter;
-        GameObject[] objects = _blueprintArea.GetObjectsInside([_piece.gameObject], typeof(Piece), typeof(TreeBase), typeof(Destructible));
+        GameObject[] objects = GetObjectedInside;
         if (objects.Length == 0)
         {
             reason = "$kg_blueprint_createblueprint_no_objects";
@@ -149,7 +150,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
             ZNetScene.instance.Destroy(gameObject);
             return true;
         }
-        if (!alt) TextInput.instance.RequestText(this, "$kg_blueprint_createblueprint_title", 30);
+        if (!alt) InteractionUI.Show(this);
         else
         {
             UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_clear", "$kg_blueprint_clear_desc", () =>

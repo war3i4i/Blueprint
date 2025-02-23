@@ -33,7 +33,11 @@ public class kg_Blueprint : BaseUnityPlugin
         new Harmony(GUID).PatchAll();
     }
     private void FixedUpdate() => PlayerState.Update();
-    private void Update() { if (Input.GetKeyDown(KeyCode.Escape) && BlueprintUI.IsVisible) BlueprintUI.Hide(); }
+    private void Update()
+    {
+        BlueprintUI.Update();
+        InteractionUI.Update();
+    }
     private static AssetBundle GetAssetBundle(string filename)
     {
         Assembly execAssembly = Assembly.GetExecutingAssembly(); 

@@ -1,5 +1,111 @@
-﻿namespace kg_Blueprint;
+﻿using System.Diagnostics;
 
+namespace kg_Blueprint;
+public static class InteractionUI
+{
+    private static GameObject UI;
+
+    private static bool IsVisible => UI && UI.activeSelf;
+    private static BlueprintPiece Current;
+    private static TMP_InputField InputField;
+    private static Transform ReqsContent;
+    private static Transform PiecesContent;
+    private static GameObject Entry;
+    private static RawImage Icon;
+    private static Texture OriginalIcon;
+    public static void Init()
+    {
+        UI = Object.Instantiate(kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintInteractUI"));
+        Object.DontDestroyOnLoad(UI);
+        UI.SetActive(false);
+        Entry = UI.transform.Find("Canvas/UI/Pieces/Viewport/Content/Entry").gameObject;
+        ReqsContent = UI.transform.Find("Canvas/UI/Reqs/Viewport/Content");
+        PiecesContent = UI.transform.Find("Canvas/UI/Pieces/Viewport/Content");
+        Icon = UI.transform.Find("Canvas/UI/Icon").GetComponent<RawImage>();
+        OriginalIcon = Icon.texture;
+        InputField = UI.transform.Find("Canvas/UI/Input").GetComponent<TMP_InputField>();
+         
+        Button paste = UI.transform.Find("Canvas/UI/Paste").GetComponent<Button>();
+        paste.onClick.AddListener(() =>
+        {
+            Stopwatch dbg_clipboard_watch = Stopwatch.StartNew();
+            Texture2D icon = ClipboardHandler_Image.GetImage(256, 256);
+            kg_Blueprint.Logger.LogDebug($"Trying to paste textured via clipboard. Icon is {icon}. Took {dbg_clipboard_watch.ElapsedMilliseconds}ms");
+            if (icon) Icon.texture = icon;
+        });
+        Localization.instance.Localize(UI.transform);
+    }
+    public static void Update()
+    {
+        bool isVisible = IsVisible;
+        if (Input.GetKeyDown(KeyCode.Escape) && isVisible) 
+        {
+            Hide();
+            return;
+        }
+        if (isVisible) InputField.Select(); 
+        if (isVisible && !Current) Hide();
+    }
+    private static void UpdateCanvases() 
+    {
+        List<ContentSizeFitter> fitters = UI.GetComponentsInChildren<ContentSizeFitter>().ToList();
+        Canvas.ForceUpdateCanvases();
+        foreach (ContentSizeFitter fitter in fitters)
+        {
+            fitter.enabled = false;
+            fitter.enabled = true;
+        }
+        Canvas.ForceUpdateCanvases();
+        foreach (ContentSizeFitter fitter in fitters)
+        {
+            fitter.enabled = false;
+            fitter.enabled = true;
+        }
+    }
+    public static void Show(BlueprintPiece piece) 
+    {
+        if (!piece) return;
+        InputField.text = "";
+        Icon.texture = OriginalIcon;
+        ReqsContent.RemoveAllChildrenExceptFirst();
+        PiecesContent.RemoveAllChildrenExceptFirst();
+        Current = piece;
+        int[] objects = piece.GetObjectedInside.Select(o => o.name.Replace("(Clone)", "").GetStableHashCode()).ToArray();
+        Piece.Requirement[] reqs = objects.GetRequirements();
+        for (int i = 0; i < reqs.Length; i++)
+        {
+            Piece.Requirement req = reqs[i];
+            GameObject entry = Object.Instantiate(Entry, ReqsContent);
+            entry.SetActive(true);
+            entry.transform.Find("Icon").GetComponent<Image>().sprite = req.m_resItem.m_itemData.GetIcon();
+            entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{req.m_resItem.m_itemData.m_shared.m_name} x{req.m_amount}".Localize();
+        }
+        foreach (KeyValuePair<string, Utils.NumberedData> pair in objects.GetPiecesNumbered())
+        {
+            GameObject entry = Object.Instantiate(Entry, PiecesContent);
+            entry.SetActive(true);
+            entry.transform.Find("Icon").GetComponent<Image>().gameObject.SetActive(pair.Value.Icon);
+            entry.transform.Find("Icon").GetComponent<Image>().sprite = pair.Value.Icon;
+            entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{pair.Key} x{pair.Value.Amount}".Localize();
+        }
+        UpdateCanvases();
+        UI.SetActive(true);
+    }
+    private static void Hide()
+    {
+        UI.SetActive(false);
+    }
+    [HarmonyPatch(typeof(TextInput), nameof(TextInput.IsVisible))]
+    private static class TextInput_IsVisible_Patch
+    {
+        [UsedImplicitly] private static void Postfix(ref bool __result) => __result |= IsVisible;
+    }
+    [HarmonyPatch(typeof(StoreGui), nameof(StoreGui.IsVisible))]
+    private static class StoreGui_IsVisible_Patch
+    {
+        [UsedImplicitly] private static void Postfix(ref bool __result) => __result |= IsVisible;
+    }
+}
 public static class BlueprintUI
 {
     private static KeyValuePair<Piece, BlueprintRoot> _Internal_SelectedPiece;
@@ -12,7 +118,7 @@ public static class BlueprintUI
     private static Transform PiecesContent;
     private static GameObject ResourceEntry;
     private static Transform Content;
-    public static bool IsVisible => UI && UI.activeSelf;
+    private static bool IsVisible => UI && UI.activeSelf;
     public static void Init()
     {
         UI = Object.Instantiate(kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintUI"));
@@ -29,7 +135,9 @@ public static class BlueprintUI
         ResourceEntry.SetActive(false);
         Content = BlueprintEntry.transform.parent;
         Localization.instance.Localize(UI.transform);
+        InteractionUI.Init();
     }
+    public static void Update() { if (Input.GetKeyDown(KeyCode.Escape) && IsVisible) Hide(); }
     private static void UpdateCanvases() 
     {
         List<ContentSizeFitter> fitters = UI.GetComponentsInChildren<ContentSizeFitter>().ToList();
@@ -200,18 +308,19 @@ public static class BlueprintUI
         }
         Object.DestroyImmediate(temp);
         PiecesTab.SetActive(true);
-        PiecesContent.RemoveAllChildrenExceptFirst();
-        foreach (KeyValuePair<Piece, int> pair in root.GetPiecesNumbered())
+        PiecesContent.RemoveAllChildrenExceptFirst(); 
+        foreach (KeyValuePair<string, Utils.NumberedData> pair in root.GetPiecesNumbered())
         {
             GameObject entry = Object.Instantiate(ResourceEntry, PiecesContent);
             entry.SetActive(true);
-            entry.transform.Find("Icon").GetComponent<Image>().sprite = pair.Key.m_icon;
-            entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{pair.Key.m_name} x{pair.Value}".Localize();
+            entry.transform.Find("Icon").GetComponent<Image>().gameObject.SetActive(pair.Value.Icon);
+            entry.transform.Find("Icon").GetComponent<Image>().sprite = pair.Value.Icon;
+            entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{pair.Key} x{pair.Value.Amount}".Localize();
         }
     }
     private static void HideResources() { ResourceContent.RemoveAllChildrenExceptFirst(); PiecesContent.RemoveAllChildrenExceptFirst(); }
     private static void Show() => UI.SetActive(true);
-    public static void Hide()
+    private static void Hide()
     {
         UI.SetActive(false);
         foreach (var componentsInChild in Content.GetComponentsInChildren<UIInputHandler>())
