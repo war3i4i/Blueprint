@@ -85,12 +85,11 @@ public class BlueprintRoot
                 Rotation = objects[i].transform.rotation.eulerAngles
             };
             if (!Configs.SaveZDOHashset.Contains(root.Objects[i].Id)) continue;
-            ZPackage pkg = new();
             ZDO zdo = objects[i].GetComponent<ZNetView>()?.GetZDO();
             if (zdo == null) continue;
+            ZPackage pkg = new();
             zdo.SerializeZDO(pkg);
-            byte[] data = pkg.GetArray();
-            root.Objects[i].ZDOData = Convert.ToBase64String(data);
+            root.Objects[i].ZDOData = Convert.ToBase64String(pkg.GetArray());
         }
         return root;
     }

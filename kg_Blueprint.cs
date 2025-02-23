@@ -89,7 +89,6 @@ public class kg_Blueprint : BaseUnityPlugin
             }
         }, token);
     }
-
     private static void LoadAsm(string name)
     {
         Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("kg_Blueprint.Assets." + name + ".dll")!;
@@ -104,7 +103,7 @@ public class kg_Blueprint : BaseUnityPlugin
         {
             Logger.LogError($"Error loading {name} assembly\n:{ex}");
         } 
-    } 
+    }
     [HarmonyPatch(typeof(ZNetScene),nameof(ZNetScene.Awake))]
     private static class ZNetScene_Awake_Patch
     { 

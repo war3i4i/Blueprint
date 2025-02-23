@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace kg_Blueprint;
+﻿namespace kg_Blueprint;
 
 public static class PhotoManager
 {
@@ -68,10 +66,9 @@ public static class PhotoManager
 
     private static bool IsVisualComponent(Component component)
     {
-        return component is Renderer or MeshFilter or Transform or Animator or LevelEffects;
+        return component is Renderer or MeshFilter or Transform or LevelEffects;
     }
-
-
+    
     private static GameObject SpawnAndRemoveComponents(RenderRequest obj)
     {
         GameObject tempObj = Object.Instantiate(obj.Target, INACTIVE.transform);

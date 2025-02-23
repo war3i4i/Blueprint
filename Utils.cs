@@ -277,5 +277,5 @@ public static class Utils
     }
     private static CraftingStation _internal_fakeStation;
     public static CraftingStation GetBlueprintFakeStation() => _internal_fakeStation ??= kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintCS").GetComponent<CraftingStation>();
-    public static IEnumerator WaitFrames(int frames) { for (int i = 0; i < frames; ++i) yield return null; }
+    public static IEnumerator WaitFrames(int frames) { frames = Mathf.Max(4, frames); for (int i = 0; i < frames; ++i) yield return null; }
 }

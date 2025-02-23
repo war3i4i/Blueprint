@@ -7,7 +7,7 @@ public static class Configs
     public static ConfigEntry<int> BuildTime;
     public static ConfigEntry<int> BlueprintLoadFrameSkip, BlueprintBuildFrameSkip;
     public static ConfigEntry<bool> RemoveBlueprintPlacementOnUnequip;
-    public static ConfigEntry<string> SaveZDOForPrefabs;
+    private static ConfigEntry<string> SaveZDOForPrefabs;
     public static HashSet<int> SaveZDOHashset;
     private static void UpdateHashset() => SaveZDOHashset = SaveZDOForPrefabs.Value.Replace(" ", "").Split(',').Select(x => x.GetStableHashCode()).ToHashSet();
     public static void Init()
