@@ -21,7 +21,12 @@ public static class Utils
         return Path.GetInvalidPathChars().Aggregate(path, (current, c) => current.Replace(c.ToString(), string.Empty));
     }
     public static void WriteNoDupes(this string path, string data) => File.WriteAllText(path.ValidPath(), data);
-    public static void WriteWithDupes(this string path, string data)
+    public static void WriteWithDupes(this string path, string data, bool forget)
+    {
+        if (forget) Task.Run(() => WriteWithDupes_Internal(path, data));
+        else WriteWithDupes_Internal(path, data);
+    }
+    private static void WriteWithDupes_Internal(this string path, string data)
     {
         path = path.ValidPath();
         string directory = Path.GetDirectoryName(path)!;

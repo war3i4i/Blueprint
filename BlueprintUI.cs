@@ -59,7 +59,13 @@ public static class BlueprintUI
         }
         UpdateCanvases();
     }
-    public static void AddEntry(BlueprintRoot root, bool updateCanvases)
+    private static void AddEntry(BlueprintRoot root, bool updateCanvases)
+    {
+        Texture2D[] previews = new Texture2D[3];
+        for (int i = 0; i < 3; ++i) previews[i] = root.GetPreview(i);
+        AddEntry(root, updateCanvases, previews);
+    }
+    public static void AddEntry(BlueprintRoot root, bool updateCanvases, Texture2D[] previews)
     {
         GameObject entry = Object.Instantiate(BlueprintEntry, Content);
         entry.SetActive(true);
@@ -124,13 +130,13 @@ public static class BlueprintUI
                 PlayerState.BlueprintPiece.Load(root);
             }, UnifiedPopup.Pop));
         });
-        if (root.Previews.Length > 0)
+        if (previews is { Length: > 0 })
         {
             for (int p = 3; p >= 1; --p)
             {
-                if (p > root.Previews.Length) continue;
+                if (p > previews.Length || !previews[p - 1]) continue;
                 entry.transform.Find($"Previews/Preview{p}").gameObject.SetActive(true);
-                entry.transform.Find($"Previews/Preview{p}/Img").GetComponent<RawImage>().texture = root.GetPreview(p - 1);
+                entry.transform.Find($"Previews/Preview{p}/Img").GetComponent<RawImage>().texture = previews[p - 1];
             }
         }
         if (updateCanvases) UpdateCanvases();
@@ -191,7 +197,7 @@ public static class BlueprintUI
             entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{pair.Key.m_name} x{pair.Value}".Localize();
         }
     }
-    private static void HideResources() { ResourceContent.RemoveAllChildrenExceptFirst(); ResourcesTab.SetActive(false); PiecesContent.RemoveAllChildrenExceptFirst(); PiecesTab.SetActive(false); }
+    private static void HideResources() { ResourceContent.RemoveAllChildrenExceptFirst(); PiecesContent.RemoveAllChildrenExceptFirst(); }
     private static void Show() => UI.SetActive(true);
     public static void Hide()
     {
@@ -201,7 +207,7 @@ public static class BlueprintUI
             Image img = componentsInChild.transform.Find("Selection").GetComponent<Image>();
             img.color = new Color(0f, 0f, 0f, 0.509804f);
         }
-        HideResources();
+        HideResources(); 
     }
     [HarmonyPatch(typeof(Hud),nameof(Hud.IsPieceSelectionVisible))]
     private static class Hud_IsPieceSelectionVisible_Patch

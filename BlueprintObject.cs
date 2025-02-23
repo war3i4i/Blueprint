@@ -1,4 +1,4 @@
-﻿using YamlDotNet.Helpers;
+﻿using System.Diagnostics;
 
 namespace kg_Blueprint;
 
@@ -21,13 +21,11 @@ public class RenameBlueprintRoot(BlueprintRoot root, Action<string> callback) : 
         if (string.IsNullOrEmpty(text) || !File.Exists(path) || Path.GetFileNameWithoutExtension(path) == text) return;
         try
         {
-            string newPath = Path.Combine(Path.GetDirectoryName(path)!, $"{text}.yml");
-            int count = 1;
-            while (File.Exists(newPath)) newPath = Path.Combine(Path.GetDirectoryName(path)!, $"{text} ({++count}).yml");
             File.Delete(path);
-            root.AssignPath(newPath);
+            string newPath = Path.Combine(Path.GetDirectoryName(path)!, $"{text}.yml");
             root.Name = text;
-            File.WriteAllText(newPath, new Serializer().Serialize(root));
+            root.AssignPath(newPath);
+            root.Save();
             callback?.Invoke(text);
         }
         catch (Exception e)
@@ -90,14 +88,16 @@ public class BlueprintRoot
             }
         });
     }
-    public void SetPreviews(string[] previews)
+    public void SetPreviews(Texture2D[] previews)
     {
-        if (previews.Length != 3) throw new Exception("Previews must have 3 elements");
-        Previews = previews;
+        if (previews == null || previews.Length == 0) return;
+        string[] data = new string[previews.Length];
+        for (int i = 0; i < previews.Length; ++i) data[i] = Convert.ToBase64String(previews[i].EncodeToPNG());
+        Previews = data;
     }
     public Texture2D GetPreview(int index)
     {
-        if (index is < 0 or >= 3) throw new Exception("Index out of bounds");
+        if (index < 0 || index >= Previews.Length || string.IsNullOrEmpty(Previews[index])) return null;
         byte[] data = Convert.FromBase64String(Previews[index]);
         Texture2D tex = new Texture2D(1, 1);
         tex.LoadImage(data);
@@ -185,5 +185,15 @@ public class BlueprintRoot
             }
             yield return Utils.WaitFrames(Configs.BlueprintBuildFrameSkip.Value);
         }
+    }
+    public void Save()
+    {
+        if (!TryGetFilePath(out string path)) return;
+        BlueprintRoot clone = (BlueprintRoot)MemberwiseClone();
+        Task.Run(() =>
+        {  
+            string data = new Serializer().Serialize(clone);
+            path.WriteWithDupes(data, false);
+        });
     }
 }

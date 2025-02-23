@@ -28,8 +28,8 @@ public static class PhotoManager
     private class RenderRequest
     {
         public readonly GameObject Target;
-        public int Width { get; set; } = 512;
-        public int Height { get; set; } = 512;
+        public int Width { get; set; } = 256;
+        public int Height { get; set; } = 256;
         public Quaternion Rotation { get; set; } = Quaternion.Euler(0f, -24f, 0); //25.8f);
         public float FieldOfView { get; set; } = 0.5f;
         public float offset = 0.25f;
@@ -130,7 +130,7 @@ public static class PhotoManager
     private static readonly int Movement = Animator.StringToHash("Movement");
 
 
-    public static string MakeSprite(GameObject prefabArg, float scale, float offset, Quaternion rotation)
+    public static Texture2D MakeSprite(GameObject prefabArg, float scale, float offset, Quaternion rotation)
     {
         try
         {
@@ -160,9 +160,9 @@ public static class PhotoManager
             {
                 Request = request
             };
-            string base64 = RenderSprite(go);
+            Texture2D tex = RenderSprite(go);
             ClearRendering();
-            return base64;
+            return tex;
         }
         catch (Exception ex)
         {
@@ -171,7 +171,7 @@ public static class PhotoManager
         }
     }
 
-    private static string RenderSprite(RenderObject renderObject)
+    private static Texture2D RenderSprite(RenderObject renderObject)
     {
         int width = renderObject.Request.Width;
         int height = renderObject.Request.Height;
@@ -197,6 +197,6 @@ public static class PhotoManager
         RenderTexture.ReleaseTemporary(temp); 
         rendererCamera.gameObject.SetActive(false);
         Light.gameObject.SetActive(false);
-        return Convert.ToBase64String(previewImage.EncodeToPNG());
+        return previewImage;
     }
 }

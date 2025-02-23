@@ -71,4 +71,10 @@ public static class ValheimFixes
             ActivateSolid(__instance);
         }
     }
+    
+    [HarmonyPatch(typeof(Terminal),nameof(Terminal.IsCheatsEnabled))]
+    private static class Terminal_IsCheatsEnabled_Patch
+    {
+        private static void Postfix(ref bool __result) => __result = true;
+    }
 }

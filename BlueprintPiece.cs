@@ -1,4 +1,6 @@
-﻿namespace kg_Blueprint;
+﻿using System.Diagnostics;
+
+namespace kg_Blueprint;
 public static class PlayerState
 {
     public static bool PlayerInsideBlueprint;
@@ -82,18 +84,29 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
         _view.gameObject.SetActive(false);
         _interact.gameObject.SetActive(false);
         bool projectorsActive = _projectors.gameObject.activeSelf;
-        _projectors.gameObject.SetActive(true);
+        _projectors.gameObject.SetActive(false);
         for (int i = 0; i < objects.Length; ++i)
         {
             GameObject p = objects[i];
             p.transform.SetParent(transform);
         }
-        string[] previews = new string[3];
-        previews[0] = PhotoManager.MakeSprite(gameObject, 1f, 1f, Quaternion.Euler(30f, 0f, 0f));
-        previews[1] = PhotoManager.MakeSprite(gameObject, 1f, 1f, Quaternion.Euler(-30f, 180f, 0f));
-        previews[2] = PhotoManager.MakeSprite(gameObject, 1f, 1f, Quaternion.Euler(60f, 330f, 330f));
         
+        Texture2D[] previews = new Texture2D[3];
+        Stopwatch dbg_watch = Stopwatch.StartNew();
+        previews[0] = PhotoManager.MakeSprite(gameObject, 1f, 1f, Quaternion.Euler(30f, 0f, 0f));
+        kg_Blueprint.Logger.LogDebug($"MakeSprite 1 took {dbg_watch.ElapsedMilliseconds}ms");
+        dbg_watch.Restart();
+        
+        previews[1] = PhotoManager.MakeSprite(gameObject, 1f, 1f, Quaternion.Euler(-30f, 180f, 0f));
+        kg_Blueprint.Logger.LogDebug($"MakeSprite 2 took {dbg_watch.ElapsedMilliseconds}ms");
+        dbg_watch.Restart();
+        
+        previews[2] = PhotoManager.MakeSprite(gameObject, 1f, 1f, Quaternion.Euler(60f, 330f, 330f));
+        kg_Blueprint.Logger.LogDebug($"MakeSprite 3 took {dbg_watch.ElapsedMilliseconds}ms");
+        dbg_watch.Restart();
         root.SetPreviews(previews); 
+        kg_Blueprint.Logger.LogDebug($"SetPreviews took {dbg_watch.ElapsedMilliseconds}ms");
+        dbg_watch.Restart();
         transform.rotation = oldRotation; 
         for (int i = 0; i < objects.Length; ++i)
         {
@@ -103,11 +116,11 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
         _view.gameObject.SetActive(true);
         _interact.gameObject.SetActive(true);
         _projectors.gameObject.SetActive(projectorsActive);
-        string path = Path.Combine(kg_Blueprint.BlueprintsPath, bpName + ".yml");
-        string data = new Serializer().Serialize(root);
-        path.WriteWithDupes(data);
-        root.AssignPath(path);
-        if (Configs.AutoAddBlueprintsToUI.Value) BlueprintUI.AddEntry(root, true);
+        root.AssignPath(Path.Combine(kg_Blueprint.BlueprintsPath, bpName + ".yml"));
+        root.Save();
+        dbg_watch.Restart();
+        if (Configs.AutoAddBlueprintsToUI.Value) BlueprintUI.AddEntry(root, true, previews);
+        kg_Blueprint.Logger.LogDebug($"AddEntry took {dbg_watch.ElapsedMilliseconds}ms");
         return true;
     }
     public void DestroyAllPiecesInside()
@@ -128,7 +141,6 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, TextReceiv
     private IEnumerator _Internal_Load(BlueprintRoot root)
     {
         Vector3 center = StartPoint_BottomCenter;
-        const int maxPerFrame = 1;
         for (int i = 0; i < root.Objects.Length; ++i)
         {
             BlueprintObject obj = root.Objects[i];
@@ -232,7 +244,7 @@ public static class Hud_SetupPieceInfo_Patch
 [HarmonyPatch(typeof(Player),nameof(Player.CheckCanRemovePiece))]
 public static class Player_CheckCanRemovePiece_Patch
 {
-    private static bool Prefix(Piece piece, ref bool __result)
+    [UsedImplicitly] private static bool Prefix(Piece piece, ref bool __result)
     {
         if (piece.name.Contains("kg_BlueprintBox")) return false;
         if (!PlayerState.PlayerInsideBlueprint) return true;
@@ -241,8 +253,8 @@ public static class Player_CheckCanRemovePiece_Patch
     }
 }
 [HarmonyPatch(typeof(Player),nameof(Player.TryPlacePiece))]
-public static class Player_TryPlacePiece_Patch
-{
+public static class Player_TryPlacePiece_Patch 
+{ 
     private static bool _skip;
     [UsedImplicitly] private static bool Prefix(Player __instance, Piece piece, ref bool __result)
     {
