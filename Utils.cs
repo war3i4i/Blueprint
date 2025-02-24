@@ -73,14 +73,15 @@ public static class Utils
         hs.CopyTo(result);
         return result;
     }
-    public static GameObject[] GetObjectsInsideCylinder(Vector3 center, float radius, float height, GameObject[] exclude, params Type[] types)
+    public static GameObject[] GetObjectsInsideCylinder(Vector3 center, float radius, float height, GameObject[] exclude, Type[] excludeType, params Type[] types)
     {
         HashSet<GameObject> hs = [];
         Collider[] colliders = Physics.OverlapCapsule(center, center + Vector3.up * height, radius, Layer);
         foreach (Collider collider in colliders)
             for (int i = 0; i < types.Length; ++i)
                 if (collider.GetComponentInParent(types[i]) is { } p)
-                    hs.Add(p.gameObject);
+                    if (excludeType == null || excludeType.All(t => p.GetComponent(t) == null))
+                        hs.Add(p.gameObject);
         if (exclude != null) hs.ExceptWith(exclude);
         GameObject[] result = new GameObject[hs.Count];
         hs.CopyTo(result);
