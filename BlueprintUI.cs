@@ -221,12 +221,19 @@ public static class BlueprintUI
                 UnifiedPopup.Push(new WarningPopup("$kg_blueprint_load_error", "$kg_blueprint_load_error_desc", UnifiedPopup.Pop));
                 return;
             }
-            UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_load", "$kg_blueprint_confirmload".Localize(Current.Name), () =>
-            {
-                UnifiedPopup.Pop();
-                PlayerState.BlueprintPiece.DestroyAllPiecesInside(false);
-                PlayerState.BlueprintPiece.Load(Current);
-            }, UnifiedPopup.Pop));
+            UnifiedPopup.Push(new Utils.ThreeChoicesPopup("$kg_blueprint_load", "$kg_blueprint_confirmload".Localize(Current.Name), "$kg_blueprint_cancel", "$kg_blueprint_load", "$kg_blueprint_load_new",
+                UnifiedPopup.Pop,
+                () =>
+                {
+                    UnifiedPopup.Pop();
+                    PlayerState.BlueprintPiece.Load(Current);
+                },
+                () =>
+                {
+                    UnifiedPopup.Pop();
+                    PlayerState.BlueprintPiece.DestroyAllPiecesInside(false);
+                    PlayerState.BlueprintPiece.Load(Current);
+                }));
         });
         ModelView = Main.Find("ModelView/View").GetComponent<RawImage>();
         ModelView.transform.parent.gameObject.AddComponent<ModelPreview.PreviewModelAngleController>();

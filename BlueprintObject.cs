@@ -112,18 +112,18 @@ public class BlueprintRoot
             BoxRotation = boxRotation,
             Icon = icon ? Convert.ToBase64String(icon.EncodeToPNG()) : null
         };
-        objects = objects.OrderBy(x => x.transform.position.y).ToArray();
-        float lowestY = objects[0].transform.position.y;
+        objects = objects.OrderBy(x => x.transform.position.y).ToArray(); 
+        float lowestY = (objects[0].transform.position - start).y;
         for (int i = 0; i < objects.Length; ++i)
         { 
             int id = objects[i].name.Replace("(Clone)", "").GetStableHashCode();
             if (!ZNetScene.instance.GetPrefab(id)) continue;
             root.Objects[i] = new BlueprintObject
             {
-                Id = id,
+                Id = id, 
                 RelativePosition = objects[i].transform.position - start,
                 Rotation = objects[i].transform.rotation.eulerAngles
-            };
+            }; 
             if (snapToLowest) root.Objects[i].RelativePosition.y -= lowestY;
             if (!Configs.SaveZDOHashset.Contains(root.Objects[i].Id)) continue;
             ZDO zdo = objects[i].GetComponent<ZNetView>()?.GetZDO();
