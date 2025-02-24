@@ -6,6 +6,17 @@ namespace kg_Blueprint;
 
 public static class Utils
 {
+    public static void dbg_PrintAll<T>(this IEnumerable<T> list, [CallerMemberName] string caller = "", [CallerLineNumber] int line = 0)
+    {
+        string msg = $"{caller}({line})";
+        if (list == null)
+        {
+            kg_Blueprint.Logger.LogDebug($"List is null [{msg}]");
+            return; 
+        }
+        kg_Blueprint.Logger.LogDebug($"Printing list of {typeof(T).Name} [{msg}]");
+        foreach (T t in list) kg_Blueprint.Logger.LogDebug(t);
+    }
     public static void ThrowIfBad(this IList<GameObject> pieces, [CallerMemberName] string caller = "", [CallerLineNumber] int line = 0)
     {
         string msg = $"{caller}({line})";

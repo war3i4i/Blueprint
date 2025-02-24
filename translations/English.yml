@@ -1,5 +1,6 @@
 kg_blueprint_piece: Blueprint Box
 kg_blueprint_piece_large: Blueprint Box (Large)
+kg_blueprint_piece_deleted: Box deleted
 kg_blueprint_box: Box
 kg_blueprint_piece_desc: "Blueprint Box is a structure that allows you to create a blueprint of your base or any other structure you have built.\nPlacing Pieces inside box area is free and doen't require any resources.\nOnce you have placed all the pieces you want to blueprint, you can save the blueprint and load it later to build the same structure again with Blueprint tool."
 kg_blueprint_delete: Delete

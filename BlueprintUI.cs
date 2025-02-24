@@ -83,6 +83,8 @@ public static class InteractionUI
         PiecesContent.RemoveAllChildrenExceptFirst();
         Current = source;
         GameObject[] inside = source.GetObjectedInside;
+        inside.dbg_PrintAll();
+        
         int[] objects = inside.Select(o => o.name.Replace("(Clone)", "").GetStableHashCode()).ToArray();
         Piece.Requirement[] reqs = objects.GetRequirements();
         for (int i = 0; i < reqs.Length; i++)
@@ -146,6 +148,7 @@ public static class BlueprintUI
     private static Transform Content;
     public static Sprite NoIcon;
     private static GameObject Projector;
+    private static int CreatorRadius = 5;
     private static bool IsVisible => UI && UI.activeSelf;
     public static void Init()
     {
@@ -321,7 +324,7 @@ public static class BlueprintUI
         _Internal_SelectedPiece.Key.gameObject.SetActive(false);
         Player.m_localPlayer?.SetupPlacementGhost();
     }
-    private static void SelectBlueprintCreator()
+    private static void SelectBlueprintCreator() 
     {
         if (_Internal_SelectedPiece.Key) Object.DestroyImmediate(_Internal_SelectedPiece.Key.gameObject);
         _Internal_SelectedPiece = new KeyValuePair<Piece, BlueprintRoot>(Object.Instantiate(CopyFrom, Vector3.zero, Quaternion.identity).GetComponent<Piece>(), null);
@@ -331,17 +334,20 @@ public static class BlueprintUI
         _Internal_SelectedPiece.Key.m_description = "$kg_blueprint_creator_desc";
         _Internal_SelectedPiece.Key.m_extraPlacementDistance = 20;
         _Internal_SelectedPiece.Key.m_resources = [];
+        _Internal_SelectedPiece.Key.m_clipEverything = true;
+        _Internal_SelectedPiece.Key.m_noInWater = false;
         var proj = _Internal_SelectedPiece.Key.gameObject.AddComponent<CircleProjector>();
-        proj.m_prefab = BlueprintUI.Projector;
-        proj.m_radius = 20f;
-        proj.m_nrOfSegments = (int)(proj.m_radius * 3);
+        proj.m_prefab = BlueprintUI.Projector; 
+        proj.m_radius = CreatorRadius; 
+        proj.m_nrOfSegments = CreatorRadius * 4; 
+        proj.m_mask.value = 2048;
         Player.m_localPlayer?.SetupPlacementGhost();
     }
     private static void ShowResources(BlueprintRoot root)
     {
         ResourcesTab.SetActive(true);
         ResourceContent.RemoveAllChildrenExceptFirst();
-        Piece.Requirement[] reqs = root.GetRequirements(); 
+        Piece.Requirement[] reqs = root.GetRequirements();
         Recipe temp = ScriptableObject.CreateInstance<Recipe>();
         temp.name = "kg_Blueprint_Temp";
         temp.m_resources = new Piece.Requirement[1];
@@ -464,9 +470,9 @@ public static class BlueprintUI
             if (name == "kg_Blueprint_Internal_Creator")
             {
                 Vector3 pos = obj.transform.position;
-                float radius = obj.GetComponent<CircleProjector>().m_radius;
+                pos.y = Mathf.Max(30f, ZoneSystem.instance.GetGroundHeight(pos));
                 Object.Destroy(obj);
-                BlueprintCircleCreator circleCreator = new(pos, radius, 80f);
+                BlueprintCircleCreator circleCreator = new(pos, CreatorRadius, 80f);
                 InteractionUI.Show(circleCreator);
             }
         }
@@ -519,19 +525,19 @@ public static class BlueprintUI
         {
             if(__instance.m_buildHints.activeSelf) KeyHints_Awake_Patch.KeyHint_LeftControl_Snap.SetActive(IsHoldingHammer);
         } 
-    }
+    } 
     [HarmonyPatch(typeof(Player),nameof(Player.UpdatePlacement))]
-    [HarmonyEmitIL]
     private static class Player_UpdatePlacement_Patch
     {
         private static void MouseScroll(Piece p, bool add)
         {
             if (p.name != "kg_Blueprint_Internal_Creator") return;
             CircleProjector proj = p.GetComponent<CircleProjector>();
-            proj.m_radius = Mathf.Clamp(proj.m_radius + (add ? 1 : -1), 5, 30);
-            proj.m_nrOfSegments = (int)(proj.m_radius * 3);
+            CreatorRadius = Mathf.Clamp(CreatorRadius + (add ? 1 : -1), 5, 17);
+            proj.m_radius = CreatorRadius;
+            proj.m_nrOfSegments = CreatorRadius * 4;
         }
-        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> code)
+        [UsedImplicitly] private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> code)
         { 
             CodeMatcher matcher = new(code);
             var firstTarget = AccessTools.Method(typeof(ZInput), nameof(ZInput.GetMouseScrollWheel));

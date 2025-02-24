@@ -180,7 +180,7 @@ public static class BuildProgress
             if (!_znet.IsOwner()) return;
             _Time += Time.fixedDeltaTime;
             if (_Time >= _MaxTime)
-            {
+            { 
                 GameObject orig = ZNetScene.instance.GetPrefab(_Prefab);
                 if (orig)
                 {
@@ -190,6 +190,7 @@ public static class BuildProgress
                     {
                         p.SetCreator(_Creator);
                         p.m_placeEffect.Create(p.transform.position, p.transform.rotation, p.transform);  
+                        if (p.GetComponent<ItemDrop>() is {} item) item.MakePiece(true);
                     }
                     try
                     {

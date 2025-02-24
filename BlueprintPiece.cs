@@ -106,7 +106,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, BlueprintS
         Vector3 center = StartPoint;
         for (int i = 0; i < root.Objects.Length; ++i)
         {
-            BlueprintObject obj = root.Objects[i];
+            BlueprintObject obj = root.Objects[i]; 
             GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
             if (!prefab)
             {
@@ -118,8 +118,9 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, BlueprintS
             if (!IsInside(pos)) continue;
             Quaternion rot = Quaternion.Euler(obj.Rotation) * deltaRotation;
             GameObject go = Object.Instantiate(prefab, pos, rot);
-            if (go.GetComponent<Piece>() is { } p)
-            {
+            if (go.GetComponent<Piece>() is { } p) 
+            { 
+                if (go.GetComponent<ItemDrop>() is {} item) item.MakePiece(true);
                 p.m_nview?.m_zdo.Set("kg_Blueprint", true);
                 Piece_Awake_Patch.DeactivatePiece(p);
             }
@@ -135,6 +136,8 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, BlueprintS
             {
                 UnifiedPopup.Pop();
                 DestroyAllPiecesInside(true);
+                _znv.ClaimOwnership();
+                ZNetScene.instance.Destroy(gameObject);
                 MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, "$kg_blueprint_piece_deleted".Localize());
             }, UnifiedPopup.Pop));
             return true;
