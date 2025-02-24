@@ -393,7 +393,6 @@ public static class Utils
             reason = "$kg_blueprint_createblueprint_no_objects";
             return false;
         }
-
         BlueprintRoot root = BlueprintRoot.CreateNew(source.SnapToLowest, bpName, bpDesc, bpAuthor, source.Rotation, start, objects, icon);
         Texture2D[] previews = source.CreatePreviews(objects);
         root.SetPreviews(previews);
@@ -423,7 +422,6 @@ public static class Utils
                 if (comp is not Renderer and not MeshFilter and not Transform and not Animator) Object.DestroyImmediate(comp);
             }
         }
-
         return newObj;
     }
     public class ThreeChoicesPopup(string header, string text, string option1, string option2, string option3, PopupButtonCallback first, PopupButtonCallback second, PopupButtonCallback third)
@@ -460,7 +458,7 @@ public static class Utils
     [HarmonyPatch(typeof(UnifiedPopup), nameof(UnifiedPopup.Show))]
     private static class UnifiedPopup_Show_Patch
     {
-        private static void Postfix(UnifiedPopup __instance, PopupBase popup)
+        [UsedImplicitly] private static void Postfix(UnifiedPopup __instance, PopupBase popup)
         {
             if (popup.Type == ThreeChoicesPopup._type) Show3ChoicesPopup(__instance, (ThreeChoicesPopup)popup);
         }
@@ -471,7 +469,7 @@ public static class Utils
         public static readonly Vector2[] OrigPos = new Vector2[3];
         public static readonly Vector2[] OrigSize = new Vector2[3];
 
-        private static void Postfix(UnifiedPopup __instance)
+        [UsedImplicitly] private static void Postfix(UnifiedPopup __instance)
         {
             var leftButton = __instance.buttonLeft.GetComponent<RectTransform>();
             OrigPos[0] = leftButton.anchoredPosition;
@@ -487,7 +485,7 @@ public static class Utils
     [HarmonyPatch(typeof(UnifiedPopup), nameof(UnifiedPopup.ResetUI))]
     private static class UnifiedPopup_ResetUI_Patch
     {
-        private static void Postfix(UnifiedPopup __instance)
+        [UsedImplicitly] private static void Postfix(UnifiedPopup __instance)
         {
             var leftButton = __instance.buttonLeft.GetComponent<RectTransform>();
             leftButton.anchoredPosition = UnifiedPopup_Awake_Patch.OrigPos[0];

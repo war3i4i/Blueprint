@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 namespace kg_Blueprint;
 
-public static class ClipboardHandler_Image
+public static class ClipboardUtils
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct BITMAPINFOHEADER
@@ -26,7 +26,12 @@ public static class ClipboardHandler_Image
     private static extern IntPtr GetClipboardData(uint uFormat);
     [DllImport("user32.dll")]
     private static extern bool IsClipboardFormatAvailable(uint format);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr GlobalLock(IntPtr hMem);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool GlobalUnlock(IntPtr hMem);
     private const uint CF_DIB = 8;
+    private const uint CF_TEXT = 1;
     private static Texture2D CreateTextureFromClipboardData(byte[] pixelData, int width, int height, int bytesPerPixel)
     {
         Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
@@ -93,5 +98,23 @@ public static class ClipboardHandler_Image
             return tex;
 
         } finally { CloseClipboard(); }
+    }
+    public static string GetText()
+    {
+        if (!IsClipboardFormatAvailable(CF_TEXT)) return null; 
+        if (!OpenClipboard(IntPtr.Zero)) return null;
+        IntPtr hData = GetClipboardData(CF_TEXT);
+        if (hData == IntPtr.Zero)
+        {
+            CloseClipboard();
+            return null;
+        }
+        IntPtr pData = GlobalLock(hData);
+        try { return Marshal.PtrToStringAnsi(pData); }
+        finally
+        {
+            GlobalUnlock(hData);
+            CloseClipboard();
+        }
     }
 }

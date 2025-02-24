@@ -5,7 +5,6 @@ namespace kg_Blueprint;
 public static class InteractionUI
 {
     private static GameObject UI;
-
     private static bool IsVisible => UI && UI.activeSelf;
     private static BlueprintSource Current;
     private static TMP_InputField InputField_Name;
@@ -36,7 +35,7 @@ public static class InteractionUI
         paste.onClick.AddListener(() =>
         {
             Stopwatch dbg_clipboard_watch = Stopwatch.StartNew();
-            Texture2D icon = ClipboardHandler_Image.GetImage(256, 256);
+            Texture2D icon = ClipboardUtils.GetImage(256, 256);
             kg_Blueprint.Logger.LogDebug($"Trying to paste textured via clipboard. Icon is {icon}. Took {dbg_clipboard_watch.ElapsedMilliseconds}ms");
             Icon.texture = icon ? icon : OriginalIcon;
         });
@@ -66,7 +65,7 @@ public static class InteractionUI
         {
             fitter.enabled = false;
             fitter.enabled = true;
-        } 
+        }
     }
     private static void SaveBlueprint()
     {
@@ -252,6 +251,9 @@ public static class BlueprintUI
             ModelView.gameObject.SetActive(true);
         });
         
+        UI.transform.Find("Canvas/UI/List/ReloadDisk").GetComponent<Button>().onClick.AddListener(kg_Blueprint.ReadBlueprints);
+        UI.transform.Find("Canvas/UI/List/AddFromClipboard").GetComponent<Button>().onClick.AddListener(kg_Blueprint.TryLoadFromClipboard);
+        
         BlueprintName = Main.transform.Find("Name").GetComponent<TMP_Text>();
         BlueprintDescription = Main.transform.Find("Description").GetComponent<TMP_Text>();
         BlueprintAuthor = Main.transform.Find("Author").GetComponent<TMP_Text>();
@@ -286,7 +288,7 @@ public static class BlueprintUI
             fitter.enabled = false;
             fitter.enabled = true;
         }
-        Canvas.ForceUpdateCanvases();
+        Canvas.ForceUpdateCanvases(); 
         foreach (ContentSizeFitter fitter in fitters)
         {
             fitter.enabled = false;
@@ -306,6 +308,7 @@ public static class BlueprintUI
             AddEntry(blueprint, false);
         }
         SortEntriesByName();
+        ResetMain();
         UpdateCanvases();
     }
     private static void ClearSelections()
@@ -313,7 +316,7 @@ public static class BlueprintUI
         UIInputHandler[] UIInputHandlers = Content.GetComponentsInChildren<UIInputHandler>();
         for (int i = 0; i < UIInputHandlers.Length; i++) UIInputHandlers[i].transform.Find("Selection").GetComponent<Image>().color = Color.clear;
     }
-    public static void AddEntry(BlueprintRoot root, bool updateCanvases)
+    public static void AddEntry(BlueprintRoot root, bool updateCanvases, bool select = false)
     {
         GameObject entry = Object.Instantiate(BlueprintEntry, Content);
         entry.SetActive(true);
@@ -350,6 +353,7 @@ public static class BlueprintUI
             SortEntriesByName();
             UpdateCanvases();
         }
+        if (select) handler.m_onLeftClick(null);
     }
     private static void SortEntriesByName()
     {
@@ -612,5 +616,16 @@ public static class BlueprintUI
             matcher.InsertAndAdvance(new CodeInstruction(OpCodes.Nop));
             return matcher.Instructions();
         }
-    } 
+    }
+    [HarmonyPatch(typeof(InventoryGui), nameof(InventoryGui.Awake))]
+    private static class InventoryGui_Awake_Patch
+    {
+        [UsedImplicitly] private static void Postfix(InventoryGui __instance)
+        {
+            foreach (var tooltip in UI.GetComponentsInChildren<UITooltip>())
+            {
+                tooltip.m_tooltipPrefab = __instance.m_playerGrid.m_elementPrefab.GetComponent<UITooltip>().m_tooltipPrefab;
+            }
+        }
+    }
 }

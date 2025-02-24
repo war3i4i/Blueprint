@@ -8,6 +8,7 @@ public static class ModelPreview
     private static readonly Light Light;
     private static readonly Vector3 SpawnPoint = new(25000f, 25000f, 25000f);
     private static float OriginalYPos;
+    private static float OriginalXPos;
     private static float OriginalCameraZPos;
     private static GameObject CurrentPreviewGO;
 
@@ -56,6 +57,7 @@ public static class ModelPreview
 
         CurrentPreviewGO.transform.position = SpawnPoint - (min + max) / 2f;
         OriginalYPos = CurrentPreviewGO.transform.position.y;
+        OriginalXPos = CurrentPreviewGO.transform.position.x;
         Light.transform.position = SpawnPoint + new Vector3(0, 2f, 2f);
 
         Vector3 size = new Vector3(Mathf.Abs(min.x) + Mathf.Abs(max.x), Mathf.Abs(min.y) + Mathf.Abs(max.y), Mathf.Abs(min.z) + Mathf.Abs(max.z));
@@ -85,9 +87,23 @@ public static class ModelPreview
         public void OnDrag(PointerEventData eventData) 
         {
             if (!CurrentPreviewGO) return;
-            if (eventData.button != PointerEventData.InputButton.Left) return;
-            CurrentPreviewGO.transform.Rotate(new Vector3(0, 1, 0), -eventData.delta.x / 8f, Space.World);
-            CurrentPreviewGO.transform.Rotate(new Vector3(-1, 0, 0), eventData.delta.y / 12f, Space.World);
+            if (eventData.button == PointerEventData.InputButton.Left)
+            {
+                CurrentPreviewGO.transform.Rotate(new Vector3(0, 1, 0), -eventData.delta.x / 8f, Space.World);
+                CurrentPreviewGO.transform.Rotate(new Vector3(-1, 0, 0), eventData.delta.y / 12f, Space.World);
+            }
+            if (eventData.button == PointerEventData.InputButton.Middle)
+            {
+                float currentY = CurrentPreviewGO.transform.position.y;
+                float newY = currentY + (eventData.delta.y / 400f * currentMaxSize * 0.16f);
+                newY = Mathf.Clamp(newY, OriginalYPos - 2f * currentMaxSize * 0.16f, OriginalYPos + 2f * currentMaxSize * 0.16f);
+                float currentX = CurrentPreviewGO.transform.position.x;
+                float newX = currentX - (eventData.delta.x / 400f * currentMaxSize * 0.16f);
+                newX = Mathf.Clamp(newX, OriginalXPos - 2f * currentMaxSize * 0.16f, OriginalXPos + 2f * currentMaxSize * 0.16f);
+                Vector3 position = CurrentPreviewGO.transform.position;
+                position = new Vector3(newX, newY, position.z);
+                CurrentPreviewGO.transform.position = position;
+            }
         }
         public void Update()
         {
@@ -95,7 +111,7 @@ public static class ModelPreview
             float ScrollWheel = Input.GetAxis("Mouse ScrollWheel");
             if (ScrollWheel == 0) return;
             bool isMouseInside = RectTransformUtility.RectangleContainsScreenPoint(this.transform as RectTransform, Input.mousePosition);
-            if (!CurrentPreviewGO || !isMouseInside) return;
+            if (!isMouseInside) return;
             float currentZ = renderCamera.transform.position.z;
             float newZ = currentZ - (ScrollWheel * 400f * currentMaxSize * 0.16f);
             newZ = Mathf.Clamp(newZ, OriginalCameraZPos - currentMaxSize * 40f, OriginalCameraZPos + currentMaxSize * 40f);

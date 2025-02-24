@@ -1,8 +1,10 @@
 ﻿using System.Diagnostics;
+using System.Text;
 using System.Threading;
 using ItemManager;
 using LocalizationManager;
 using PieceManager;
+using Conversion = ItemManager.Conversion;
 
 namespace kg_Blueprint;
 
@@ -36,8 +38,9 @@ public class kg_Blueprint : BaseUnityPlugin
     private void FixedUpdate() => PlayerState.Update();
     private void Update()
     {
+        if (Input.GetKeyDown(KeyCode.I)) kg_Blueprint.Logger.LogDebug($"Text is: " + ClipboardUtils.GetText());
         BlueprintUI.Update();
-        InteractionUI.Update();
+        InteractionUI.Update(); 
     }
     private static AssetBundle GetAssetBundle(string filename)
     {
@@ -77,7 +80,7 @@ public class kg_Blueprint : BaseUnityPlugin
                         }
                         root.AssignPath(files[i], true);
                         Blueprints.Add(root); 
-                    } 
+                    }
                     catch (Exception e)
                     {
                         Logger.LogError($"Error reading blueprint {files[i]}: {e}");
@@ -93,6 +96,34 @@ public class kg_Blueprint : BaseUnityPlugin
                 else Logger.LogError($"Error loading blueprints [{lastFile}]: {ex}");
             }
         }, token);
+    }
+    public static void TryLoadFromClipboard()
+    {
+        string clipboard = ClipboardUtils.GetText();
+        if (string.IsNullOrWhiteSpace(clipboard)) return;
+        Task.Run(() =>
+        {
+            byte[] bytes;
+            try { bytes = Convert.FromBase64String(clipboard); }
+            catch (Exception) { bytes = null; }
+            try
+            {
+                string data = bytes == null ? clipboard : Encoding.UTF8.GetString(bytes);
+                BlueprintRoot root = new Deserializer().Deserialize<BlueprintRoot>(data);
+                if (!root.IsValid(out string reason))
+                {
+                    Logger.LogError($"Blueprint from clipboard is invalid: {reason}");
+                    return;
+                }
+                root.AssignPath(Path.Combine(kg_Blueprint.BlueprintsPath, root.Name + ".yml"), false);
+                root.Save(false);
+                ThreadingHelper.Instance.StartSyncInvoke(() => BlueprintUI.AddEntry(root, true, true));
+            }
+            catch (Exception e)
+            {
+                Logger.LogError($"Error loading blueprint from clipboard: {e}");
+            }
+        });
     }
     private static void LoadAsm(string name)
     {

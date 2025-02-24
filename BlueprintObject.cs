@@ -232,14 +232,20 @@ public class BlueprintRoot
             yield return Utils.WaitFrames(Configs.BlueprintBuildFrameSkip.Value);
         }
     }
-    public void Save()
+    public void Save(bool forget = true)
     {
         if (!TryGetFilePath(out string path)) return;
         BlueprintRoot clone = (BlueprintRoot)MemberwiseClone();
-        Task.Run(() =>
-        {  
+        if (forget)
+            Task.Run(() =>
+            {  
+                string data = new SerializerBuilder().ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitDefaults).Build().Serialize(clone);
+                path.WriteNoDupes(data, false);
+            });
+        else
+        {
             string data = new SerializerBuilder().ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitDefaults).Build().Serialize(clone);
             path.WriteNoDupes(data, false);
-        });
+        }
     }
 }

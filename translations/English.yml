@@ -41,3 +41,7 @@ kg_blueprint_author: Author
 kg_blueprint_noauthor: Unknown
 kg_blueprint_enterdescription: Enter description...
 kg_blueprint_save: Save
+kg_blueprint_reloaddisk: Reload
+kg_blueprint_reloaddisk_desc: "Reload blueprints from disk."
+kg_blueprint_addfromclipboard: Add from clipboard
+kg_blueprint_addfromclipboard_desc: "Add blueprint from clipboard. Can be either raw yml text or base64 encoded text."
