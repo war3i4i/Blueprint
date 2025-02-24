@@ -15,7 +15,7 @@ public static class Configs
         BuildTime = kg_Blueprint._thistype.Config.Bind("General", "BuildTime", 30, "Time in seconds it takes to build a blueprint (if InstantBuild is false)");
         BlueprintLoadFrameSkip = kg_Blueprint._thistype.Config.Bind("General", "BlueprintLoadFrameSkip", 4, "Number of frames to skip when loading a blueprint");
         BlueprintBuildFrameSkip = kg_Blueprint._thistype.Config.Bind("General", "BlueprintBuildFrameSkip", 4, "Number of frames to skip when building a blueprint");
-        RemoveBlueprintPlacementOnUnequip = kg_Blueprint._thistype.Config.Bind("General", "RemoveBlueprintPlacementOnUnequip", true, "Remove the ghost object when the blueprint is unequipped");
+        RemoveBlueprintPlacementOnUnequip = kg_Blueprint._thistype.Config.Bind("General", "RemoveBlueprintPlacementOnUnequip", false, "Remove the ghost object when the blueprint is unequipped");
         SaveZDOForPrefabs = kg_Blueprint._thistype.Config.Bind("General", "SaveZDOForPrefabs", "MarketPlaceNPC", "Save ZDOs for prefabs with the given name (comma separated)");
         UpdateHashset();
         SaveZDOForPrefabs.SettingChanged += (_, _) => UpdateHashset();

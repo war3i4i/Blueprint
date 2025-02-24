@@ -73,7 +73,10 @@ public class BlueprintObject
 public class BlueprintRoot
 {
     private string FilePath;
+    private Texture2D[] CachedPreviews;
     public string Name;
+    public string Author;
+    public string Description;
     public string Icon;
     public SimpleVector3 BoxRotation;
     public BlueprintObject[] Objects;
@@ -95,12 +98,14 @@ public class BlueprintRoot
         FilePath = path;
     }
     public bool TryGetFilePath(out string path) { path = FilePath; return !string.IsNullOrEmpty(FilePath); }
-    public static BlueprintRoot CreateNew(string Name, Vector3 boxRotation, Vector3 start, GameObject[] objects, Texture2D icon)
+    public static BlueprintRoot CreateNew(string Name, string Description, string Author, Vector3 boxRotation, Vector3 start, GameObject[] objects, Texture2D icon)
     {
         objects.ThrowIfBad(Name);
         BlueprintRoot root = new BlueprintRoot
         {
             Name = Name,
+            Description = Description,
+            Author = Author,
             Objects = new BlueprintObject[objects.Length],
             BoxRotation = boxRotation,
             Icon = icon ? Convert.ToBase64String(icon.EncodeToPNG()) : null
@@ -146,14 +151,29 @@ public class BlueprintRoot
         string[] data = new string[previews.Length];
         for (int i = 0; i < previews.Length; ++i) data[i] = Convert.ToBase64String(previews[i].EncodeToPNG());
         Previews = data;
+        CachedPreviews = previews;
     }
     public Texture2D GetPreview(int index)
     {
-        if ( index < 0 || index >= Previews.Length || Previews == null || string.IsNullOrEmpty(Previews[index])) return null;
-        byte[] data = Convert.FromBase64String(Previews[index]);
-        Texture2D tex = new Texture2D(1, 1);
-        tex.LoadImage(data);
-        return tex;
+        if (CachedPreviews == null) CachePreviews();
+        if (index < 0 || index >= CachedPreviews!.Length) return null;
+        return CachedPreviews[index];
+    }
+    public void CachePreviews()
+    {
+        if (Previews == null || Previews.Length == 0)
+        {
+            CachedPreviews = [];
+            return;
+        }
+        CachedPreviews = new Texture2D[Previews.Length];
+        for (int i = 0; i < Previews.Length; ++i)
+        {
+            byte[] data = Convert.FromBase64String(Previews[i]);
+            Texture2D tex = new Texture2D(1, 1);
+            tex.LoadImage(data);
+            CachedPreviews[i] = tex;
+        }
     }
     public bool IsValid(out string reason)
     {

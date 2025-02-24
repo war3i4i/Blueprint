@@ -75,8 +75,8 @@ public class kg_Blueprint : BaseUnityPlugin
                             continue;
                         }
                         root.AssignPath(files[i], true);
-                        Blueprints.Add(root);
-                    }
+                        Blueprints.Add(root); 
+                    } 
                     catch (Exception e)
                     {
                         Logger.LogError($"Error reading blueprint {files[i]}: {e}");

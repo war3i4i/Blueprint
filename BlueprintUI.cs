@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using kg_Blueprint.Managers;
 
 namespace kg_Blueprint;
 public static class InteractionUI
@@ -15,7 +16,7 @@ public static class InteractionUI
     private static Texture OriginalIcon;
     private static readonly RawImage[] Previews = new RawImage[3];
     public static void Init()
-    {
+    { 
         UI = Object.Instantiate(kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintInteractUI"));
         Object.DontDestroyOnLoad(UI);
         UI.SetActive(false);
@@ -71,7 +72,7 @@ public static class InteractionUI
         Hide();
         if (string.IsNullOrWhiteSpace(name) || Current == null) return;
         Texture2D icon = Icon.texture == OriginalIcon ? null : Icon.texture as Texture2D;
-        if (Current.CreateBlueprint(name, icon, out string reason)) MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, $"<color=green>{name}</color> $kg_blueprint_saved".Localize());
+        if (Current.CreateBlueprint(name, null, Game.instance.m_playerProfile.m_playerName, icon, out string reason)) MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, $"<color=green>{name}</color> $kg_blueprint_saved".Localize());
         else MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, reason.Localize());
     } 
     public static void Show(BlueprintSource source) 
@@ -83,8 +84,6 @@ public static class InteractionUI
         PiecesContent.RemoveAllChildrenExceptFirst();
         Current = source;
         GameObject[] inside = source.GetObjectedInside;
-        inside.dbg_PrintAll();
-        
         int[] objects = inside.Select(o => o.name.Replace("(Clone)", "").GetStableHashCode()).ToArray();
         Piece.Requirement[] reqs = objects.GetRequirements();
         for (int i = 0; i < reqs.Length; i++)
@@ -136,13 +135,13 @@ public static class InteractionUI
 }
 public static class BlueprintUI
 {
+    private static BlueprintRoot Current;
+    private static GameObject LastPressedEntry;
     private static KeyValuePair<Piece, BlueprintRoot> _Internal_SelectedPiece;
     private static GameObject CopyFrom;
     private static GameObject UI;
     private static GameObject BlueprintEntry;
-    private static GameObject ResourcesTab;
     private static Transform ResourceContent;
-    private static GameObject PiecesTab;
     private static Transform PiecesContent;
     private static GameObject ResourceEntry;
     private static Transform Content;
@@ -150,6 +149,13 @@ public static class BlueprintUI
     private static GameObject Projector;
     private static int CreatorRadius = 5;
     private static bool IsVisible => UI && UI.activeSelf;
+
+    private static Transform Main;
+    private static readonly RawImage[] Previews = new RawImage[3];
+    private static TMP_Text BlueprintName, BlueprintDescription, BlueprintAuthor;
+    private static RawImage ModelView;
+    private static Button ModelViewStart;
+    
     public static void Init()
     {
         UI = Object.Instantiate(kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintUI"));
@@ -158,22 +164,103 @@ public static class BlueprintUI
         Projector = kg_Blueprint.Asset.LoadAsset<GameObject>("kg_Blueprint_Projector");
         Object.DontDestroyOnLoad(UI); 
         UI.SetActive(false);
-        BlueprintEntry = UI.transform.Find("Canvas/UI/Scroll View/Viewport/Content/Entry").gameObject;
-        ResourcesTab = UI.transform.Find("Canvas/UI/Resources").gameObject;
-        ResourceEntry = ResourcesTab.transform.Find("Scroll View/Viewport/Content/Entry").gameObject;
-        ResourceContent = ResourcesTab.transform.Find("Scroll View/Viewport/Content");
-        PiecesTab = UI.transform.Find("Canvas/UI/Pieces").gameObject;
-        PiecesContent = UI.transform.Find("Canvas/UI/Pieces/Scroll View/Viewport/Content");
+        Main = UI.transform.Find("Canvas/UI/Main");
+        BlueprintEntry = UI.transform.Find("Canvas/UI/List/Scroll View/Viewport/Content/Entry").gameObject;
+        ResourceEntry = Main.transform.Find("Reqs/Viewport/Content/Entry").gameObject;
+        PiecesContent = Main.transform.Find("Pieces/Viewport/Content");
+        ResourceContent = Main.transform.Find("Reqs/Viewport/Content");
         BlueprintEntry.SetActive(false); 
         ResourceEntry.SetActive(false);
         Content = BlueprintEntry.transform.parent;  
         UI.transform.Find("Canvas/UI/Create").GetComponent<Button>().onClick.AddListener(() =>
         {
-            Hide();
+            Hide(); 
             SelectBlueprintCreator();
         });
+        Previews[0] = Main.transform.Find("Previews/Preview1/Img").GetComponent<RawImage>();
+        Previews[1] = Main.transform.Find("Previews/Preview2/Img").GetComponent<RawImage>();
+        Previews[2] = Main.transform.Find("Previews/Preview3/Img").GetComponent<RawImage>();
+        Main.transform.Find("Select").GetComponent<Button>().onClick.AddListener(() =>
+        {
+            Hide();
+            OnSelect();
+        }); 
+        Main.transform.Find("Buttons/Delete").GetComponent<Button>().onClick.AddListener(() =>
+        {
+            if (Current == null) return;
+            Hide();
+            UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_delete", $"$kg_blueprint_confirmdelete <color=yellow>{Current.Name}</color>?", () =>
+            {
+                UnifiedPopup.Pop();
+                Current.Delete();
+                if (LastPressedEntry) Object.Destroy(LastPressedEntry);
+                ResetMain();
+            }, UnifiedPopup.Pop));
+        }); 
+        Main.transform.Find("Buttons/ShowFile").GetComponent<Button>().onClick.AddListener(() =>
+        { 
+            if (Current == null) return;
+            if (Current.TryGetFilePath(out string path)) path.Explorer_SelectFile();
+        });
+        Main.transform.Find("Buttons/Rename").GetComponent<Button>().onClick.AddListener(() =>
+        {
+            if (Current == null) return;
+            Hide();
+            RenameBlueprintRoot renamer = new(Current, (newName) =>
+            {
+                if (LastPressedEntry) LastPressedEntry.transform.Find("Name").GetComponent<TMP_Text>().text = newName;
+            });
+            TextInput.instance.RequestText(renamer, "$kg_blueprint_rename", 40);
+        });
+        Main.transform.Find("Buttons/Load").GetComponent<Button>().onClick.AddListener(() =>
+        { 
+            if (Current == null) return;
+            Hide();
+            if (!PlayerState.PlayerInsideBlueprint || !PlayerState.BlueprintPiece)
+            {
+                UnifiedPopup.Push(new WarningPopup("$kg_blueprint_load_error", "$kg_blueprint_load_error_desc", UnifiedPopup.Pop));
+                return;
+            }
+            UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_load", "$kg_blueprint_confirmload".Localize(Current.Name), () =>
+            {
+                UnifiedPopup.Pop();
+                PlayerState.BlueprintPiece.DestroyAllPiecesInside(false);
+                PlayerState.BlueprintPiece.Load(Current);
+            }, UnifiedPopup.Pop));
+        });
+        ModelView = Main.Find("ModelView/View").GetComponent<RawImage>();
+        ModelView.transform.parent.gameObject.AddComponent<ModelPreview.PreviewModelAngleController>();
+        ModelViewStart = Main.Find("ModelView/Show").GetComponent<Button>();
+        ModelViewStart.onClick.AddListener(() =>
+        {
+            if (Current == null) return;
+            ModelPreview.SetAsCurrent(ModelView, Current.CreateViewGameObjectForBlueprint());
+            ModelViewStart.gameObject.SetActive(false);
+            ModelView.gameObject.SetActive(true);
+        });
+        
+        BlueprintName = Main.transform.Find("Name").GetComponent<TMP_Text>();
+        BlueprintDescription = Main.transform.Find("Description").GetComponent<TMP_Text>();
+        BlueprintAuthor = Main.transform.Find("Author").GetComponent<TMP_Text>();
         Localization.instance.Localize(UI.transform);
+        ResetMain();
         InteractionUI.Init();
+    }
+    private static void ResetMain()
+    {
+        Current = null;
+        Main.gameObject.SetActive(false);
+        foreach (var rawImage in Previews)
+        {
+            rawImage.texture = null;
+            rawImage.transform.parent.gameObject.SetActive(false);
+        }
+        PiecesContent.RemoveAllChildrenExceptFirst();
+        ResourceContent.RemoveAllChildrenExceptFirst();
+        BlueprintName.text = "";
+        BlueprintDescription.text = "";
+        BlueprintAuthor.text = "";
+        StopPreview();
     }
     public static void Update() { if (Input.GetKeyDown(KeyCode.Escape) && IsVisible) Hide(); }
     private static void UpdateCanvases() 
@@ -201,91 +288,19 @@ public static class BlueprintUI
         for (int i = 0; i < blueprints.Count; i++)
         {
             BlueprintRoot blueprint = blueprints[i];
+            blueprint.CachePreviews();
             AddEntry(blueprint, false);
         }
         SortEntriesByName();
         UpdateCanvases();
-    }
-    private static void AddEntry(BlueprintRoot root, bool updateCanvases)
-    {
-        Texture2D[] previews = new Texture2D[3];
-        for (int i = 0; i < 3; ++i) previews[i] = root.GetPreview(i);
-        AddEntry(root, updateCanvases, previews);
-    }
-    public static void AddEntry(BlueprintRoot root, bool updateCanvases, Texture2D[] previews)
+    } 
+    public static void AddEntry(BlueprintRoot root, bool updateCanvases)
     {
         GameObject entry = Object.Instantiate(BlueprintEntry, Content);
         entry.SetActive(true);
         entry.transform.Find("Name").GetComponent<TMP_Text>().text = root.Name;
         if (root.Icon.ToIcon() is {} icon) entry.transform.Find("Icon").GetComponent<RawImage>().texture = icon;
-
-        var selectionHandler = entry.GetComponent<UIInputHandler>();
-        var selection = entry.transform.Find("Selection").gameObject;
-        selectionHandler.m_onPointerEnter += (_) =>
-        { 
-            Image img = selection.GetComponent<Image>();
-            img.color = new Color(0.36f, 0.57f, 0.13f, 0.51f);
-            ShowResources(root);
-        };
-        selectionHandler.m_onPointerExit += (_) =>
-        { 
-            Image img = selection.GetComponent<Image>();
-            img.color = new Color(0f, 0f, 0f, 0.509804f);
-            ResourceContent.RemoveAllChildrenExceptFirst();
-            PiecesContent.RemoveAllChildrenExceptFirst();
-        };
-        entry.transform.Find("Buttons/Delete").GetComponent<Button>().onClick.AddListener(() =>
-        {
-            Hide();
-            UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_delete", $"$kg_blueprint_confirmdelete <color=yellow>{root.Name}</color>?", () =>
-            {
-               UnifiedPopup.Pop();
-               root.Delete();   
-               Object.Destroy(entry);
-            }, UnifiedPopup.Pop));
-        }); 
-        entry.transform.Find("Select").GetComponent<Button>().onClick.AddListener(() =>
-        {
-            Hide();
-            OnSelect(root);
-        });
-        entry.transform.Find("Buttons/ShowFile").GetComponent<Button>().onClick.AddListener(() =>
-        { 
-            if (root.TryGetFilePath(out string path)) path.Explorer_SelectFile();
-        });
-        entry.transform.Find("Buttons/Rename").GetComponent<Button>().onClick.AddListener(() =>
-        {
-            Hide();
-            RenameBlueprintRoot renamer = new(root, (newName) =>
-            {
-                entry.transform.Find("Name").GetComponent<TMP_Text>().text = newName;
-            });
-            TextInput.instance.RequestText(renamer, "$kg_blueprint_rename", 40);
-        });
-        entry.transform.Find("Buttons/Load").GetComponent<Button>().onClick.AddListener(() =>
-        { 
-            Hide();
-            if (!PlayerState.PlayerInsideBlueprint || !PlayerState.BlueprintPiece)
-            {
-                UnifiedPopup.Push(new WarningPopup("$kg_blueprint_load_error", "$kg_blueprint_load_error_desc", UnifiedPopup.Pop));
-                return;
-            }
-            UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_load", "$kg_blueprint_confirmload".Localize(root.Name), () =>
-            {
-                UnifiedPopup.Pop();
-                PlayerState.BlueprintPiece.DestroyAllPiecesInside(false);
-                PlayerState.BlueprintPiece.Load(root);
-            }, UnifiedPopup.Pop));
-        });
-        if (previews is { Length: > 0 })
-        {
-            for (int p = 3; p >= 1; --p)
-            {
-                if (p > previews.Length || !previews[p - 1]) continue;
-                entry.transform.Find($"Previews/Preview{p}").gameObject.SetActive(true);
-                entry.transform.Find($"Previews/Preview{p}/Img").GetComponent<RawImage>().texture = previews[p - 1];
-            }
-        }
+        entry.GetComponent<Button>().onClick.AddListener(() => ShowBlueprint(entry, root));
         if (updateCanvases)
         {
             SortEntriesByName();
@@ -299,17 +314,37 @@ public static class BlueprintUI
         children.Sort((a, b) => string.Compare(a.Find("Name").GetComponent<TMP_Text>().text, b.Find("Name").GetComponent<TMP_Text>().text, StringComparison.CurrentCultureIgnoreCase));
         foreach (Transform child in children) child.SetAsLastSibling();
     }
-    private static void OnSelect(BlueprintRoot blueprint) 
+    private static void ShowBlueprint(GameObject obj, BlueprintRoot root)
+    {
+        ResetMain(); 
+        if (Current == root || root == null) return;
+        Current = root; 
+        LastPressedEntry = obj;
+        BlueprintName.text = Current.Name;
+        BlueprintDescription.text = string.IsNullOrWhiteSpace(Current.Description) ? "$kg_blueprint_nodescription".Localize() : Current.Description;
+        BlueprintAuthor.text = $"$kg_blueprint_author\n<color=green>{(string.IsNullOrWhiteSpace(Current.Author) ? "$kg_blueprint_noauthor" : Current.Author)}</color>".Localize();
+        for (int i = 0; i < 3; ++i)
+        {
+            Previews[i].texture = Current.GetPreview(i);
+            Previews[i].transform.parent.gameObject.SetActive(Previews[i].texture);
+        }
+        ShowResources(Current);
+        Main.gameObject.SetActive(true);
+        UpdateCanvases();
+    }
+    private static void OnSelect() 
     {
         if (_Internal_SelectedPiece.Key) Object.DestroyImmediate(_Internal_SelectedPiece.Key.gameObject);
-        _Internal_SelectedPiece = new KeyValuePair<Piece, BlueprintRoot>(Object.Instantiate(CopyFrom, Vector3.zero, Quaternion.identity).GetComponent<Piece>(), blueprint);
+        _Internal_SelectedPiece = default;
+        if (Current == null) return;
+        _Internal_SelectedPiece = new KeyValuePair<Piece, BlueprintRoot>(Object.Instantiate(CopyFrom, Vector3.zero, Quaternion.identity).GetComponent<Piece>(), Current);
         _Internal_SelectedPiece.Key.gameObject.SetActive(false);
         _Internal_SelectedPiece.Key.name = "kg_Blueprint_Internal_PlacePiece";
-        _Internal_SelectedPiece.Key.m_name = blueprint.Name;
+        _Internal_SelectedPiece.Key.m_name = Current.Name;
         _Internal_SelectedPiece.Key.m_extraPlacementDistance = 20;
-        for (int i = 0; i < blueprint.Objects.Length; ++i)
+        for (int i = 0; i < Current.Objects.Length; ++i)
         {
-            BlueprintObject obj = blueprint.Objects[i]; 
+            BlueprintObject obj = Current.Objects[i]; 
             GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
             if (!prefab) continue;
             GameObject go = Object.Instantiate(prefab, _Internal_SelectedPiece.Key.transform);
@@ -320,7 +355,7 @@ public static class BlueprintUI
                 if (comp is not Renderer and not MeshFilter and not Transform and not Animator) Object.DestroyImmediate(comp);
             }
         }
-        _Internal_SelectedPiece.Key.m_resources = blueprint.GetRequirements();
+        _Internal_SelectedPiece.Key.m_resources = Current.GetRequirements();
         _Internal_SelectedPiece.Key.gameObject.SetActive(false);
         Player.m_localPlayer?.SetupPlacementGhost();
     }
@@ -345,7 +380,6 @@ public static class BlueprintUI
     }
     private static void ShowResources(BlueprintRoot root)
     {
-        ResourcesTab.SetActive(true);
         ResourceContent.RemoveAllChildrenExceptFirst();
         Piece.Requirement[] reqs = root.GetRequirements();
         Recipe temp = ScriptableObject.CreateInstance<Recipe>();
@@ -363,7 +397,6 @@ public static class BlueprintUI
             entry.transform.Find("Name").GetComponent<TMP_Text>().color = Player.m_localPlayer.HaveRequirementItems(temp, false, 1) ? Color.green : Color.red;
         }
         Object.DestroyImmediate(temp);
-        PiecesTab.SetActive(true);
         PiecesContent.RemoveAllChildrenExceptFirst(); 
         foreach (KeyValuePair<string, Utils.NumberedData> pair in root.GetPiecesNumbered())
         {
@@ -373,18 +406,20 @@ public static class BlueprintUI
             entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{pair.Key} x{pair.Value.Amount}".Localize();
         }
     }
-    private static void HideResources() { ResourceContent.RemoveAllChildrenExceptFirst(); PiecesContent.RemoveAllChildrenExceptFirst(); }
     private static void Show() => UI.SetActive(true);
+    private static void StopPreview()
+    {
+        ModelViewStart.gameObject.SetActive(true);
+        ModelView.texture = null;
+        ModelView.gameObject.SetActive(false);
+        ModelPreview.StopPreview();
+    }
     private static void Hide()
     {
+        StopPreview();
         UI.SetActive(false);
-        foreach (var componentsInChild in Content.GetComponentsInChildren<UIInputHandler>())
-        {
-            Image img = componentsInChild.transform.Find("Selection").GetComponent<Image>();
-            img.color = new Color(0f, 0f, 0f, 0.509804f);
-        } 
-        HideResources(); 
     }
+
     [HarmonyPatch(typeof(Hud),nameof(Hud.IsPieceSelectionVisible))]
     private static class Hud_IsPieceSelectionVisible_Patch
     {

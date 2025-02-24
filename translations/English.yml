@@ -33,3 +33,7 @@ kg_blueprint_piece_delete_desc: "Are you sure want to delete this box? It will r
 kg_blueprint_blueprintcreator: Create New
 kg_blueprint_creator: Create new blueprint
 kg_blueprint_creator_desc: "Use mouse wheel to change radius of captured area."
+kg_blueprint_showmodelview: Show Preview
+kg_blueprint_nodescription: No description
+kg_blueprint_author: Author
+kg_blueprint_noauthor: Unknown

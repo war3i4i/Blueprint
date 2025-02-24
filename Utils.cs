@@ -343,7 +343,7 @@ public static class Utils
         }
         return numbered.OrderByDescending(x => x.Value.Amount);
     }
-    public static bool CreateBlueprint(this BlueprintSource source, string bpName, Texture2D icon, out string reason)
+    public static bool CreateBlueprint(this BlueprintSource source, string bpName, string bpDesc, string bpAuthor, Texture2D icon, out string reason)
     {
         Stopwatch dbg_watch = Stopwatch.StartNew();
         reason = null;
@@ -354,13 +354,35 @@ public static class Utils
             reason = "$kg_blueprint_createblueprint_no_objects";
             return false;
         }
-        BlueprintRoot root = BlueprintRoot.CreateNew(bpName, source.Rotation, start, objects, icon);
+        BlueprintRoot root = BlueprintRoot.CreateNew(bpName, bpDesc, bpAuthor, source.Rotation, start, objects, icon);
         Texture2D[] previews = source.CreatePreviews(objects);
         root.SetPreviews(previews);
         root.AssignPath(Path.Combine(kg_Blueprint.BlueprintsPath, bpName + ".yml"), false);
         root.Save();
-        BlueprintUI.AddEntry(root, true, previews);
+        BlueprintUI.AddEntry(root, true);
         kg_Blueprint.Logger.LogDebug($"Blueprint {bpName} created in {dbg_watch.ElapsedMilliseconds}ms");
         return true;
+    }
+    public static GameObject CreateViewGameObjectForBlueprint(this BlueprintRoot root)
+    {
+        GameObject newObj = new GameObject("BlueprintPreview");
+        newObj.transform.position = Vector3.zero;
+        newObj.transform.rotation = Quaternion.identity;
+        newObj.SetActive(false);
+        newObj.name = "kg_Blueprint_Preview";
+        for (int i = 0; i < root.Objects.Length; ++i)
+        {
+            BlueprintObject obj = root.Objects[i]; 
+            GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
+            if (!prefab) continue;
+            GameObject go = Object.Instantiate(prefab, newObj.transform);
+            go.transform.position = obj.RelativePosition;
+            go.transform.rotation = Quaternion.Euler(obj.Rotation);
+            foreach (Component comp in go.GetComponentsInChildren<Component>(true).Reverse())
+            {
+                if (comp is not Renderer and not MeshFilter and not Transform and not Animator) Object.DestroyImmediate(comp);
+            }
+        }
+        return newObj;
     }
 }
