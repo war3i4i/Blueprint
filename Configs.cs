@@ -9,6 +9,7 @@ public static class Configs
     private static ConfigEntry<string> SaveZDOForPrefabs;
     public static HashSet<int> SaveZDOHashset;
     private static void UpdateHashset() => SaveZDOHashset = [..SaveZDOForPrefabs.Value.Replace(" ", "").Split(',').Select(x => x.GetStableHashCode())];
+    public static ConfigEntry<bool> IncludeTrees, IncludeDestructibles;
     public static void Init()
     {
         InstantBuild = kg_Blueprint._thistype.Config.Bind("General", "InstantBuild", false, "Instantly build blueprints when they are placed");
@@ -19,5 +20,7 @@ public static class Configs
         SaveZDOForPrefabs = kg_Blueprint._thistype.Config.Bind("General", "SaveZDOForPrefabs", "MarketPlaceNPC", "Save ZDOs for prefabs with the given name (comma separated)");
         UpdateHashset();
         SaveZDOForPrefabs.SettingChanged += (_, _) => UpdateHashset();
+        IncludeTrees = kg_Blueprint._thistype.Config.Bind("General", "IncludeTrees", true, "Include trees in blueprints");
+        IncludeDestructibles = kg_Blueprint._thistype.Config.Bind("General", "IncludeDestructibles", true, "Include destructibles in blueprints");
     }
 }   

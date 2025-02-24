@@ -72,7 +72,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, BlueprintS
         _projectors.gameObject.SetActive(projectorsActive);  
         return previews;
     } 
-    public GameObject[] GetObjectedInside => _blueprintArea.GetObjectsInside([_piece.gameObject], typeof(Piece), typeof(TreeBase), typeof(Destructible));
+    public GameObject[] GetObjectedInside => _blueprintArea.GetObjectsInside([_piece.gameObject], typeof(Piece), Configs.IncludeTrees.Value ? typeof(TreeBase) : null, Configs.IncludeDestructibles.Value ? typeof(Destructible) : null);
     public Vector3 StartPoint
     {
         get

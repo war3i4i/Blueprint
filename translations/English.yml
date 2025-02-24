@@ -45,3 +45,5 @@ kg_blueprint_reloaddisk: Reload
 kg_blueprint_reloaddisk_desc: "Reload blueprints from disk."
 kg_blueprint_addfromclipboard: Add from clipboard
 kg_blueprint_addfromclipboard_desc: "Add blueprint from clipboard. Can be either raw yml text or base64 encoded text."
+kg_blueprint_copytoclipboard: Copy to clipboard
+kg_blueprint_copytoclipboard_desc: "Copy blueprint to clipboard."

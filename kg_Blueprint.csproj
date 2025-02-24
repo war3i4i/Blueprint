@@ -124,7 +124,7 @@
         <Compile Include="BlueprintPiece.cs" />
         <Compile Include="BlueprintUI.cs" />
         <Compile Include="BuildProgress.cs" />
-        <Compile Include="ClipboardHandler.cs" />
+        <Compile Include="ClipboardUtils.cs" />
         <Compile Include="Configs.cs" />
         <Compile Include="GlobalUsings.cs" />
         <Compile Include="Managers\LocalizationManager.cs" />

@@ -1,7 +1,27 @@
 ﻿using System.Diagnostics;
+using BepInEx.Bootstrap;
 using kg_Blueprint.Managers;
+using UnityEngine.Audio;
 
 namespace kg_Blueprint;
+[HarmonyPatch(typeof(AudioMan), nameof(AudioMan.Awake))] 
+public static class AudioMan_Awake_Patch
+{
+    private static AudioSource AUsrc;
+    public static void Click() => AUsrc.Play();
+    [UsedImplicitly]
+    private static void Postfix(AudioMan __instance)
+    {
+        AUsrc = Chainloader.ManagerObject.AddComponent<AudioSource>();
+        AUsrc.clip = kg_Blueprint.Asset.LoadAsset<AudioClip>("BlueprintClick");
+        AUsrc.reverbZoneMix = 0;
+        AUsrc.spatialBlend = 0;
+        AUsrc.bypassListenerEffects = true;
+        AUsrc.bypassEffects = true;
+        AUsrc.volume = 0.8f;
+        AUsrc.outputAudioMixerGroup = AudioMan.instance.m_masterMixer.outputAudioMixerGroup;
+    }
+}
 public static class InteractionUI
 {
     private static GameObject UI;
@@ -40,6 +60,7 @@ public static class InteractionUI
             Icon.texture = icon ? icon : OriginalIcon;
         });
         Localization.instance.Localize(UI.transform);
+        foreach (var button in UI.GetComponentsInChildren<Button>(true)) button.onClick.AddListener(AudioMan_Awake_Patch.Click);
     }
     public static void Update()
     {
@@ -51,7 +72,7 @@ public static class InteractionUI
         } 
         if (isVisible && Current is MonoBehaviour mono && !mono) Hide();
     }
-    private static void UpdateCanvases() 
+    private static void UpdateCanvases()
     {
         List<ContentSizeFitter> fitters = UI.GetComponentsInChildren<ContentSizeFitter>().ToList();
         Canvas.ForceUpdateCanvases();
@@ -160,6 +181,7 @@ public static class BlueprintUI
     private static TMP_Text BlueprintName, BlueprintDescription, BlueprintAuthor;
     private static RawImage ModelView;
     private static Button ModelViewStart;
+    private static Button CopyToClipboardButton;
     
     public static void Init()
     {
@@ -253,12 +275,16 @@ public static class BlueprintUI
         
         UI.transform.Find("Canvas/UI/List/ReloadDisk").GetComponent<Button>().onClick.AddListener(kg_Blueprint.ReadBlueprints);
         UI.transform.Find("Canvas/UI/List/AddFromClipboard").GetComponent<Button>().onClick.AddListener(kg_Blueprint.TryLoadFromClipboard);
+        CopyToClipboardButton = UI.transform.Find("Canvas/UI/List/CopyToClipboard").GetComponent<Button>();
+        CopyToClipboardButton.interactable = false;
+        CopyToClipboardButton.onClick.AddListener(() => kg_Blueprint.PasteBlueprintIntoClipboard(Current));
         
         BlueprintName = Main.transform.Find("Name").GetComponent<TMP_Text>();
         BlueprintDescription = Main.transform.Find("Description").GetComponent<TMP_Text>();
         BlueprintAuthor = Main.transform.Find("Author").GetComponent<TMP_Text>();
         Localization.instance.Localize(UI.transform);
-        ResetMain();
+        ResetMain(); 
+        foreach (var button in UI.GetComponentsInChildren<Button>(true)) button.onClick.AddListener(AudioMan_Awake_Patch.Click);
         InteractionUI.Init();
     }
     private static void ResetMain()
@@ -275,6 +301,7 @@ public static class BlueprintUI
         BlueprintName.text = "";
         BlueprintDescription.text = "";
         BlueprintAuthor.text = "";
+        CopyToClipboardButton.interactable = false;
         ClearSelections();
         StopPreview();
     }
@@ -326,6 +353,7 @@ public static class BlueprintUI
         UIInputHandler handler = entry.GetComponent<UIInputHandler>();
         handler.m_onLeftClick += (_) =>
         {
+            AudioMan_Awake_Patch.Click();
             ShowBlueprint(entry, root);
             handler.transform.Find("Selection").GetComponent<Image>().color = Color.green;
         };
@@ -364,11 +392,13 @@ public static class BlueprintUI
     }
     private static void ShowBlueprint(GameObject obj, BlueprintRoot root)
     {
-        ResetMain(); 
+        ResetMain();
+        OnSelect();
         if (Current == root || root == null) return;
         Current = root; 
-        LastPressedEntry = obj;
+        LastPressedEntry = obj; 
         BlueprintName.text = Current.Name;
+        CopyToClipboardButton.interactable = true;
         BlueprintDescription.text = string.IsNullOrWhiteSpace(Current.Description) ? "$kg_blueprint_nodescription".Localize() : Current.Description;
         BlueprintAuthor.text = $"$kg_blueprint_author\n<color=green>{(string.IsNullOrWhiteSpace(Current.Author) ? "$kg_blueprint_noauthor" : Current.Author)}</color>".Localize();
         for (int i = 0; i < 3; ++i)
@@ -376,7 +406,7 @@ public static class BlueprintUI
             Previews[i].texture = Current.GetPreview(i);
             Previews[i].transform.parent.gameObject.SetActive(Previews[i].texture);
         }
-        ShowResources(Current);
+        ShowResources(Current); 
         Main.gameObject.SetActive(true);
         UpdateCanvases();
     }
@@ -384,6 +414,7 @@ public static class BlueprintUI
     {
         if (_Internal_SelectedPiece.Key) Object.DestroyImmediate(_Internal_SelectedPiece.Key.gameObject);
         _Internal_SelectedPiece = default;
+        Player.m_localPlayer?.SetupPlacementGhost();
         if (Current == null) return;
         _Internal_SelectedPiece = new KeyValuePair<Piece, BlueprintRoot>(Object.Instantiate(CopyFrom, Vector3.zero, Quaternion.identity).GetComponent<Piece>(), Current);
         _Internal_SelectedPiece.Key.gameObject.SetActive(false);
@@ -392,7 +423,7 @@ public static class BlueprintUI
         _Internal_SelectedPiece.Key.m_extraPlacementDistance = 20;
         for (int i = 0; i < Current.Objects.Length; ++i)
         {
-            BlueprintObject obj = Current.Objects[i]; 
+            BlueprintObject obj = Current.Objects[i];  
             GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
             if (!prefab) continue;
             GameObject go = Object.Instantiate(prefab, _Internal_SelectedPiece.Key.transform);

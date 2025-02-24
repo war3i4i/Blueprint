@@ -24,12 +24,13 @@ public class kg_Blueprint : BaseUnityPlugin
         _thistype = this;
         Localizer.Load();
         LoadAsm("kg_BlueprintScripts");
-        if (!Directory.Exists(BlueprintsPath)) Directory.CreateDirectory(BlueprintsPath); 
         ReplaceMaterials.Add(new BuildPiece(Asset, "kg_BlueprintBox").Prefab.AddComponent<BlueprintPiece>().gameObject);
         ReplaceMaterials.Add(new BuildPiece(Asset, "kg_BlueprintBox_Large").Prefab.AddComponent<BlueprintPiece>().gameObject);
         ReplaceMaterials.Add(new BuildPiece(Asset, "kg_BlueprintBox_Large_NoFloor").Prefab.AddComponent<BlueprintPiece>().gameObject);
         new Item(Asset, "kg_BlueprintHammer"){ Configurable = Configurability.Recipe };
         Configs.Init();
+        if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null) return;
+        if (!Directory.Exists(BlueprintsPath)) Directory.CreateDirectory(BlueprintsPath); 
         BlueprintUI.Init();
         BuildProgress.Init();
         ReadBlueprints();
@@ -91,7 +92,7 @@ public class kg_Blueprint : BaseUnityPlugin
                 ThreadingHelper.Instance.StartSyncInvoke(() => BlueprintUI.Load(Blueprints));
             }
             catch (Exception ex)
-            {
+            { 
                 if (ex is OperationCanceledException) Logger.LogDebug("Blueprint loading canceled.");
                 else Logger.LogError($"Error loading blueprints [{lastFile}]: {ex}");
             }
@@ -122,6 +123,23 @@ public class kg_Blueprint : BaseUnityPlugin
             catch (Exception e)
             {
                 Logger.LogError($"Error loading blueprint from clipboard: {e}");
+            }
+        });
+    }
+    public static void PasteBlueprintIntoClipboard(BlueprintRoot root)
+    {
+        if (root == null || !root.TryGetFilePath(out string path)) return;
+        Task.Run(() =>
+        {
+            try
+            {
+                if (!File.Exists(path)) return;
+                string data = Convert.ToBase64String(File.ReadAllBytes(path));
+                ThreadingHelper.Instance.StartSyncInvoke(() => GUIUtility.systemCopyBuffer = data);
+            }
+            catch(Exception e)
+            {
+                Logger.LogError($"Error pasting blueprint into clipboard: {e}");
             }
         });
     }

@@ -7,9 +7,11 @@ public static class ValheimFixes
     {
         public static Vector2 OriginalSize;
         public static RectTransform Rect;
-        [UsedImplicitly] private static void Postfix(Hud __instance)
+        [UsedImplicitly] private static void Postfix(Hud __instance) 
         {
             OriginalSize = (__instance.m_requirementItems[0].transform.parent.parent.transform as RectTransform)!.sizeDelta;
+            Rect = (__instance.m_requirementItems[0].transform.parent.parent.transform as RectTransform);
+            if (__instance.m_requirementItems[0].transform.parent.gameObject.GetComponent<HorizontalLayoutGroup>()) return;
             HorizontalLayoutGroup HorizontalLayoutGroup = __instance.m_requirementItems[0].transform.parent.gameObject.AddComponent<HorizontalLayoutGroup>();
             RectTransform rect = HorizontalLayoutGroup.GetComponent<RectTransform>();
             rect.anchoredPosition = new Vector2(0, rect.anchoredPosition.y);
@@ -21,7 +23,6 @@ public static class ValheimFixes
             HorizontalLayoutGroup.childAlignment = TextAnchor.MiddleCenter;
             ContentSizeFitter SizeFitter = __instance.m_requirementItems[0].transform.parent.gameObject.AddComponent<ContentSizeFitter>();
             SizeFitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-            Rect = (__instance.m_requirementItems[0].transform.parent.parent.transform as RectTransform);
         }
     } 
     [HarmonyPatch(typeof(Hud),nameof(Hud.SetupPieceInfo))]

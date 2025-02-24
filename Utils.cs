@@ -18,36 +18,30 @@ public static class Utils
         kg_Blueprint.Logger.LogDebug($"Printing list of {typeof(T).Name} [{msg}]");
         foreach (T t in list) kg_Blueprint.Logger.LogDebug(t);
     }
-
     public static void ThrowIfBad(this IList<GameObject> pieces, [CallerMemberName] string caller = "", [CallerLineNumber] int line = 0)
     {
         string msg = $"{caller}({line})";
         if (pieces == null || pieces.Count == 0) throw new Exception($"No pieces found [{msg}]");
         if (pieces.Any(t => t == null)) throw new Exception($"List contains a null piece [{msg}]");
     }
-
     public static string Localize(this string str) => Localization.instance.Localize(str);
     public static string Localize(this string str, params string[] args) => Localization.instance.Localize(str, args);
-
     public static string ValidPath(this string path, [CallerMemberName] string caller = "", [CallerLineNumber] int line = 0)
     {
         string msg = $"{caller}({line})";
         if (string.IsNullOrWhiteSpace(path)) throw new Exception($"Path is null or empty [{msg}]");
         return Path.GetInvalidPathChars().Aggregate(path, (current, c) => current.Replace(c.ToString(), string.Empty));
     }
-
     public static void WriteNoDupes(this string path, string data, bool forget)
     {
         if (forget) Task.Run(() => File.WriteAllText(path, data));
         else File.WriteAllText(path, data);
     }
-
     public static void WriteWithDupes(this string path, string data, bool forget)
     {
         if (forget) Task.Run(() => WriteWithDupes_Internal(path, data));
         else WriteWithDupes_Internal(path, data);
     }
-
     private static void WriteWithDupes_Internal(this string path, string data)
     {
         string directory = Path.GetDirectoryName(path)!;
@@ -58,9 +52,7 @@ public static class Utils
         while (File.Exists(newPath)) newPath = Path.Combine(directory, $"{fileNameNoExt} ({increment++}){ext}");
         File.WriteAllText(newPath, data);
     }
-
     private static readonly LayerMask Layer = LayerMask.GetMask("piece", "piece_nonsolid", "Default", "character_noenv", "character");
-
     public static GameObject[] GetObjectsInside(this BoxCollider box, GameObject[] exclude, params Type[] types)
     {
         box.gameObject.SetActive(true);
@@ -72,14 +64,13 @@ public static class Utils
         box.gameObject.SetActive(false);
         foreach (Collider collider in colliders)
             for (int i = 0; i < types.Length; ++i)
-                if (collider.GetComponentInParent(types[i]) is { } p)
+                if (types[i] != null && collider.GetComponentInParent(types[i]) is { } p)
                     hs.Add(p.gameObject);
         if (exclude != null) hs.ExceptWith(exclude);
         GameObject[] result = new GameObject[hs.Count];
         hs.CopyTo(result);
         return result;
     }
-
     public static GameObject[] GetObjectsInsideCylinder(Vector3 center, float radius, float height, GameObject[] exclude, params Type[] types)
     {
         HashSet<GameObject> hs = [];
@@ -93,7 +84,6 @@ public static class Utils
         hs.CopyTo(result);
         return result;
     }
-
     public static void CopyComponent<T>(T original, GameObject destination) where T : Component
     {
         Type type = original.GetType();
@@ -115,7 +105,6 @@ public static class Utils
             // ignored
         }
     }
-
     public static Texture2D ToIcon(this string s)
     {
         if (string.IsNullOrWhiteSpace(s)) return null;
@@ -131,7 +120,6 @@ public static class Utils
             return null;
         }
     }
-
     public static void RemoveAllChildrenExceptFirst(this Transform t)
     {
         for (int i = t.childCount - 1; i > 0; --i)
@@ -139,7 +127,6 @@ public static class Utils
             Object.DestroyImmediate(t.GetChild(i).gameObject);
         }
     }
-
     public static bool IsInside(this BoxCollider box, Vector3 point)
     {
         box.gameObject.SetActive(true);
@@ -148,13 +135,11 @@ public static class Utils
         box.gameObject.SetActive(false);
         return result;
     }
-
     public static void Explorer_SelectFile(this string path)
     {
         if (!File.Exists(path)) return;
         System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{path}\"");
     }
-
     public static void SerializeZDO(this ZDO zdo, ZPackage pkg)
     {
         List<KeyValuePair<int, float>> saveFloats = ZDOExtraData.GetFloats(zdo.m_uid);
@@ -241,7 +226,6 @@ public static class Utils
             }
         }
     }
-
     public static void DeserializeZDO(this ZDO zdo, ZPackage pkg)
     {
         if (pkg.ReadBool())
