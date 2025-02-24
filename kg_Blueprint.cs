@@ -25,8 +25,9 @@ public class kg_Blueprint : BaseUnityPlugin
         if (!Directory.Exists(BlueprintsPath)) Directory.CreateDirectory(BlueprintsPath); 
         ReplaceMaterials.Add(new BuildPiece(Asset, "kg_BlueprintBox").Prefab.AddComponent<BlueprintPiece>().gameObject);
         ReplaceMaterials.Add(new BuildPiece(Asset, "kg_BlueprintBox_Large").Prefab.AddComponent<BlueprintPiece>().gameObject);
+        ReplaceMaterials.Add(new BuildPiece(Asset, "kg_BlueprintBox_Large_NoFloor").Prefab.AddComponent<BlueprintPiece>().gameObject);
         new Item(Asset, "kg_BlueprintHammer"){ Configurable = Configurability.Recipe };
-        Configs.Init(); 
+        Configs.Init();
         BlueprintUI.Init();
         BuildProgress.Init();
         ReadBlueprints();

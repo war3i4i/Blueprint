@@ -1,5 +1,6 @@
 kg_blueprint_piece: Blueprint Box
 kg_blueprint_piece_large: Blueprint Box (Large)
+kg_blueprint_piece_large_nofloor: Blueprint Box (Large) No Floor
 kg_blueprint_piece_deleted: Box deleted
 kg_blueprint_box: Box
 kg_blueprint_piece_desc: "Blueprint Box is a structure that allows you to create a blueprint of your base or any other structure you have built.\nPlacing Pieces inside box area is free and doen't require any resources.\nOnce you have placed all the pieces you want to blueprint, you can save the blueprint and load it later to build the same structure again with Blueprint tool."
@@ -27,7 +28,7 @@ kg_blueprint_hammer_desc: "Blueprint Scroll is a tool that allows you to build a
 kg_blueprint_pieces: Structures
 kg_blueprint_requirements: Requirements 
 kg_blueprint_clipboardimage: Clipboard Image
-kg_blueprint_entername: Enter blueprint name
+kg_blueprint_entername: Enter blueprint name...
 kg_blueprint_saved: successfully saved
 kg_blueprint_piece_delete: Delete Box
 kg_blueprint_piece_delete_desc: "Are you sure want to delete this box? It will remove all blueprint-made pieces inside this it.\n<color=red>Note: this action cannot be undone.</color>"
@@ -38,3 +39,5 @@ kg_blueprint_showmodelview: Show Preview
 kg_blueprint_nodescription: No description
 kg_blueprint_author: Author
 kg_blueprint_noauthor: Unknown
+kg_blueprint_enterdescription: Enter description...
+kg_blueprint_save: Save

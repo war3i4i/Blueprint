@@ -328,21 +328,17 @@ public static class Utils
             }
         }
     }
-
     public static void Register<T, U, V, B, C>(this ZNetView znv, string name, RoutedMethod<T, U, V, B, C>.Method f)
     {
         znv.m_functions.Add(name.GetStableHashCode(), new RoutedMethod<T, U, V, B, C>(f));
     }
-
     private static CraftingStation _internal_fakeStation;
     public static CraftingStation GetBlueprintFakeStation() => _internal_fakeStation ??= kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintCS").GetComponent<CraftingStation>();
-
     public static IEnumerator WaitFrames(int frames)
     {
         frames = Mathf.Max(4, frames);
         for (int i = 0; i < frames; ++i) yield return null;
     }
-
     public static Piece.Requirement[] GetRequirements(this int[] Objects)
     {
         GameObject[] gameObjects = new GameObject[Objects.Length];
@@ -364,13 +360,11 @@ public static class Utils
 
         return requirements.Select(x => new Piece.Requirement() { m_resItem = x.Key, m_amount = x.Value }).ToArray();
     }
-
     public class NumberedData
     {
         public int Amount;
         public Sprite Icon;
     }
-
     public static IOrderedEnumerable<KeyValuePair<string, NumberedData>> GetPiecesNumbered(this int[] Objects)
     {
         GameObject[] pieces = new GameObject[Objects.Length];
@@ -388,7 +382,6 @@ public static class Utils
 
         return numbered.OrderByDescending(x => x.Value.Amount);
     }
-
     public static bool CreateBlueprint(this BlueprintSource source, string bpName, string bpDesc, string bpAuthor, Texture2D icon, out string reason)
     {
         Stopwatch dbg_watch = Stopwatch.StartNew();
@@ -410,7 +403,6 @@ public static class Utils
         kg_Blueprint.Logger.LogDebug($"Blueprint {bpName} created in {dbg_watch.ElapsedMilliseconds}ms");
         return true;
     }
-
     public static GameObject CreateViewGameObjectForBlueprint(this BlueprintRoot root)
     {
         GameObject newObj = new GameObject("BlueprintPreview");
@@ -434,7 +426,6 @@ public static class Utils
 
         return newObj;
     }
-
     public class ThreeChoicesPopup(string header, string text, string option1, string option2, string option3, PopupButtonCallback first, PopupButtonCallback second, PopupButtonCallback third)
         : FixedPopupBase(header, text)
     {
@@ -445,7 +436,6 @@ public static class Utils
         public string Option2 => option2.Localize();
         public string Option3 => option3.Localize();
     }
-
     private static void Show3ChoicesPopup(UnifiedPopup instance, ThreeChoicesPopup pop)
     {
         instance.headerText.text = pop.header.Localize();
@@ -458,7 +448,7 @@ public static class Utils
         instance.buttonCenter.onClick.AddListener(() => pop.secondChoice());
         instance.buttonRightText.text = pop.Option3;
         instance.buttonRight.gameObject.SetActive(true);
-        instance.buttonRight.onClick.AddListener(() => pop.thirdChoice());
+        instance.buttonRight.onClick.AddListener(() => pop.thirdChoice()); 
         
         var leftButton = instance.buttonLeft.GetComponent<RectTransform>();
         var centerButton = instance.buttonCenter.GetComponent<RectTransform>();
@@ -467,7 +457,6 @@ public static class Utils
         centerButton.sizeDelta = leftButton.sizeDelta;
         rightButton.anchoredPosition += new Vector2(50f, 0f);
     } 
-
     [HarmonyPatch(typeof(UnifiedPopup), nameof(UnifiedPopup.Show))]
     private static class UnifiedPopup_Show_Patch
     {
@@ -476,7 +465,6 @@ public static class Utils
             if (popup.Type == ThreeChoicesPopup._type) Show3ChoicesPopup(__instance, (ThreeChoicesPopup)popup);
         }
     }
-
     [HarmonyPatch(typeof(UnifiedPopup), nameof(UnifiedPopup.Awake))]
     private static class UnifiedPopup_Awake_Patch
     {

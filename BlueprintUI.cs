@@ -8,7 +8,8 @@ public static class InteractionUI
 
     private static bool IsVisible => UI && UI.activeSelf;
     private static BlueprintSource Current;
-    private static TMP_InputField InputField;
+    private static TMP_InputField InputField_Name;
+    private static TMP_InputField InputField_Description;
     private static Transform ReqsContent;
     private static Transform PiecesContent;
     private static GameObject Entry;
@@ -25,8 +26,9 @@ public static class InteractionUI
         PiecesContent = UI.transform.Find("Canvas/UI/Pieces/Viewport/Content");
         Icon = UI.transform.Find("Canvas/UI/Icon").GetComponent<RawImage>();
         OriginalIcon = Icon.texture;
-        InputField = UI.transform.Find("Canvas/UI/Input").GetComponent<TMP_InputField>();
-        InputField.onSubmit.AddListener(SaveBlueprint);
+        InputField_Name = UI.transform.Find("Canvas/UI/Name").GetComponent<TMP_InputField>();
+        InputField_Description = UI.transform.Find("Canvas/UI/Description").GetComponent<TMP_InputField>();
+        UI.transform.Find("Canvas/UI/Save").GetComponent<Button>().onClick.AddListener(SaveBlueprint);
         Previews[0] = UI.transform.Find("Canvas/UI/Preview1/Img").GetComponent<RawImage>();
         Previews[1] = UI.transform.Find("Canvas/UI/Preview2/Img").GetComponent<RawImage>();
         Previews[2] = UI.transform.Find("Canvas/UI/Preview3/Img").GetComponent<RawImage>();
@@ -42,13 +44,12 @@ public static class InteractionUI
     }
     public static void Update()
     {
-        bool isVisible = IsVisible;
-        if (Input.GetKeyDown(KeyCode.Escape) && isVisible) 
+        bool isVisible = IsVisible; 
+        if (Input.GetKeyDown(KeyCode.Escape) && isVisible)
         {
             Hide();
-            return;
-        }
-        if (isVisible) InputField.Select();
+            return; 
+        } 
         if (isVisible && Current is MonoBehaviour mono && !mono) Hide();
     }
     private static void UpdateCanvases() 
@@ -67,26 +68,24 @@ public static class InteractionUI
             fitter.enabled = true;
         } 
     }
-    private static IEnumerator HideNextFrame()
+    private static void SaveBlueprint()
     {
-        yield return null;
         Hide();
-    }
-    private static void SaveBlueprint(string name)
-    {
-        kg_Blueprint._thistype.StartCoroutine(HideNextFrame());
+        string name = InputField_Name.text;
         if (string.IsNullOrWhiteSpace(name) || Current == null) return;
+        string description = string.IsNullOrWhiteSpace(InputField_Description.text) ? null : InputField_Description.text;
         Texture2D icon = Icon.texture == OriginalIcon ? null : Icon.texture as Texture2D;
-        if (Current.CreateBlueprint(name, null, Game.instance.m_playerProfile.m_playerName, icon, out string reason)) MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, $"<color=green>{name}</color> $kg_blueprint_saved".Localize());
+        if (Current.CreateBlueprint(name, description, Game.instance.m_playerProfile.m_playerName, icon, out string reason)) MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, $"<color=green>{name}</color> $kg_blueprint_saved".Localize());
         else MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, reason.Localize());
         Current = null;
-    } 
+    }  
     public static void Show(BlueprintSource source) 
-    {
+    { 
         if (source == null) return; 
-        InputField.text = "";
+        InputField_Name.text = "";
+        InputField_Description.text = "";
         Icon.texture = OriginalIcon;
-        ReqsContent.RemoveAllChildrenExceptFirst();
+        ReqsContent.RemoveAllChildrenExceptFirst(); 
         PiecesContent.RemoveAllChildrenExceptFirst();
         Current = source;
         GameObject[] inside = source.GetObjectedInside;
@@ -111,6 +110,7 @@ public static class InteractionUI
         for (int i = 0; i < 3; ++i) Previews[i].texture = previews[i];
         UI.SetActive(true);
         UpdateCanvases();
+        InputField_Name.Select();
     }
     private static void Hide()
     {
