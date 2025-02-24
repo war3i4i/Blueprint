@@ -98,11 +98,11 @@ public static class PhotoManager
             {
                 spawn.transform.position = Vector3.zero;
                 spawn.transform.rotation = rotations[i];
-                Vector3 min = new Vector3(1000f, 1000f, 1000f); 
+                Vector3 min = new Vector3(1000f, 1000f, 1000f);
                 Vector3 max = new Vector3(-1000f, -1000f, -1000f); 
                 foreach (Renderer meshRenderer in renderers) 
                 {
-                    if (meshRenderer is ParticleSystemRenderer) continue;
+                    if (meshRenderer is ParticleSystemRenderer) continue; 
                     min = Vector3.Min(min, meshRenderer.bounds.min);
                     max = Vector3.Max(max, meshRenderer.bounds.max);
                 }
@@ -111,7 +111,7 @@ public static class PhotoManager
                 RenderObject go = new RenderObject(spawn, size) { Request = request };
                 tex[i] = RenderSprite(go);
             }
-            Object.Destroy(spawn);
+            Object.DestroyImmediate(spawn);
             ClearRendering();
             return tex;
         } 

@@ -23,10 +23,11 @@ public class kg_Blueprint : BaseUnityPlugin
     {
         _thistype = this;
         Localizer.Load();
-        LoadAsm("kg_BlueprintScripts");
+        LoadAsm("kg_BlueprintScripts"); 
         ReplaceMaterials.Add(new BuildPiece(Asset, "kg_BlueprintBox").Prefab.AddComponent<BlueprintPiece>().gameObject);
         ReplaceMaterials.Add(new BuildPiece(Asset, "kg_BlueprintBox_Large").Prefab.AddComponent<BlueprintPiece>().gameObject);
         ReplaceMaterials.Add(new BuildPiece(Asset, "kg_BlueprintBox_Large_NoFloor").Prefab.AddComponent<BlueprintPiece>().gameObject);
+        new BuildPiece(Asset, "kg_BlueprintSharing").Prefab.AddComponent<BlueprintSharing>();
         new Item(Asset, "kg_BlueprintHammer"){ Configurable = Configurability.Recipe };
         Configs.Init();
         if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null) return;

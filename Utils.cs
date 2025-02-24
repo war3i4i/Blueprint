@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics;
+using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using CompressionLevel = UnityEngine.CompressionLevel;
 
 namespace kg_Blueprint;
 
@@ -386,7 +388,7 @@ public static class Utils
         kg_Blueprint.Logger.LogDebug($"Blueprint {bpName} created in {dbg_watch.ElapsedMilliseconds}ms");
         return true;
     }
-    public static GameObject CreateViewGameObjectForBlueprint(this BlueprintRoot root)
+    public static GameObject CreateViewGameObjectForBlueprint(this BlueprintRoot root, Quaternion rotation)
     {
         GameObject newObj = new GameObject("BlueprintPreview");
         newObj.transform.position = Vector3.zero;
@@ -397,10 +399,11 @@ public static class Utils
         {
             BlueprintObject obj = root.Objects[i];
             GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
-            if (!prefab) continue;
+            if (!prefab) continue;  
             GameObject go = Object.Instantiate(prefab, newObj.transform);
-            go.transform.position = obj.RelativePosition;
-            go.transform.rotation = Quaternion.Euler(obj.Rotation);
+            Quaternion deltaRotation = Quaternion.identity * Quaternion.Inverse(Quaternion.Euler(root.BoxRotation));
+            go.transform.position = deltaRotation * obj.RelativePosition;
+            go.transform.rotation = Quaternion.Euler(obj.Rotation) * deltaRotation;
             foreach (Component comp in go.GetComponentsInChildren<Component>(true).Reverse())
             {
                 if (comp is not Renderer and not MeshFilter and not Transform and not Animator) Object.DestroyImmediate(comp);
@@ -481,5 +484,21 @@ public static class Utils
             rightButton.anchoredPosition = UnifiedPopup_Awake_Patch.OrigPos[2];
             rightButton.sizeDelta = UnifiedPopup_Awake_Patch.OrigSize[2];
         }
+    }
+    public static void Compress(this ZPackage pkg)
+    {
+        byte[] array = pkg.GetArray();
+        using MemoryStream memoryStream = new MemoryStream();
+        using (GZipStream gzipStream = new GZipStream(memoryStream, System.IO.Compression.CompressionLevel.Optimal)) gzipStream.Write(array, 0, array.Length);
+        byte[] compress = memoryStream.ToArray();
+        pkg.Clear();
+        pkg.m_writer.Write(compress);
+    }
+    public static void Decompress(this ZPackage pkg)
+    {
+        byte[] decompress = global::Utils.Decompress(pkg.GetArray());
+        pkg.Clear();
+        pkg.m_writer.Write(decompress);
+        pkg.m_stream.Position = 0L;
     }
 }

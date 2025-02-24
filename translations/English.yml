@@ -47,3 +47,8 @@ kg_blueprint_addfromclipboard: Add from clipboard
 kg_blueprint_addfromclipboard_desc: "Add blueprint from clipboard. Can be either raw yml text or base64 encoded text."
 kg_blueprint_copytoclipboard: Copy to clipboard
 kg_blueprint_copytoclipboard_desc: "Copy blueprint to clipboard."
+kg_blueprint_copy: Copy
+kg_blueprint_selectall: Select
+kg_blueprint_add: Add
+kg_blueprint_opensharing: Open Sharing
+kg_blueprint_sharing_piece: Sharing

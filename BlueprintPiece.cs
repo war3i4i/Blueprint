@@ -13,6 +13,71 @@ public static class PlayerState
         PlayerInsideBlueprint = BlueprintPiece.IsInside(Player.m_localPlayer.transform.position, out BlueprintPiece);
     }
 }
+public class BlueprintSharing : MonoBehaviour, Interactable, Hoverable, ForeignBlueprintSource
+{
+    private ZNetView _znv;
+    private List<BlueprintRoot> Current = null;
+    private void Awake()
+    {
+        _znv = GetComponent<ZNetView>();
+    }
+    private BlueprintRoot[] _Internal_Blueprints
+    {
+        get
+        {
+            byte[] data = _znv.GetZDO().GetByteArray("Blueprints");
+            if (data == null) return [];
+            ZPackage pkg = new(data);
+            pkg.Decompress();
+            int count = pkg.ReadInt();
+            BlueprintRoot[] result = new BlueprintRoot[count];
+            for (int i = 0; i < count; ++i)
+            {
+                result[i] = new(); 
+                result[i].Deserialize(ref pkg);
+            }
+            return result;
+        }
+        set
+        { 
+            ZPackage pkg = new();
+            pkg.Write(value.Length);
+            for (int i = 0; i < value.Length; ++i) value[i].Serialize(ref pkg);
+            pkg.Compress();
+            _znv.GetZDO().Set("Blueprints", pkg.GetArray());
+        }
+    }
+    public bool Interact(Humanoid user, bool hold, bool alt)
+    {
+        _znv.ClaimOwnership();
+        BlueprintUI.Show(this);
+        return true;
+    }
+    public bool UseItem(Humanoid user, ItemDrop.ItemData item) => false;
+    public string GetHoverText() => "[<color=yellow><b>$KEY_Use</b></color>] $kg_blueprint_opensharing".Localize();
+    public string GetHoverName() => "$kg_blueprint_sharing_piece".Localize();
+    public BlueprintRoot[] Blueprints
+    {
+        get
+        {
+            BlueprintRoot[] bp = _Internal_Blueprints;
+            Current = bp.ToList();
+            return bp;
+        }
+    }
+    private void SetBlueprints(BlueprintRoot[] blueprints) => _Internal_Blueprints = blueprints;
+    public void Delete(BlueprintRoot blueprint)
+    {
+        Current.Remove(blueprint);
+        SetBlueprints(Current.ToArray());
+    }
+    public void Add(BlueprintRoot blueprint)
+    {
+        Current.Add(blueprint);
+        if (Current.Count > 10) Current.RemoveAt(0);
+        SetBlueprints(Current.ToArray());
+    }
+}
 public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, BlueprintSource
 {
     private static readonly List<BlueprintPiece> _instances = [];

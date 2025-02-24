@@ -1,4 +1,10 @@
 ﻿namespace kg_Blueprint;
+public interface ForeignBlueprintSource
+{
+    public BlueprintRoot[] Blueprints { get; }
+    public void Delete(BlueprintRoot blueprint);
+    public void Add(BlueprintRoot blueprint);
+}
 public interface BlueprintSource
 {
     public Texture2D[] CreatePreviews(GameObject[] inside);
@@ -73,7 +79,7 @@ public class BlueprintObject
     public string ZDOData;
 }
 [Serializable]
-public class BlueprintRoot
+public class BlueprintRoot : ISerializableParameter
 {
     private string FilePath;
     private Texture2D[] CachedPreviews;
@@ -247,6 +253,43 @@ public class BlueprintRoot
         {
             string data = new SerializerBuilder().ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitDefaults).Build().Serialize(clone);
             path.WriteNoDupes(data, false);
+        }
+    }
+    public void Serialize(ref ZPackage pkg)
+    {
+        pkg.Write(Name ?? "");
+        pkg.Write(Author ?? "");
+        pkg.Write(Description ?? "");
+        pkg.Write(BoxRotation);
+        pkg.Write(Objects.Length);
+        for (int i = 0; i < Objects.Length; ++i)
+        {
+            pkg.Write(Objects[i].Id);
+            pkg.Write(Objects[i].RelativePosition);
+            pkg.Write(Objects[i].Rotation);
+            pkg.Write(Objects[i].ZDOData != null);
+            if (Objects[i].ZDOData != null) pkg.Write(Objects[i].ZDOData);
+        }
+    }
+    public void Deserialize(ref ZPackage pkg)
+    {
+        Name = pkg.ReadString();
+        Author = pkg.ReadString();
+        Description = pkg.ReadString();
+        if (string.IsNullOrEmpty(Name)) Name = "Unnamed";
+        if (string.IsNullOrEmpty(Author)) Author = null;
+        if (string.IsNullOrEmpty(Description)) Description = null;
+        BoxRotation = pkg.ReadVector3();
+        Objects = new BlueprintObject[pkg.ReadInt()];
+        for (int i = 0; i < Objects.Length; ++i)
+        {
+            Objects[i] = new BlueprintObject
+            {
+                Id = pkg.ReadInt(),
+                RelativePosition = pkg.ReadVector3(),
+                Rotation = pkg.ReadVector3(),
+                ZDOData = pkg.ReadBool() ? pkg.ReadString() : null
+            };
         }
     }
 }

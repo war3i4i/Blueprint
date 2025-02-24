@@ -171,6 +171,8 @@ public static class BlueprintUI
     private static Transform PiecesContent;
     private static GameObject ResourceEntry;
     private static Transform Content;
+    private static GameObject ForeignTab;
+    private static Transform ForeignContent;
     public static Sprite NoIcon;
     private static GameObject Projector;
     private static int CreatorRadius = 5;
@@ -182,6 +184,11 @@ public static class BlueprintUI
     private static RawImage ModelView;
     private static Button ModelViewStart;
     private static Button CopyToClipboardButton;
+    private static TMP_Text SelectButton_Text;
+    private static GameObject ButtonsTab;
+    private static Button DeleteButton_Foreign;
+    private static ForeignBlueprintSource ForeignSource;
+    private static bool IsForeign;
     
     public static void Init()
     {
@@ -193,6 +200,8 @@ public static class BlueprintUI
         UI.SetActive(false);
         Main = UI.transform.Find("Canvas/UI/Main");
         BlueprintEntry = UI.transform.Find("Canvas/UI/List/Scroll View/Viewport/Content/Entry").gameObject;
+        ForeignTab = UI.transform.Find("Canvas/UI/ForeignList").gameObject;
+        ForeignContent = ForeignTab.transform.Find("Scroll View/Viewport/Content");
         ResourceEntry = Main.transform.Find("Reqs/Viewport/Content/Entry").gameObject;
         PiecesContent = Main.transform.Find("Pieces/Viewport/Content");
         ResourceContent = Main.transform.Find("Reqs/Viewport/Content");
@@ -209,8 +218,49 @@ public static class BlueprintUI
         Previews[2] = Main.transform.Find("Previews/Preview3/Img").GetComponent<RawImage>();
         Main.transform.Find("Select").GetComponent<Button>().onClick.AddListener(() =>
         {
-            Hide();
-            OnSelect();
+            if (Current == null) return;
+            if (ForeignSource == null)
+            {
+                Hide();
+                OnSelect();
+                return;
+            }
+            if (ForeignSource is MonoBehaviour mono && !mono)
+            {
+                ResetMain();
+                OnSelect();
+                Hide();
+                return;
+            }
+            if (IsForeign) 
+            {
+                GameObject temp = Current.CreateViewGameObjectForBlueprint(Quaternion.Euler(Current.BoxRotation));
+                Texture2D[] previews = PhotoManager.MakeBulkSprites(temp, 1f, 
+                    Quaternion.Euler(30f, 0f, 0f),
+                    Quaternion.Euler(23f, 51f, 25.8f),
+                    Quaternion.Euler(23f, 51f, 25.8f) * Quaternion.Euler(0f, 180f, 0f));
+                Object.DestroyImmediate(temp); 
+                Current.SetPreviews(previews);
+                Current.AssignPath(Path.Combine(kg_Blueprint.BlueprintsPath, Current.Name + ".yml"), false);
+                Current.Save();
+                AddEntry(Current, true);
+            }
+            else
+            {
+                ForeignSource.Add(Current);
+                AddEntry(Current, true, false, true);
+            }
+            ResetMain();
+        });
+        SelectButton_Text = Main.transform.Find("Select/text").GetComponent<TMP_Text>();
+        ButtonsTab = Main.transform.Find("Buttons").gameObject;
+        DeleteButton_Foreign = Main.transform.Find("Delete_Foreign").GetComponent<Button>();
+        DeleteButton_Foreign.GetComponent<Button>().onClick.AddListener(() =>
+        {
+            if (ForeignSource == null || Current == null) return;
+            ForeignSource.Delete(Current);
+            Object.Destroy(LastPressedEntry); 
+            ResetMain();
         }); 
         Main.transform.Find("Buttons/Delete").GetComponent<Button>().onClick.AddListener(() =>
         {
@@ -268,17 +318,15 @@ public static class BlueprintUI
         ModelViewStart.onClick.AddListener(() =>
         {
             if (Current == null) return;
-            ModelPreview.SetAsCurrent(ModelView, Current.CreateViewGameObjectForBlueprint());
+            ModelPreview.SetAsCurrent(ModelView, Current.CreateViewGameObjectForBlueprint(Quaternion.Euler(Current.BoxRotation)));
             ModelViewStart.gameObject.SetActive(false);
             ModelView.gameObject.SetActive(true);
         });
-        
         UI.transform.Find("Canvas/UI/List/ReloadDisk").GetComponent<Button>().onClick.AddListener(kg_Blueprint.ReadBlueprints);
         UI.transform.Find("Canvas/UI/List/AddFromClipboard").GetComponent<Button>().onClick.AddListener(kg_Blueprint.TryLoadFromClipboard);
         CopyToClipboardButton = UI.transform.Find("Canvas/UI/List/CopyToClipboard").GetComponent<Button>();
         CopyToClipboardButton.interactable = false;
         CopyToClipboardButton.onClick.AddListener(() => kg_Blueprint.PasteBlueprintIntoClipboard(Current));
-        
         BlueprintName = Main.transform.Find("Name").GetComponent<TMP_Text>();
         BlueprintDescription = Main.transform.Find("Description").GetComponent<TMP_Text>();
         BlueprintAuthor = Main.transform.Find("Author").GetComponent<TMP_Text>();
@@ -302,6 +350,7 @@ public static class BlueprintUI
         BlueprintDescription.text = "";
         BlueprintAuthor.text = "";
         CopyToClipboardButton.interactable = false;
+        IsForeign = false;
         ClearSelections();
         StopPreview();
     }
@@ -322,17 +371,18 @@ public static class BlueprintUI
             fitter.enabled = true;
         }
     }
-    public static void Load(IList<BlueprintRoot> blueprints)
+    public static void Load(IList<BlueprintRoot> blueprints, bool isForeign = false)
     {
         if (_Internal_SelectedPiece.Key) Object.DestroyImmediate(_Internal_SelectedPiece.Key.gameObject);
         _Internal_SelectedPiece = default;
         Player.m_localPlayer?.SetupPlacementGhost();
-        Content.RemoveAllChildrenExceptFirst();
+        if (isForeign) ForeignContent.RemoveAllChildrenExceptFirst();
+        else Content.RemoveAllChildrenExceptFirst();
         for (int i = 0; i < blueprints.Count; i++)
         {
             BlueprintRoot blueprint = blueprints[i];
             blueprint.CachePreviews();
-            AddEntry(blueprint, false);
+            AddEntry(blueprint, false, false, isForeign);
         }
         SortEntriesByName();
         ResetMain();
@@ -340,12 +390,12 @@ public static class BlueprintUI
     }
     private static void ClearSelections()
     {
-        UIInputHandler[] UIInputHandlers = Content.GetComponentsInChildren<UIInputHandler>();
+        UIInputHandler[] UIInputHandlers = Content.GetComponentsInChildren<UIInputHandler>().Concat(ForeignContent.GetComponentsInChildren<UIInputHandler>()).ToArray();
         for (int i = 0; i < UIInputHandlers.Length; i++) UIInputHandlers[i].transform.Find("Selection").GetComponent<Image>().color = Color.clear;
     }
-    public static void AddEntry(BlueprintRoot root, bool updateCanvases, bool select = false)
+    public static void AddEntry(BlueprintRoot root, bool updateCanvases, bool select = false, bool isForeign = false)
     {
-        GameObject entry = Object.Instantiate(BlueprintEntry, Content);
+        GameObject entry = Object.Instantiate(BlueprintEntry, isForeign ? ForeignContent : Content);
         entry.SetActive(true);
         entry.transform.Find("Name").GetComponent<TMP_Text>().text = root.Name;
         if (root.Icon.ToIcon() is {} icon) entry.transform.Find("Icon").GetComponent<RawImage>().texture = icon;
@@ -354,7 +404,7 @@ public static class BlueprintUI
         handler.m_onLeftClick += (_) =>
         {
             AudioMan_Awake_Patch.Click();
-            ShowBlueprint(entry, root);
+            ShowBlueprint(entry, root, isForeign);
             handler.transform.Find("Selection").GetComponent<Image>().color = Color.green;
         };
         handler.m_onPointerEnter += (_) => 
@@ -375,7 +425,6 @@ public static class BlueprintUI
             if (!preview) continue;
             entry.transform.Find($"Preview{i}/Img").GetComponent<RawImage>().texture = preview;
         } 
-        
         if (updateCanvases)
         {
             SortEntriesByName();
@@ -390,7 +439,7 @@ public static class BlueprintUI
         children.Sort((a, b) => string.Compare(a.Find("Name").GetComponent<TMP_Text>().text, b.Find("Name").GetComponent<TMP_Text>().text, StringComparison.CurrentCultureIgnoreCase));
         foreach (Transform child in children) child.SetAsLastSibling();
     }
-    private static void ShowBlueprint(GameObject obj, BlueprintRoot root)
+    private static void ShowBlueprint(GameObject obj, BlueprintRoot root, bool isForeign)
     {
         ResetMain();
         OnSelect();
@@ -408,6 +457,10 @@ public static class BlueprintUI
         }
         ShowResources(Current); 
         Main.gameObject.SetActive(true);
+        IsForeign = isForeign;
+        DeleteButton_Foreign.interactable = isForeign;
+        if (ForeignSource == null) SelectButton_Text.text = "$kg_blueprint_select".Localize();
+        else  SelectButton_Text.text =  IsForeign ? "$kg_blueprint_copy".Localize() : "$kg_blueprint_add".Localize();
         UpdateCanvases();
     }
     private static void OnSelect() 
@@ -485,7 +538,16 @@ public static class BlueprintUI
             entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{pair.Key} x{pair.Value.Amount}".Localize();
         }
     }
-    private static void Show() => UI.SetActive(true);
+
+    public static void Show(ForeignBlueprintSource foreignSource = null)
+    {
+        ForeignSource = foreignSource;
+        ForeignTab.SetActive(ForeignSource != null);
+        ButtonsTab.SetActive(ForeignSource == null);
+        DeleteButton_Foreign.gameObject.SetActive(ForeignSource != null);
+        if (ForeignSource != null) Load(ForeignSource.Blueprints, true);
+        UI.SetActive(true);
+    }
     private static void StopPreview()
     {
         ModelViewStart.gameObject.SetActive(true);
