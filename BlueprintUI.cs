@@ -247,8 +247,7 @@ public static class BlueprintUI
             }
             else
             {
-                ForeignSource.Add(Current);
-                AddEntry(Current, true, false, true);
+                if (ForeignSource.Add(Current)) AddEntry(Current, true, false, true);
             }
             ResetMain();
         });
@@ -558,6 +557,11 @@ public static class BlueprintUI
     private static void Hide()
     {
         StopPreview();
+        if (ForeignSource != null)
+        {
+            ResetMain();
+            ForeignSource = null;
+        }
         UI.SetActive(false);
     }
 
@@ -641,7 +645,7 @@ public static class BlueprintUI
                     _Internal_SelectedPiece = default;
                     Player.m_localPlayer.SetupPlacementGhost();
                 }
-                blueprint?.Apply(pos, rot);
+                blueprint?.Apply(pos, rot, PlayerState.PlayerInsideBlueprint);
             }
             if (name == "kg_Blueprint_Internal_Creator")
             {

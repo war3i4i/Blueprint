@@ -22,11 +22,12 @@ public class BlueprintSharing : MonoBehaviour, Interactable, Hoverable, ForeignB
         _znv = GetComponent<ZNetView>();
     }
     private BlueprintRoot[] _Internal_Blueprints
-    {
+    { 
         get
         {
             byte[] data = _znv.GetZDO().GetByteArray("Blueprints");
             if (data == null) return [];
+            kg_Blueprint.Logger.LogDebug($"Got Blueprints data size: {data.Length.SizeSuffix()}");
             ZPackage pkg = new(data);
             pkg.Decompress();
             int count = pkg.ReadInt();
@@ -71,11 +72,12 @@ public class BlueprintSharing : MonoBehaviour, Interactable, Hoverable, ForeignB
         Current.Remove(blueprint);
         SetBlueprints(Current.ToArray());
     }
-    public void Add(BlueprintRoot blueprint)
+    public bool Add(BlueprintRoot blueprint)
     {
+        if (Current.Count >= 17) return false;
         Current.Add(blueprint);
-        if (Current.Count > 10) Current.RemoveAt(0);
         SetBlueprints(Current.ToArray());
+        return true;
     }
 }
 public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, BlueprintSource
@@ -287,12 +289,6 @@ public static class Player_TryPlacePiece_Patch
     {
         if (_skip) return true;
         if (!PlayerState.PlayerInsideBlueprint) return true;
-        if (piece.name == "kg_Blueprint_Internal_PlacePiece")
-        {
-            MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, "$kg_blueprint_cantbuildblueprintinsidebox".Localize());
-            __result = false;
-            return false;
-        }
         __instance.UpdatePlacementGhost(false);
         if (__instance.m_placementGhost && !BlueprintPiece.IsInside(__instance.m_placementGhost.transform.position))
         {

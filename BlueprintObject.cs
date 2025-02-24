@@ -3,7 +3,7 @@ public interface ForeignBlueprintSource
 {
     public BlueprintRoot[] Blueprints { get; }
     public void Delete(BlueprintRoot blueprint);
-    public void Add(BlueprintRoot blueprint);
+    public bool Add(BlueprintRoot blueprint);
 }
 public interface BlueprintSource
 {
@@ -200,8 +200,8 @@ public class BlueprintRoot : ISerializableParameter
     }
     public Piece.Requirement[] GetRequirements() => Objects.Select(x => x.Id).ToArray().GetRequirements();
     public IOrderedEnumerable<KeyValuePair<string, Utils.NumberedData>> GetPiecesNumbered() => Objects.Select(x => x.Id).ToArray().GetPiecesNumbered();
-    public void Apply(Vector3 center, Quaternion rootRot) => ZNetScene.instance.StartCoroutine(Internal_Apply(Configs.InstantBuild.Value, center, rootRot));
-    private IEnumerator Internal_Apply(bool instantBuild, Vector3 center, Quaternion rootRot)
+    public void Apply(Vector3 center, Quaternion rootRot, bool deactivate) => ZNetScene.instance.StartCoroutine(Internal_Apply(Configs.InstantBuild.Value, center, rootRot, deactivate));
+    private IEnumerator Internal_Apply(bool instantBuild, Vector3 center, Quaternion rootRot, bool deactivate)
     {
         for (int i = 0; i < Objects.Length; ++i)
         {
@@ -212,16 +212,22 @@ public class BlueprintRoot : ISerializableParameter
                 continue; 
             } 
             Vector3 pos = center + rootRot * Objects[i].RelativePosition;
+            if (deactivate && !BlueprintPiece.IsInside(pos)) continue;
             Quaternion rot = Quaternion.Euler(Objects[i].Rotation) * rootRot;
-            if (instantBuild)
+            if (instantBuild || deactivate)
             {
                 GameObject newObj = Object.Instantiate(prefab, pos, rot);
                 Piece p = newObj.GetComponent<Piece>();
-                if (p)
+                if (p) 
                 {
                     p.m_placeEffect.Create(pos, rot, p.transform);
                     p.SetCreator(Game.instance.m_playerProfile.m_playerID);
                     if (p.GetComponent<ItemDrop>() is {} item) item.MakePiece(true);
+                    if (deactivate && !Configs.SaveZDOHashset.Contains(Objects[i].Id))
+                    {
+                        p.m_nview.m_zdo.Set("kg_Blueprint", true);
+                        Piece_Awake_Patch.DeactivatePiece(p);
+                    }
                 }
                 try
                 {
