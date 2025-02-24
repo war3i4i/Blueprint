@@ -24,7 +24,6 @@ kg_blueprint_building: Building
 kg_blueprint_select: Select
 kg_blueprint_hammer: Blueprint Scroll
 kg_blueprint_hammer_desc: "Blueprint Scroll is a tool that allows you to build a structure from blueprints you have saved.\nTo build a blueprint, you must have the required resources."
-kg_blueprint_snap: Snap Blueprint to ground
 kg_blueprint_pieces: Structures
 kg_blueprint_requirements: Requirements 
 kg_blueprint_clipboardimage: Clipboard Image

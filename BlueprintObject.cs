@@ -193,8 +193,8 @@ public class BlueprintRoot
     }
     public Piece.Requirement[] GetRequirements() => Objects.Select(x => x.Id).ToArray().GetRequirements();
     public IOrderedEnumerable<KeyValuePair<string, Utils.NumberedData>> GetPiecesNumbered() => Objects.Select(x => x.Id).ToArray().GetPiecesNumbered();
-    public void Apply(Vector3 center, Quaternion rootRot) => ZNetScene.instance.StartCoroutine(Internal_Apply(Configs.InstantBuild.Value, Input.GetKey(KeyCode.LeftControl), center, rootRot));
-    private IEnumerator Internal_Apply(bool instantBuild, bool snapToGround, Vector3 center, Quaternion rootRot)
+    public void Apply(Vector3 center, Quaternion rootRot) => ZNetScene.instance.StartCoroutine(Internal_Apply(Configs.InstantBuild.Value, center, rootRot));
+    private IEnumerator Internal_Apply(bool instantBuild, Vector3 center, Quaternion rootRot)
     {
         for (int i = 0; i < Objects.Length; ++i)
         {
@@ -203,14 +203,9 @@ public class BlueprintRoot
             {
                 kg_Blueprint.Logger.LogDebug($"Failed to find prefab with id {Objects[i].Id} while applying blueprint ({Name})");
                 continue; 
-            }
+            } 
             Vector3 pos = center + rootRot * Objects[i].RelativePosition;
             Quaternion rot = Quaternion.Euler(Objects[i].Rotation) * rootRot;
-            if (snapToGround)
-            {
-                pos.y = Mathf.Max(ZoneSystem.instance.GetGroundHeight(pos), pos.y);
-                ZoneSystem.instance.FindFloor(pos, out pos.y);
-            }
             if (instantBuild)
             {
                 GameObject newObj = Object.Instantiate(prefab, pos, rot);

@@ -67,13 +67,19 @@ public static class InteractionUI
             fitter.enabled = true;
         } 
     }
+    private static IEnumerator HideNextFrame()
+    {
+        yield return null;
+        Hide();
+    }
     private static void SaveBlueprint(string name)
     {
-        Hide();
+        kg_Blueprint._thistype.StartCoroutine(HideNextFrame());
         if (string.IsNullOrWhiteSpace(name) || Current == null) return;
         Texture2D icon = Icon.texture == OriginalIcon ? null : Icon.texture as Texture2D;
         if (Current.CreateBlueprint(name, null, Game.instance.m_playerProfile.m_playerName, icon, out string reason)) MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, $"<color=green>{name}</color> $kg_blueprint_saved".Localize());
         else MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, reason.Localize());
+        Current = null;
     } 
     public static void Show(BlueprintSource source) 
     {
@@ -174,7 +180,7 @@ public static class BlueprintUI
         Content = BlueprintEntry.transform.parent;  
         UI.transform.Find("Canvas/UI/Create").GetComponent<Button>().onClick.AddListener(() =>
         {
-            Hide(); 
+            Hide();
             SelectBlueprintCreator();
         });
         Previews[0] = Main.transform.Find("Previews/Preview1/Img").GetComponent<RawImage>();
@@ -573,32 +579,6 @@ public static class BlueprintUI
             foreach (var componentsInChild in UI.GetComponentsInChildren<TMP_Text>(true)) componentsInChild.font = tmp.font;
         }
     }
-    [HarmonyPatch(typeof(KeyHints),nameof(KeyHints.Awake))]
-    private static class KeyHints_Awake_Patch 
-    {
-        public static GameObject KeyHint_LeftControl_Snap;
-        [UsedImplicitly] private static void Postfix(KeyHints __instance)
-        {
-            var copyFrom = __instance.m_buildHints.transform.Find("Keyboard/Place");
-            if (copyFrom is null) return;
-            KeyHint_LeftControl_Snap = Object.Instantiate(copyFrom.gameObject, copyFrom.parent);
-            KeyHint_LeftControl_Snap.name = "KeyHint_LeftControl_Snap";
-            KeyHint_LeftControl_Snap.transform.SetAsFirstSibling();
-            KeyHint_LeftControl_Snap.transform.Find("Text").GetComponent<TMP_Text>().text = "$kg_blueprint_snap".Localize();
-            KeyHint_LeftControl_Snap.transform.Find("Text").GetComponent<TMP_Text>().color = new Color(0.16f, 0.53f, 1f);
-            KeyHint_LeftControl_Snap.transform.Find("key_bkg/Key").GetComponent<TMP_Text>().text = "LeftCtrl";
-            KeyHint_LeftControl_Snap.transform.Find("key_bkg/Key").GetComponent<TMP_Text>().color = new Color(0.16f, 0.53f, 1f);
-            KeyHint_LeftControl_Snap.SetActive(false);
-        }
-    }
-    [HarmonyPatch(typeof(KeyHints),nameof(KeyHints.UpdateHints))]
-    private static class KeyHints_UpdateHints_Patch
-    {
-        [UsedImplicitly] private static void Postfix(KeyHints __instance)
-        {
-            if(__instance.m_buildHints.activeSelf) KeyHints_Awake_Patch.KeyHint_LeftControl_Snap.SetActive(IsHoldingHammer);
-        } 
-    } 
     [HarmonyPatch(typeof(Player),nameof(Player.UpdatePlacement))]
     private static class Player_UpdatePlacement_Patch
     {
