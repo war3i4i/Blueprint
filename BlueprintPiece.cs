@@ -84,6 +84,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, BlueprintS
         }    
     }
     public Vector3 Rotation => transform.rotation.eulerAngles;
+    public bool SnapToLowest => false;
     public void DestroyAllPiecesInside(bool onlyBlueprint)
     {
         GameObject[] objects = _blueprintArea.GetObjectsInside([_piece.gameObject], typeof(Piece), typeof(TreeBase), typeof(Destructible));

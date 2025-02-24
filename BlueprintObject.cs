@@ -5,6 +5,7 @@ public interface BlueprintSource
     public GameObject[] GetObjectedInside { get; }
     public Vector3 StartPoint { get; }
     public Vector3 Rotation { get; }
+    public bool SnapToLowest { get; }
 }
 public class BlueprintCircleCreator(Vector3 pos, float radius, float height) : BlueprintSource
 {
@@ -27,6 +28,7 @@ public class BlueprintCircleCreator(Vector3 pos, float radius, float height) : B
     public Vector3 Rotation => Player.m_localPlayer 
         ? new Vector3(0f, Mathf.Repeat(Mathf.Atan2(Player.m_localPlayer.transform.position.x - pos.x, pos.z - Player.m_localPlayer.transform.position.z) * Mathf.Rad2Deg, 360f) + 45f, 0f) 
         : Vector3.zero;
+    public bool SnapToLowest => true;
 
 }
 [Serializable]
@@ -98,7 +100,7 @@ public class BlueprintRoot
         FilePath = path;
     }
     public bool TryGetFilePath(out string path) { path = FilePath; return !string.IsNullOrEmpty(FilePath); }
-    public static BlueprintRoot CreateNew(string Name, string Description, string Author, Vector3 boxRotation, Vector3 start, GameObject[] objects, Texture2D icon)
+    public static BlueprintRoot CreateNew(bool snapToLowest, string Name, string Description, string Author, Vector3 boxRotation, Vector3 start, GameObject[] objects, Texture2D icon)
     {
         objects.ThrowIfBad(Name);
         BlueprintRoot root = new BlueprintRoot
@@ -111,6 +113,7 @@ public class BlueprintRoot
             Icon = icon ? Convert.ToBase64String(icon.EncodeToPNG()) : null
         };
         objects = objects.OrderBy(x => x.transform.position.y).ToArray();
+        float lowestY = objects[0].transform.position.y;
         for (int i = 0; i < objects.Length; ++i)
         { 
             int id = objects[i].name.Replace("(Clone)", "").GetStableHashCode();
@@ -121,6 +124,7 @@ public class BlueprintRoot
                 RelativePosition = objects[i].transform.position - start,
                 Rotation = objects[i].transform.rotation.eulerAngles
             };
+            if (snapToLowest) root.Objects[i].RelativePosition.y -= lowestY;
             if (!Configs.SaveZDOHashset.Contains(root.Objects[i].Id)) continue;
             ZDO zdo = objects[i].GetComponent<ZNetView>()?.GetZDO();
             if (zdo == null) continue;

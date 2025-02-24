@@ -82,7 +82,7 @@ public static class ModelPreview
 
     public class PreviewModelAngleController : MonoBehaviour, IDragHandler
     {
-        public void OnDrag(PointerEventData eventData)
+        public void OnDrag(PointerEventData eventData) 
         {
             if (!CurrentPreviewGO) return;
             if (eventData.button != PointerEventData.InputButton.Left) return;
@@ -97,22 +97,11 @@ public static class ModelPreview
             bool isMouseInside = RectTransformUtility.RectangleContainsScreenPoint(this.transform as RectTransform, Input.mousePosition);
             if (!CurrentPreviewGO || !isMouseInside) return;
             float currentZ = renderCamera.transform.position.z;
-            float newZ = currentZ - (ScrollWheel * 400f);
+            float newZ = currentZ - (ScrollWheel * 400f * currentMaxSize * 0.16f);
             newZ = Mathf.Clamp(newZ, OriginalCameraZPos - currentMaxSize * 40f, OriginalCameraZPos + currentMaxSize * 40f);
             Vector3 position = renderCamera.transform.position;
-            position = new Vector3(position.x, position.y, newZ);
+            position = new Vector3(position.x, position.y, newZ); 
             renderCamera.transform.position = position;
-        }
+        } 
     }
-
-    private enum Intensity
-    {
-        _025,
-        _050,
-        _1,
-        _15,
-        _2
-    }
-
-    private static Intensity LightIntensity = Intensity._2;
 }

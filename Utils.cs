@@ -354,7 +354,7 @@ public static class Utils
             reason = "$kg_blueprint_createblueprint_no_objects";
             return false;
         }
-        BlueprintRoot root = BlueprintRoot.CreateNew(bpName, bpDesc, bpAuthor, source.Rotation, start, objects, icon);
+        BlueprintRoot root = BlueprintRoot.CreateNew(source.SnapToLowest, bpName, bpDesc, bpAuthor, source.Rotation, start, objects, icon);
         Texture2D[] previews = source.CreatePreviews(objects);
         root.SetPreviews(previews);
         root.AssignPath(Path.Combine(kg_Blueprint.BlueprintsPath, bpName + ".yml"), false);

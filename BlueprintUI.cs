@@ -260,6 +260,7 @@ public static class BlueprintUI
         BlueprintName.text = "";
         BlueprintDescription.text = "";
         BlueprintAuthor.text = "";
+        ClearSelections();
         StopPreview();
     }
     public static void Update() { if (Input.GetKeyDown(KeyCode.Escape) && IsVisible) Hide(); }
@@ -293,14 +294,44 @@ public static class BlueprintUI
         }
         SortEntriesByName();
         UpdateCanvases();
-    } 
+    }
+    private static void ClearSelections()
+    {
+        UIInputHandler[] UIInputHandlers = Content.GetComponentsInChildren<UIInputHandler>();
+        for (int i = 0; i < UIInputHandlers.Length; i++) UIInputHandlers[i].transform.Find("Selection").GetComponent<Image>().color = Color.clear;
+    }
     public static void AddEntry(BlueprintRoot root, bool updateCanvases)
     {
         GameObject entry = Object.Instantiate(BlueprintEntry, Content);
         entry.SetActive(true);
         entry.transform.Find("Name").GetComponent<TMP_Text>().text = root.Name;
         if (root.Icon.ToIcon() is {} icon) entry.transform.Find("Icon").GetComponent<RawImage>().texture = icon;
-        entry.GetComponent<Button>().onClick.AddListener(() => ShowBlueprint(entry, root));
+
+        UIInputHandler handler = entry.GetComponent<UIInputHandler>();
+        handler.m_onLeftClick += (_) =>
+        {
+            ShowBlueprint(entry, root);
+            handler.transform.Find("Selection").GetComponent<Image>().color = Color.green;
+        };
+        handler.m_onPointerEnter += (_) => 
+        {
+            var img = entry.transform.Find("Selection").GetComponent<Image>();
+            if (img.color != Color.green) img.color = Color.white;
+        };
+        handler.m_onPointerExit += (_) => 
+        {
+            var img = entry.transform.Find("Selection").GetComponent<Image>();
+            if (img.color != Color.green) img.color = Color.clear;
+        };
+        for (int i = 3; i >= 1; --i)
+        {
+            Texture2D preview = root.GetPreview(i - 1);
+            var previewGo = entry.transform.Find($"Preview{i}").gameObject;
+            previewGo.SetActive(preview);
+            if (!preview) continue;
+            entry.transform.Find($"Preview{i}/Img").GetComponent<RawImage>().texture = preview;
+        } 
+        
         if (updateCanvases)
         {
             SortEntriesByName();
