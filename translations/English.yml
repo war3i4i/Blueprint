@@ -9,7 +9,6 @@ kg_blueprint_confirmdelete: "Are you sure want to delete blueprint:"
 kg_blueprint_rename: Rename
 kg_blueprint_showfile: Show File
 kg_blueprint_load: Load
-kg_blueprint_load_new: Load <color=red>New</color>
 kg_blueprint_cancel: Cancel
 kg_blueprint_load_error: Blueprint load error
 kg_blueprint_load_error_desc: You must be inside the Blueprint Box to load a blueprint.

@@ -129,6 +129,8 @@
         <Compile Include="GlobalUsings.cs" />
         <Compile Include="Managers\LocalizationManager.cs" />
         <Compile Include="Managers\ModelPreview.cs" />
+        <Compile Include="Parsers\PlanbuildParser.cs" />
+        <Compile Include="Parsers\VBuildParser.cs" />
         <Compile Include="TerminalCommands.cs" />
         <Compile Include="kg_Blueprint.cs" />
         <Compile Include="Managers\ItemManager.cs" />

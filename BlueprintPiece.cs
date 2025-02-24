@@ -74,7 +74,7 @@ public class BlueprintSharing : MonoBehaviour, Interactable, Hoverable, ForeignB
     }
     public bool Add(BlueprintRoot blueprint)
     {
-        if (Current.Count >= 17) return false;
+        if (Current.Count >= 15) return false;
         Current.Add(blueprint);
         SetBlueprints(Current.ToArray());
         return true;
@@ -151,7 +151,6 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, BlueprintS
         }    
     }
     public Vector3 Rotation => transform.rotation.eulerAngles;
-    public bool SnapToLowest => false;
     public void DestroyAllPiecesInside(bool onlyBlueprint)
     {
         GameObject[] objects = _blueprintArea.GetObjectsInside([_piece.gameObject], typeof(Piece), typeof(TreeBase), typeof(Destructible));

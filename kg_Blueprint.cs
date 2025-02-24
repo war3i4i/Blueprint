@@ -40,7 +40,6 @@ public class kg_Blueprint : BaseUnityPlugin
     private void FixedUpdate() => PlayerState.Update();
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.I)) kg_Blueprint.Logger.LogDebug($"Text is: " + ClipboardUtils.GetText());
         BlueprintUI.Update();
         InteractionUI.Update(); 
     }
@@ -67,7 +66,6 @@ public class kg_Blueprint : BaseUnityPlugin
                 List<BlueprintRoot> Blueprints = []; 
                 Deserializer deserializer = new Deserializer(); 
                 string[] files = Directory.GetFiles(BlueprintsPath, "*.yml", SearchOption.AllDirectories);
-                if (files.Length == 0) return;
                 for (int i = 0; i < files.Length; ++i)
                 {
                     lastFile = files[i];
@@ -88,6 +86,51 @@ public class kg_Blueprint : BaseUnityPlugin
                         Logger.LogError($"Error reading blueprint {files[i]}: {e}");
                     }
                 }
+                
+                string[] bp_files = Directory.GetFiles(BlueprintsPath, "*.blueprint", SearchOption.AllDirectories);
+                for (int i = 0; i < bp_files.Length; ++i)
+                {
+                    lastFile = bp_files[i];
+                    token.ThrowIfCancellationRequested();
+                    try
+                    {
+                        BlueprintRoot root = PlanbuildParser.Parse(File.ReadAllLines(bp_files[i]));
+                        if (!root.IsValid(out string reason))
+                        {
+                            Logger.LogError($"PB Blueprint {bp_files[i]} is invalid: {reason}");
+                            continue; 
+                        }
+                        root.AssignPath(bp_files[i], true);
+                        Blueprints.Add(root); 
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.LogError($"Error reading PB blueprint {bp_files[i]}: {e}");
+                    }
+                }
+                
+                string[] vbuild_files = Directory.GetFiles(BlueprintsPath, "*.vbuild", SearchOption.AllDirectories);
+                for (int i = 0; i < vbuild_files.Length; ++i)
+                {
+                    lastFile = vbuild_files[i];
+                    token.ThrowIfCancellationRequested();
+                    try
+                    {
+                        BlueprintRoot root = VBuildParser.Parse(Path.GetFileNameWithoutExtension(vbuild_files[i]), File.ReadAllLines(vbuild_files[i]));
+                        if (!root.IsValid(out string reason))
+                        {
+                            Logger.LogError($"VBuild Blueprint {vbuild_files[i]} is invalid: {reason}");
+                            continue; 
+                        }
+                        root.AssignPath(vbuild_files[i], true);
+                        Blueprints.Add(root); 
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.LogError($"Error reading VBuild blueprint {vbuild_files[i]}: {e}");
+                    }
+                }
+                
                 kg_Blueprint.Logger.LogDebug($"Loaded {Blueprints.Count} blueprints in {stopwatch.ElapsedMilliseconds}ms");
                 token.ThrowIfCancellationRequested();
                 ThreadingHelper.Instance.StartSyncInvoke(() => BlueprintUI.Load(Blueprints));

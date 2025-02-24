@@ -76,6 +76,36 @@ public static class ValheimFixes
     [HarmonyPatch(typeof(Terminal),nameof(Terminal.IsCheatsEnabled))]
     private static class Terminal_IsCheatsEnabled_Patch
     {
-        private static void Postfix(ref bool __result) => __result = true;
+        [UsedImplicitly] private static void Postfix(ref bool __result) => __result = true;
+    }
+    [HarmonyPatch]
+    private static class Player_CleanupGhostMaterials_Patch
+    {
+        [UsedImplicitly] private static IEnumerable<MethodInfo> TargetMethods()
+        {
+            yield return AccessTools.Method(typeof(Player), nameof(Player.CleanupGhostMaterials)).MakeGenericMethod(typeof(MeshRenderer)); 
+            yield return AccessTools.Method(typeof(Player), nameof(Player.CleanupGhostMaterials)).MakeGenericMethod(typeof(SkinnedMeshRenderer));
+        }
+        [UsedImplicitly] public static bool Prefix(GameObject ghost) => ghost.name != "kg_Blueprint_Internal_PlacePiece";
+    }
+    [HarmonyPatch(typeof(Piece),nameof(Piece.GetSnapPoints), typeof(List<Transform>))]
+    private static class Piece_GetSnapPoints_Patch
+    {
+        [UsedImplicitly] private static bool Prefix(Piece __instance) => __instance.name != "kg_Blueprint_Internal_PlacePiece";
+    }
+    [HarmonyPatch(typeof(Player),nameof(Player.FindClosestSnapPoints))]
+    private static class Player_FindClosestSnapPoints_Patch
+    {
+        [UsedImplicitly] private static bool Prefix(Transform ghost) => ghost.name != "kg_Blueprint_Internal_PlacePiece";
+    }
+    [HarmonyPatch(typeof(Player),nameof(Player.CheckPlacementGhostVSPlayers))]
+    private static class Player_CheckPlacementGhostVSPlayers_Patch
+    {
+        [UsedImplicitly] private static bool Prefix(Player __instance) => __instance.m_placementGhost && __instance.m_placementGhost.name != "kg_Blueprint_Internal_PlacePiece";
+    }
+    [HarmonyPatch(typeof(Player),nameof(Player.SetPlacementGhostValid))]
+    private static class Player_SetPlacementGhostValid_Patch
+    {
+        [UsedImplicitly] private static bool Prefix(Player __instance) => __instance.m_placementGhost.name != "kg_Blueprint_Internal_PlacePiece";
     }
 }

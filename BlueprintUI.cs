@@ -234,7 +234,7 @@ public static class BlueprintUI
             }
             if (IsForeign) 
             {
-                GameObject temp = Current.CreateViewGameObjectForBlueprint(Quaternion.Euler(Current.BoxRotation));
+                GameObject temp = Current.CreateViewGameObjectForBlueprint();
                 Texture2D[] previews = PhotoManager.MakeBulkSprites(temp, 1f, 
                     Quaternion.Euler(30f, 0f, 0f),
                     Quaternion.Euler(23f, 51f, 25.8f),
@@ -297,19 +297,12 @@ public static class BlueprintUI
                 UnifiedPopup.Push(new WarningPopup("$kg_blueprint_load_error", "$kg_blueprint_load_error_desc", UnifiedPopup.Pop));
                 return;
             }
-            UnifiedPopup.Push(new Utils.ThreeChoicesPopup("$kg_blueprint_load", "$kg_blueprint_confirmload".Localize(Current.Name), "$kg_blueprint_cancel", "$kg_blueprint_load", "$kg_blueprint_load_new",
-                UnifiedPopup.Pop,
-                () =>
-                {
-                    UnifiedPopup.Pop();
-                    PlayerState.BlueprintPiece.Load(Current);
-                },
-                () =>
-                {
-                    UnifiedPopup.Pop();
-                    PlayerState.BlueprintPiece.DestroyAllPiecesInside(false);
-                    PlayerState.BlueprintPiece.Load(Current);
-                }));
+            UnifiedPopup.Push(new YesNoPopup("$kg_blueprint_load", "$kg_blueprint_confirmload".Localize(Current.Name), () =>
+            {
+                UnifiedPopup.Pop();
+                PlayerState.BlueprintPiece.DestroyAllPiecesInside(false);
+                PlayerState.BlueprintPiece.Load(Current);
+            }, UnifiedPopup.Pop));
         });
         ModelView = Main.Find("ModelView/View").GetComponent<RawImage>();
         ModelView.transform.parent.gameObject.AddComponent<ModelPreview.PreviewModelAngleController>();
@@ -317,7 +310,7 @@ public static class BlueprintUI
         ModelViewStart.onClick.AddListener(() =>
         {
             if (Current == null) return;
-            ModelPreview.SetAsCurrent(ModelView, Current.CreateViewGameObjectForBlueprint(Quaternion.Euler(Current.BoxRotation)));
+            ModelPreview.SetAsCurrent(ModelView, Current.CreateViewGameObjectForBlueprint());
             ModelViewStart.gameObject.SetActive(false);
             ModelView.gameObject.SetActive(true);
         });
@@ -473,10 +466,11 @@ public static class BlueprintUI
         _Internal_SelectedPiece.Key.name = "kg_Blueprint_Internal_PlacePiece";
         _Internal_SelectedPiece.Key.m_name = Current.Name;
         _Internal_SelectedPiece.Key.m_extraPlacementDistance = 20;
+        _Internal_SelectedPiece.Key.m_clipEverything = true;
         for (int i = 0; i < Current.Objects.Length; ++i)
         {
             BlueprintObject obj = Current.Objects[i];  
-            GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
+            GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id); 
             if (!prefab) continue;
             GameObject go = Object.Instantiate(prefab, _Internal_SelectedPiece.Key.transform);
             go.transform.position = obj.RelativePosition;

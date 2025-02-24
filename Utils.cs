@@ -323,7 +323,7 @@ public static class Utils
     public static CraftingStation GetBlueprintFakeStation() => _internal_fakeStation ??= kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintCS").GetComponent<CraftingStation>();
     public static IEnumerator WaitFrames(int frames)
     {
-        frames = Mathf.Max(4, frames);
+        frames = Mathf.Max(1, frames);
         for (int i = 0; i < frames; ++i) yield return null;
     }
     public static Piece.Requirement[] GetRequirements(this int[] Objects)
@@ -380,7 +380,7 @@ public static class Utils
             reason = "$kg_blueprint_createblueprint_no_objects";
             return false;
         }
-        BlueprintRoot root = BlueprintRoot.CreateNew(source.SnapToLowest, bpName, bpDesc, bpAuthor, source.Rotation, start, objects, icon);
+        BlueprintRoot root = BlueprintRoot.CreateNew(bpName, bpDesc, bpAuthor, source.Rotation, start, objects, icon);
         Texture2D[] previews = source.CreatePreviews(objects);
         root.SetPreviews(previews);
         root.AssignPath(Path.Combine(kg_Blueprint.BlueprintsPath, bpName + ".yml"), false);
@@ -389,7 +389,7 @@ public static class Utils
         kg_Blueprint.Logger.LogDebug($"Blueprint {bpName} created in {dbg_watch.ElapsedMilliseconds}ms");
         return true;
     }
-    public static GameObject CreateViewGameObjectForBlueprint(this BlueprintRoot root, Quaternion rotation)
+    public static GameObject CreateViewGameObjectForBlueprint(this BlueprintRoot root)
     {
         GameObject newObj = new GameObject("BlueprintPreview");
         newObj.transform.position = Vector3.zero;
@@ -411,80 +411,6 @@ public static class Utils
             }
         }
         return newObj;
-    }
-    public class ThreeChoicesPopup(string header, string text, string option1, string option2, string option3, PopupButtonCallback first, PopupButtonCallback second, PopupButtonCallback third)
-        : FixedPopupBase(header, text)
-    {
-        public static readonly PopupType _type = (PopupType)"kg_Blueprint_3ChoicePopup".GetStableHashCode();
-        public override PopupType Type => _type;
-        public readonly PopupButtonCallback firstChoice = first, secondChoice = second, thirdChoice = third;
-        public string Option1 => option1.Localize();
-        public string Option2 => option2.Localize();
-        public string Option3 => option3.Localize();
-    }
-    private static void Show3ChoicesPopup(UnifiedPopup instance, ThreeChoicesPopup pop)
-    {
-        instance.headerText.text = pop.header.Localize();
-        instance.bodyText.text = pop.text.Localize();
-        instance.buttonLeftText.text = pop.Option1;
-        instance.buttonLeft.gameObject.SetActive(true);
-        instance.buttonLeft.onClick.AddListener(() => pop.firstChoice());
-        instance.buttonCenterText.text = pop.Option2;
-        instance.buttonCenter.gameObject.SetActive(true);
-        instance.buttonCenter.onClick.AddListener(() => pop.secondChoice());
-        instance.buttonRightText.text = pop.Option3;
-        instance.buttonRight.gameObject.SetActive(true);
-        instance.buttonRight.onClick.AddListener(() => pop.thirdChoice()); 
-        
-        var leftButton = instance.buttonLeft.GetComponent<RectTransform>();
-        var centerButton = instance.buttonCenter.GetComponent<RectTransform>();
-        var rightButton = instance.buttonRight.GetComponent<RectTransform>();
-        leftButton.anchoredPosition -= new Vector2(50f, 0f);
-        centerButton.sizeDelta = leftButton.sizeDelta;
-        rightButton.anchoredPosition += new Vector2(50f, 0f);
-    } 
-    [HarmonyPatch(typeof(UnifiedPopup), nameof(UnifiedPopup.Show))]
-    private static class UnifiedPopup_Show_Patch
-    {
-        [UsedImplicitly] private static void Postfix(UnifiedPopup __instance, PopupBase popup)
-        {
-            if (popup.Type == ThreeChoicesPopup._type) Show3ChoicesPopup(__instance, (ThreeChoicesPopup)popup);
-        }
-    }
-    [HarmonyPatch(typeof(UnifiedPopup), nameof(UnifiedPopup.Awake))]
-    private static class UnifiedPopup_Awake_Patch
-    {
-        public static readonly Vector2[] OrigPos = new Vector2[3];
-        public static readonly Vector2[] OrigSize = new Vector2[3];
-
-        [UsedImplicitly] private static void Postfix(UnifiedPopup __instance)
-        {
-            var leftButton = __instance.buttonLeft.GetComponent<RectTransform>();
-            OrigPos[0] = leftButton.anchoredPosition;
-            OrigSize[0] = leftButton.sizeDelta;
-            var centerButton = __instance.buttonCenter.GetComponent<RectTransform>();
-            OrigPos[1] = centerButton.anchoredPosition;
-            OrigSize[1] = centerButton.sizeDelta;
-            var rightButton = __instance.buttonRight.GetComponent<RectTransform>();
-            OrigPos[2] = rightButton.anchoredPosition;
-            OrigSize[2] = rightButton.sizeDelta;
-        }
-    }
-    [HarmonyPatch(typeof(UnifiedPopup), nameof(UnifiedPopup.ResetUI))]
-    private static class UnifiedPopup_ResetUI_Patch
-    {
-        [UsedImplicitly] private static void Postfix(UnifiedPopup __instance)
-        {
-            var leftButton = __instance.buttonLeft.GetComponent<RectTransform>();
-            leftButton.anchoredPosition = UnifiedPopup_Awake_Patch.OrigPos[0];
-            leftButton.sizeDelta = UnifiedPopup_Awake_Patch.OrigSize[0];
-            var centerButton = __instance.buttonCenter.GetComponent<RectTransform>();
-            centerButton.anchoredPosition = UnifiedPopup_Awake_Patch.OrigPos[1];
-            centerButton.sizeDelta = UnifiedPopup_Awake_Patch.OrigSize[1];
-            var rightButton = __instance.buttonRight.GetComponent<RectTransform>();
-            rightButton.anchoredPosition = UnifiedPopup_Awake_Patch.OrigPos[2];
-            rightButton.sizeDelta = UnifiedPopup_Awake_Patch.OrigSize[2];
-        }
     }
     public static void Compress(this ZPackage pkg)
     {

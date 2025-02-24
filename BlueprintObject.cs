@@ -11,7 +11,6 @@ public interface BlueprintSource
     public GameObject[] GetObjectedInside { get; }
     public Vector3 StartPoint { get; }
     public Vector3 Rotation { get; }
-    public bool SnapToLowest { get; }
 }
 public class BlueprintCircleCreator(Vector3 pos, float radius, float height) : BlueprintSource
 {
@@ -35,7 +34,6 @@ public class BlueprintCircleCreator(Vector3 pos, float radius, float height) : B
     public Vector3 Rotation => Player.m_localPlayer 
         ? new Vector3(0f, Mathf.Repeat(Mathf.Atan2(Player.m_localPlayer.transform.position.x - pos.x, pos.z - Player.m_localPlayer.transform.position.z) * Mathf.Rad2Deg, 360f) + 45f, 0f) 
         : Vector3.zero;
-    public bool SnapToLowest => true;
 
 }
 [Serializable]
@@ -77,6 +75,7 @@ public class BlueprintObject
     public SimpleVector3 RelativePosition;
     public SimpleVector3 Rotation;
     public string ZDOData;
+    public string Prefab;
 }
 [Serializable]
 public class BlueprintRoot : ISerializableParameter
@@ -107,7 +106,7 @@ public class BlueprintRoot : ISerializableParameter
         FilePath = path;
     }
     public bool TryGetFilePath(out string path) { path = FilePath; return !string.IsNullOrEmpty(FilePath); }
-    public static BlueprintRoot CreateNew(bool snapToLowest, string Name, string Description, string Author, Vector3 boxRotation, Vector3 start, GameObject[] objects, Texture2D icon)
+    public static BlueprintRoot CreateNew(string Name, string Description, string Author, Vector3 boxRotation, Vector3 start, GameObject[] objects, Texture2D icon)
     {
         objects.ThrowIfBad(Name);
         BlueprintRoot root = new BlueprintRoot
@@ -120,7 +119,6 @@ public class BlueprintRoot : ISerializableParameter
             Icon = icon ? Convert.ToBase64String(icon.EncodeToPNG()) : null
         };
         objects = objects.OrderBy(x => x.transform.position.y).ToArray(); 
-        float lowestY = (objects[0].transform.position - start).y;
         for (int i = 0; i < objects.Length; ++i)
         { 
             int id = objects[i].name.Replace("(Clone)", "").GetStableHashCode();
@@ -130,8 +128,8 @@ public class BlueprintRoot : ISerializableParameter
                 Id = id, 
                 RelativePosition = objects[i].transform.position - start,
                 Rotation = objects[i].transform.rotation.eulerAngles
-            }; 
-            if (snapToLowest) root.Objects[i].RelativePosition.y -= lowestY;
+            };
+            root.NormalizeVectors(false);
             if (!Configs.SaveZDOHashset.Contains(root.Objects[i].Id)) continue;
             ZDO zdo = objects[i].GetComponent<ZNetView>()?.GetZDO();
             if (zdo == null) continue;
@@ -198,6 +196,16 @@ public class BlueprintRoot : ISerializableParameter
         reason = "No objects in blueprint";
         return false;
     }
+    public void NormalizeVectors(bool save)
+    {
+        if (Objects == null || Objects.Length == 0) return;
+        Vector3 center = Objects.Aggregate(Vector3.zero, (current, t) => current + t.RelativePosition);
+        center /= Objects.Length;
+        foreach (var o in Objects) o.RelativePosition -= center;
+        float minY = Objects.Min(x => x.RelativePosition.y);
+        foreach (var o in Objects) o.RelativePosition.y -= minY;
+        if (save) Save();
+    } 
     public Piece.Requirement[] GetRequirements() => Objects.Select(x => x.Id).ToArray().GetRequirements();
     public IOrderedEnumerable<KeyValuePair<string, Utils.NumberedData>> GetPiecesNumbered() => Objects.Select(x => x.Id).ToArray().GetPiecesNumbered();
     public void Apply(Vector3 center, Quaternion rootRot, bool deactivate) => ZNetScene.instance.StartCoroutine(Internal_Apply(Configs.InstantBuild.Value, center, rootRot, deactivate));
