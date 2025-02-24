@@ -280,7 +280,7 @@ public static class BlueprintUI
         });
         Main.transform.Find("Buttons/Rename").GetComponent<Button>().onClick.AddListener(() =>
         {
-            if (Current == null) return;
+            if (Current is not { Source: BlueprintRoot.SourceType.Native }) return;
             Hide();
             RenameBlueprintRoot renamer = new(Current, (newName) =>
             {
@@ -439,10 +439,10 @@ public static class BlueprintUI
         Current = root; 
         LastPressedEntry = obj; 
         BlueprintName.text = Current.Name;
-        CopyToClipboardButton.interactable = true;
+        CopyToClipboardButton.interactable = Current.Source == BlueprintRoot.SourceType.Native;
         BlueprintDescription.text = string.IsNullOrWhiteSpace(Current.Description) ? "$kg_blueprint_nodescription".Localize() : Current.Description;
         BlueprintAuthor.text = $"$kg_blueprint_author\n<color=green>{(string.IsNullOrWhiteSpace(Current.Author) ? "$kg_blueprint_noauthor" : Current.Author)}</color>".Localize();
-        for (int i = 0; i < 3; ++i)
+        for (int i = 0; i < 3; ++i) 
         {
             Previews[i].texture = Current.GetPreview(i);
             Previews[i].transform.parent.gameObject.SetActive(Previews[i].texture);

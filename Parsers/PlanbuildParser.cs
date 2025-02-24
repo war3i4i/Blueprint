@@ -39,13 +39,12 @@ public static class PlanbuildParser
                     float rotW = InvariantFloat(parts[8]);
                     Vector3 pos = new Vector3(posX, posY, posZ);
                     Quaternion rot = new Quaternion(rotX, rotY, rotZ, rotW).normalized;
-                    if (pos == Vector3.zero) kg_Blueprint.Logger.LogWarning($"Zero position in PB blueprint {parts[0]}");
                     objects.Add(new BlueprintObject() { Id = id, RelativePosition = pos, Rotation = rot.eulerAngles, Prefab = parts[0]});
                 }
             } 
             newRoot.Objects = objects.ToArray();
             newRoot.BoxRotation = Quaternion.identity.eulerAngles;
-            newRoot.NormalizeVectors(false);
+            newRoot.NormalizeVectors();
             newRoot.Previews = previews.ToArray();
             if (string.IsNullOrWhiteSpace(newRoot.Name)) newRoot.Name = "Unnamed";
             return newRoot;

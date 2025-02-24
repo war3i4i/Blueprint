@@ -35,7 +35,7 @@ public class VBuildParser
             }
             newRoot.Objects = objects.ToArray();
             newRoot.BoxRotation = Quaternion.identity.eulerAngles;
-            newRoot.NormalizeVectors(false);
+            newRoot.NormalizeVectors();
             if (string.IsNullOrWhiteSpace(newRoot.Name)) newRoot.Name = "Unnamed";
             return newRoot;
         }

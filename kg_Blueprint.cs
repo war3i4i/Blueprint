@@ -101,6 +101,7 @@ public class kg_Blueprint : BaseUnityPlugin
                             continue; 
                         }
                         root.AssignPath(bp_files[i], true);
+                        root.Source = BlueprintRoot.SourceType.Planbuild;
                         Blueprints.Add(root); 
                     }
                     catch (Exception e)
@@ -123,6 +124,7 @@ public class kg_Blueprint : BaseUnityPlugin
                             continue; 
                         }
                         root.AssignPath(vbuild_files[i], true);
+                        root.Source = BlueprintRoot.SourceType.VBuild;
                         Blueprints.Add(root); 
                     }
                     catch (Exception e)

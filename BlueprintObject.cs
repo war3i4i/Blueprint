@@ -89,6 +89,8 @@ public class BlueprintRoot : ISerializableParameter
     public SimpleVector3 BoxRotation;
     public BlueprintObject[] Objects;
     public string[] Previews;
+    public enum SourceType { Native, Planbuild, VBuild }
+    public SourceType Source = SourceType.Native;
     public void AssignPath(string path, bool force)
     {
         path = path.ValidPath();
@@ -129,7 +131,6 @@ public class BlueprintRoot : ISerializableParameter
                 RelativePosition = objects[i].transform.position - start,
                 Rotation = objects[i].transform.rotation.eulerAngles
             };
-            root.NormalizeVectors(false);
             if (!Configs.SaveZDOHashset.Contains(root.Objects[i].Id)) continue;
             ZDO zdo = objects[i].GetComponent<ZNetView>()?.GetZDO();
             if (zdo == null) continue;
@@ -137,6 +138,7 @@ public class BlueprintRoot : ISerializableParameter
             zdo.SerializeZDO(pkg);
             root.Objects[i].ZDOData = Convert.ToBase64String(pkg.GetArray());
         }
+        root.NormalizeVectors();
         return root;
     }
     public void Delete()
@@ -196,7 +198,7 @@ public class BlueprintRoot : ISerializableParameter
         reason = "No objects in blueprint";
         return false;
     }
-    public void NormalizeVectors(bool save)
+    public void NormalizeVectors()
     {
         if (Objects == null || Objects.Length == 0) return;
         Vector3 center = Objects.Aggregate(Vector3.zero, (current, t) => current + t.RelativePosition);
@@ -204,7 +206,6 @@ public class BlueprintRoot : ISerializableParameter
         foreach (var o in Objects) o.RelativePosition -= center;
         float minY = Objects.Min(x => x.RelativePosition.y);
         foreach (var o in Objects) o.RelativePosition.y -= minY;
-        if (save) Save();
     } 
     public Piece.Requirement[] GetRequirements() => Objects.Select(x => x.Id).ToArray().GetRequirements();
     public IOrderedEnumerable<KeyValuePair<string, Utils.NumberedData>> GetPiecesNumbered() => Objects.Select(x => x.Id).ToArray().GetPiecesNumbered();
