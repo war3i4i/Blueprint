@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using BepInEx.Bootstrap;
 using kg_Blueprint.Managers;
-using UnityEngine.Audio;
 
 namespace kg_Blueprint;
 [HarmonyPatch(typeof(AudioMan), nameof(AudioMan.Awake))] 
@@ -436,7 +435,7 @@ public static class BlueprintUI
         ResetMain();
         OnSelect();
         if (Current == root || root == null) return;
-        Current = root; 
+        Current = root;  
         LastPressedEntry = obj; 
         BlueprintName.text = Current.Name;
         CopyToClipboardButton.interactable = Current.Source == BlueprintRoot.SourceType.Native;
@@ -453,9 +452,9 @@ public static class BlueprintUI
         DeleteButton_Foreign.interactable = isForeign;
         if (ForeignSource == null) SelectButton_Text.text = "$kg_blueprint_select".Localize();
         else  SelectButton_Text.text =  IsForeign ? "$kg_blueprint_copy".Localize() : "$kg_blueprint_add".Localize();
-        UpdateCanvases();
+        UpdateCanvases(); 
     }
-    private static void OnSelect() 
+    private static void OnSelect()  
     {
         if (_Internal_SelectedPiece.Key) Object.DestroyImmediate(_Internal_SelectedPiece.Key.gameObject);
         _Internal_SelectedPiece = default;
@@ -464,11 +463,12 @@ public static class BlueprintUI
         _Internal_SelectedPiece = new KeyValuePair<Piece, BlueprintRoot>(Object.Instantiate(CopyFrom, Vector3.zero, Quaternion.identity).GetComponent<Piece>(), Current);
         _Internal_SelectedPiece.Key.gameObject.SetActive(false);
         _Internal_SelectedPiece.Key.name = "kg_Blueprint_Internal_PlacePiece";
-        _Internal_SelectedPiece.Key.m_name = Current.Name;
-        _Internal_SelectedPiece.Key.m_extraPlacementDistance = 20;
-        _Internal_SelectedPiece.Key.m_clipEverything = true;
+        _Internal_SelectedPiece.Key.m_name = Current.Name ?? "";
+        _Internal_SelectedPiece.Key.m_description = Current.Description ?? "";
+        _Internal_SelectedPiece.Key.m_extraPlacementDistance = 25;
+        _Internal_SelectedPiece.Key.m_clipEverything = true; 
         for (int i = 0; i < Current.Objects.Length; ++i)
-        {
+        { 
             BlueprintObject obj = Current.Objects[i];  
             GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id); 
             if (!prefab) continue;
@@ -681,10 +681,10 @@ public static class BlueprintUI
         {
             if (p.name != "kg_Blueprint_Internal_Creator") return;
             CircleProjector proj = p.GetComponent<CircleProjector>();
-            CreatorRadius = Mathf.Clamp(CreatorRadius + (add ? 1 : -1), 5, 17);
+            CreatorRadius = Mathf.Clamp(CreatorRadius + (add ? 1 : -1), 5, 40);
             proj.m_radius = CreatorRadius;
             proj.m_nrOfSegments = CreatorRadius * 4;
-        }
+        } 
         [UsedImplicitly] private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> code)
         { 
             CodeMatcher matcher = new(code);
@@ -693,7 +693,7 @@ public static class BlueprintUI
             var field = AccessTools.Field(typeof(Player), nameof(Player.m_placeRotation));
             matcher.MatchForward(false, new CodeMatch(OpCodes.Stfld, field));
             matcher.Advance(1);
-            matcher.InsertAndAdvance(new CodeInstruction(OpCodes.Ldloc_S, 8));
+            matcher.InsertAndAdvance(new CodeInstruction(OpCodes.Ldloc_S, 8)); 
             matcher.InsertAndAdvance(new CodeInstruction(OpCodes.Ldc_I4_1));
             matcher.InsertAndAdvance(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Player_UpdatePlacement_Patch), nameof(MouseScroll))));
             matcher.MatchForward(false, new CodeMatch(OpCodes.Stfld, field));

@@ -2,7 +2,7 @@
 
 public static class ValheimFixes
 {
-    [HarmonyPatch(typeof(Hud),nameof(Hud.Awake))]
+    /*[HarmonyPatch(typeof(Hud),nameof(Hud.Awake))]
     public static class Hud_Awake_Patch
     {
         public static Vector2 OriginalSize;
@@ -24,7 +24,38 @@ public static class ValheimFixes
             ContentSizeFitter SizeFitter = __instance.m_requirementItems[0].transform.parent.gameObject.AddComponent<ContentSizeFitter>();
             SizeFitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
         }
-    } 
+    } */
+    [HarmonyPatch(typeof(Hud),nameof(Hud.Awake))]
+    public static class Hud_Awake_Patch
+    {
+        public static Vector2 OriginalSize;
+        public static RectTransform Rect;
+        [UsedImplicitly] private static void Postfix(Hud __instance) 
+        {
+            OriginalSize = (__instance.m_requirementItems[0].transform.parent.parent.transform as RectTransform)!.sizeDelta;
+            Rect = (__instance.m_requirementItems[0].transform.parent.parent.transform as RectTransform);
+            if (__instance.m_requirementItems[0].transform.parent.gameObject.GetComponent<GridLayoutGroup>()) return;
+            GridLayoutGroup gridlayoutgroup = __instance.m_requirementItems[0].transform.parent.gameObject.AddComponent<GridLayoutGroup>();
+            RectTransform rect = gridlayoutgroup.GetComponent<RectTransform>();
+            rect.anchoredPosition = new Vector2(0, rect.anchoredPosition.y);
+            gridlayoutgroup.cellSize = new Vector2(60, 60);
+            gridlayoutgroup.spacing = new Vector2(6, 6); 
+            gridlayoutgroup.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            gridlayoutgroup.constraintCount = 20;
+            gridlayoutgroup.childAlignment = TextAnchor.MiddleCenter;
+            gridlayoutgroup.startAxis = GridLayoutGroup.Axis.Horizontal;
+            gridlayoutgroup.startCorner = GridLayoutGroup.Corner.LowerLeft;
+            gridlayoutgroup.childAlignment = TextAnchor.MiddleCenter;
+            ContentSizeFitter SizeFitter = __instance.m_requirementItems[0].transform.parent.gameObject.AddComponent<ContentSizeFitter>();
+            SizeFitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            SizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            var parent = __instance.m_requirementItems[0].transform.parent.transform as RectTransform;
+            parent.anchorMin = new Vector2(0.5f, 0);
+            parent.anchorMax = new Vector2(0.5f, 0);
+            parent.pivot = new Vector2(0.5f, 0);
+            parent.anchoredPosition = new Vector2(0, 10);
+        }
+    }
     [HarmonyPatch(typeof(Hud),nameof(Hud.SetupPieceInfo))]
     private static class Hud_SetupPieceInfo_Patch
     {
@@ -42,12 +73,13 @@ public static class ValheimFixes
             for (int i = 0; i < newAmount; ++i) hud.m_requirementItems[i].transform.SetAsFirstSibling();
         }
         [UsedImplicitly] private static void Prefix(Hud __instance, Piece piece)
-        {
+        { 
             if (!piece || piece.m_resources == null || piece.m_resources.Length == 0) return;
-            int pieceReqs = piece.m_resources.Length;
+            int pieceReqs = piece.m_resources.Length; 
             if (pieceReqs + 1 > __instance.m_requirementItems.Length) EnsureArray(__instance, pieceReqs + 1);
-            int amount = Mathf.Max(0, piece.m_resources.Length - 5);
-            Hud_Awake_Patch.Rect.sizeDelta = new Vector2(Hud_Awake_Patch.OriginalSize.x + amount * 66, Hud_Awake_Patch.Rect.sizeDelta.y);
+            int amountX = Mathf.Clamp(pieceReqs, 6, 20);
+            int amountY = (pieceReqs - 1) / 20; 
+            Hud_Awake_Patch.Rect.sizeDelta = new Vector2(amountX * 66f + 20f, Hud_Awake_Patch.OriginalSize.y + amountY * 66f);
         }
     }
     [HarmonyPatch(typeof(StaticPhysics),nameof(StaticPhysics.Awake))] 
