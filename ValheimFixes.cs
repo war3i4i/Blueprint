@@ -2,29 +2,6 @@
 
 public static class ValheimFixes
 {
-    /*[HarmonyPatch(typeof(Hud),nameof(Hud.Awake))]
-    public static class Hud_Awake_Patch
-    {
-        public static Vector2 OriginalSize;
-        public static RectTransform Rect;
-        [UsedImplicitly] private static void Postfix(Hud __instance) 
-        {
-            OriginalSize = (__instance.m_requirementItems[0].transform.parent.parent.transform as RectTransform)!.sizeDelta;
-            Rect = (__instance.m_requirementItems[0].transform.parent.parent.transform as RectTransform);
-            if (__instance.m_requirementItems[0].transform.parent.gameObject.GetComponent<HorizontalLayoutGroup>()) return;
-            HorizontalLayoutGroup HorizontalLayoutGroup = __instance.m_requirementItems[0].transform.parent.gameObject.AddComponent<HorizontalLayoutGroup>();
-            RectTransform rect = HorizontalLayoutGroup.GetComponent<RectTransform>();
-            rect.anchoredPosition = new Vector2(0, rect.anchoredPosition.y);
-            HorizontalLayoutGroup.childControlWidth = false;
-            HorizontalLayoutGroup.childControlHeight = false;
-            HorizontalLayoutGroup.childForceExpandWidth = false;
-            HorizontalLayoutGroup.childForceExpandHeight = false;
-            HorizontalLayoutGroup.spacing = 6;
-            HorizontalLayoutGroup.childAlignment = TextAnchor.MiddleCenter;
-            ContentSizeFitter SizeFitter = __instance.m_requirementItems[0].transform.parent.gameObject.AddComponent<ContentSizeFitter>();
-            SizeFitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-        }
-    } */
     [HarmonyPatch(typeof(Hud),nameof(Hud.Awake))]
     public static class Hud_Awake_Patch
     {
@@ -128,12 +105,12 @@ public static class ValheimFixes
     {
         [UsedImplicitly] private static bool Prefix(Piece __instance) => __instance.name != "kg_Blueprint_Internal_PlacePiece";
     }
-    [HarmonyPatch(typeof(Player),nameof(Player.FindClosestSnapPoints))]
+    [HarmonyPatch(typeof(Player),nameof(Player.FindClosestSnapPoints))] 
     private static class Player_FindClosestSnapPoints_Patch
     {
-        [UsedImplicitly] private static bool Prefix(Transform ghost) => ghost.name != "kg_Blueprint_Internal_PlacePiece";
+        [UsedImplicitly] private static bool Prefix(Transform ghost) => ghost.name != "kg_Blueprint_Internal_PlacePiece"; 
     }
-    [HarmonyPatch(typeof(Player),nameof(Player.CheckPlacementGhostVSPlayers))]
+    [HarmonyPatch(typeof(Player),nameof(Player.CheckPlacementGhostVSPlayers))] 
     private static class Player_CheckPlacementGhostVSPlayers_Patch
     {
         [UsedImplicitly] private static bool Prefix(Player __instance) => __instance.m_placementGhost && __instance.m_placementGhost.name != "kg_Blueprint_Internal_PlacePiece";

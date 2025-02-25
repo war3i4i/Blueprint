@@ -223,6 +223,7 @@ public class BlueprintRoot : ISerializableParameter
             Vector3 pos = center + rootRot * Objects[i].RelativePosition;
             if (deactivate && !BlueprintPiece.IsInside(pos)) continue;
             Quaternion rot = Quaternion.Euler(Objects[i].Rotation) * rootRot;
+            instantBuild = true;
             if (instantBuild || deactivate)
             {
                 GameObject newObj = Object.Instantiate(prefab, pos, rot);

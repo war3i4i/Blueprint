@@ -191,7 +191,9 @@ public static class BlueprintUI
     private static GameObject ViewObject;
     private static GameObject ViewProgress;
     private static Image ViewFill;
-    
+    private static readonly int valueNoise = Shader.PropertyToID("_ValueNoise");
+    private static readonly int triplanarLocalPos = Shader.PropertyToID("_TriplanarLocalPos");
+
     public static void Init()
     {
         UI = Object.Instantiate(kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintUI"));
@@ -494,21 +496,35 @@ public static class BlueprintUI
         else  SelectButton_Text.text =  IsForeign ? "$kg_blueprint_copy".Localize() : "$kg_blueprint_add".Localize();
         UpdateCanvases(); 
     }
+    [HarmonyPatch(typeof(Player),nameof(Player.UpdatePlacementGhost))]
+    private static class Player_UpdatePlacementGhost_Patch
+    {
+        private static bool Prefix(Player __instance)
+        {
+            if (Input.GetKey(KeyCode.U)) return false;
+            return true;
+        }
+    }
     public class BlueprintRoutineBuilder : MonoBehaviour
     {
         private BlueprintRoot root;
-        private int current = 0;
-        
+        private int current;
+        private readonly MaterialPropertyBlock materialPropertyBlock = new MaterialPropertyBlock();
         private void Awake()
         {
+            current = 0; 
             if (_Internal_SelectedPiece.Value != null) root = _Internal_SelectedPiece.Value;
+            materialPropertyBlock.SetFloat(valueNoise, 0f); 
+            materialPropertyBlock.SetFloat(triplanarLocalPos, 1f);
         }
         private void Update()
         {
-            if (root == null) return;
-            const int maxPerFrame = 20;
+            if (root == null || current >= root.Objects.Length) return;
+            this.gameObject.SetActive(false);
+            const int maxPerFrame = 10;
             int total = root.Objects.Length;
             int count = maxPerFrame;
+            
             for(; current < total && count > 0; ++current, --count)
             {
                 BlueprintObject obj = root.Objects[current];
@@ -517,12 +533,15 @@ public static class BlueprintUI
                 GameObject go = Object.Instantiate(prefab, transform); 
                 Quaternion deltaRotation = transform.rotation * Quaternion.Inverse(Quaternion.Euler(root.BoxRotation));
                 go.transform.position = transform.position + deltaRotation * obj.RelativePosition;
-                go.transform.rotation = Quaternion.Euler(obj.Rotation) * deltaRotation;
+                go.transform.rotation = Quaternion.Euler(obj.Rotation) * deltaRotation; 
                 foreach (Component comp in go.GetComponentsInChildren<Component>(true).Reverse())
                 {
                     if (comp is not Renderer and not MeshFilter and not Transform and not Animator) Object.DestroyImmediate(comp);
                 }
+                MeshRenderer[] renderers = go.GetComponentsInChildren<MeshRenderer>();
+                foreach (MeshRenderer t in renderers) t.SetPropertyBlock(materialPropertyBlock);
             }
+            this.gameObject.SetActive(true);
         }
     }
     private static void OnSelect()  
@@ -537,10 +556,9 @@ public static class BlueprintUI
         _Internal_SelectedPiece.Key.m_name = Current.Name ?? "";
         _Internal_SelectedPiece.Key.m_description = Current.Description ?? "";
         _Internal_SelectedPiece.Key.m_extraPlacementDistance = 30;
-        _Internal_SelectedPiece.Key.m_clipEverything = true; 
+        _Internal_SelectedPiece.Key.m_clipEverything = true;
         _Internal_SelectedPiece.Key.gameObject.AddComponent<BlueprintRoutineBuilder>();
         _Internal_SelectedPiece.Key.m_resources = Current.GetRequirements();
-        _Internal_SelectedPiece.Key.gameObject.SetActive(false);
         Player.m_localPlayer?.SetupPlacementGhost();
     }
     private static void SelectBlueprintCreator() 
@@ -557,7 +575,7 @@ public static class BlueprintUI
         _Internal_SelectedPiece.Key.m_noInWater = false;
         var proj = _Internal_SelectedPiece.Key.gameObject.AddComponent<CircleProjector>();
         proj.m_prefab = BlueprintUI.Projector; 
-        proj.m_radius = CreatorRadius; 
+        proj.m_radius = CreatorRadius;
         proj.m_nrOfSegments = CreatorRadius * 4; 
         proj.m_mask.value = 2048;
         Player.m_localPlayer?.SetupPlacementGhost();

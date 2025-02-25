@@ -40,8 +40,14 @@ public class kg_Blueprint : BaseUnityPlugin
     private void FixedUpdate() => PlayerState.Update();
     private void Update()
     {
+        if (Input.GetKeyDown(KeyCode.I)) kg_Blueprint.Logger.LogDebug($"Pieces: {Piece.s_allPieces.Count}");
+        if (Input.GetKeyDown(KeyCode.Equals))
+        {
+            foreach (Piece piece in Piece.s_allPieces) piece.m_nview.Destroy();
+            kg_Blueprint.Logger.LogDebug("Destroyed all pieces. Now: " + Piece.s_allPieces.Count);
+        }
         BlueprintUI.Update();
-        InteractionUI.Update(); 
+        InteractionUI.Update();  
     }
     private static AssetBundle GetAssetBundle(string filename)
     {
