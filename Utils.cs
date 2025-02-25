@@ -403,7 +403,7 @@ public static class Utils
             GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
             if (!prefab) continue;
             GameObject go = Object.Instantiate(prefab, newObj.transform);
-            Quaternion deltaRotation = Quaternion.identity * Quaternion.Inverse(Quaternion.Euler(root.BoxRotation));
+            Quaternion deltaRotation = Quaternion.Inverse(Quaternion.Euler(root.BoxRotation));
             go.transform.position = deltaRotation * obj.RelativePosition;
             go.transform.rotation = Quaternion.Euler(obj.Rotation) * deltaRotation;
             foreach (Component comp in go.GetComponentsInChildren<Component>(true).Reverse())

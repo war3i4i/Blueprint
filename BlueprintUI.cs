@@ -364,11 +364,11 @@ public static class BlueprintUI
             int count = Mathf.Min(maxPerFrame, total - i);
             for (int j = 0; j < count; ++j) 
             {
-                BlueprintObject obj = root.Objects[i + j];
+                BlueprintObject obj = root.Objects[i + j]; 
                 GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
                 if (!prefab) continue;
                 GameObject go = Object.Instantiate(prefab, ViewObject.transform);
-                Quaternion deltaRotation = Quaternion.identity * Quaternion.Inverse(Quaternion.Euler(root.BoxRotation));
+                Quaternion deltaRotation = Quaternion.Inverse(Quaternion.Euler(root.BoxRotation));
                 go.transform.position = deltaRotation * obj.RelativePosition;
                 go.transform.rotation = Quaternion.Euler(obj.Rotation) * deltaRotation;
                 foreach (Component comp in go.GetComponentsInChildren<Component>(true).Reverse())
@@ -381,8 +381,8 @@ public static class BlueprintUI
         }
         ModelPreview.SetAsCurrent(ModelView, ViewObject);
         ModelViewStart.gameObject.SetActive(false);
-        ModelView.gameObject.SetActive(true);
         ViewProgress.SetActive(false);
+        ModelView.gameObject.SetActive(true);
         CreateViewCoroutine = null;
     }
     public static void Update() { if (Input.GetKeyDown(KeyCode.Escape) && IsVisible) Hide(); }
@@ -494,6 +494,37 @@ public static class BlueprintUI
         else  SelectButton_Text.text =  IsForeign ? "$kg_blueprint_copy".Localize() : "$kg_blueprint_add".Localize();
         UpdateCanvases(); 
     }
+    public class BlueprintRoutineBuilder : MonoBehaviour
+    {
+        private BlueprintRoot root;
+        private int current = 0;
+        
+        private void Awake()
+        {
+            if (_Internal_SelectedPiece.Value != null) root = _Internal_SelectedPiece.Value;
+        }
+        private void Update()
+        {
+            if (root == null) return;
+            const int maxPerFrame = 20;
+            int total = root.Objects.Length;
+            int count = maxPerFrame;
+            for(; current < total && count > 0; ++current, --count)
+            {
+                BlueprintObject obj = root.Objects[current];
+                GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
+                if (!prefab) continue;
+                GameObject go = Object.Instantiate(prefab, transform); 
+                Quaternion deltaRotation = transform.rotation * Quaternion.Inverse(Quaternion.Euler(root.BoxRotation));
+                go.transform.position = transform.position + deltaRotation * obj.RelativePosition;
+                go.transform.rotation = Quaternion.Euler(obj.Rotation) * deltaRotation;
+                foreach (Component comp in go.GetComponentsInChildren<Component>(true).Reverse())
+                {
+                    if (comp is not Renderer and not MeshFilter and not Transform and not Animator) Object.DestroyImmediate(comp);
+                }
+            }
+        }
+    }
     private static void OnSelect()  
     {
         if (_Internal_SelectedPiece.Key) Object.DestroyImmediate(_Internal_SelectedPiece.Key.gameObject);
@@ -505,21 +536,9 @@ public static class BlueprintUI
         _Internal_SelectedPiece.Key.name = "kg_Blueprint_Internal_PlacePiece";
         _Internal_SelectedPiece.Key.m_name = Current.Name ?? "";
         _Internal_SelectedPiece.Key.m_description = Current.Description ?? "";
-        _Internal_SelectedPiece.Key.m_extraPlacementDistance = 25;
+        _Internal_SelectedPiece.Key.m_extraPlacementDistance = 30;
         _Internal_SelectedPiece.Key.m_clipEverything = true; 
-        for (int i = 0; i < Current.Objects.Length; ++i)
-        { 
-            BlueprintObject obj = Current.Objects[i];  
-            GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
-            if (!prefab) continue;
-            GameObject go = Object.Instantiate(prefab, _Internal_SelectedPiece.Key.transform);
-            go.transform.position = obj.RelativePosition;
-            go.transform.rotation = Quaternion.Euler(obj.Rotation);
-            foreach (Component comp in go.GetComponentsInChildren<Component>(true).Reverse())
-            {
-                if (comp is not Renderer and not MeshFilter and not Transform and not Animator) Object.DestroyImmediate(comp);
-            }
-        }
+        _Internal_SelectedPiece.Key.gameObject.AddComponent<BlueprintRoutineBuilder>();
         _Internal_SelectedPiece.Key.m_resources = Current.GetRequirements();
         _Internal_SelectedPiece.Key.gameObject.SetActive(false);
         Player.m_localPlayer?.SetupPlacementGhost();
@@ -532,7 +551,7 @@ public static class BlueprintUI
         _Internal_SelectedPiece.Key.name = "kg_Blueprint_Internal_Creator";
         _Internal_SelectedPiece.Key.m_name = "$kg_blueprint_creator";
         _Internal_SelectedPiece.Key.m_description = "$kg_blueprint_creator_desc";
-        _Internal_SelectedPiece.Key.m_extraPlacementDistance = 20;
+        _Internal_SelectedPiece.Key.m_extraPlacementDistance = 30;
         _Internal_SelectedPiece.Key.m_resources = [];
         _Internal_SelectedPiece.Key.m_clipEverything = true;
         _Internal_SelectedPiece.Key.m_noInWater = false;
