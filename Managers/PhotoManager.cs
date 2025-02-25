@@ -65,17 +65,16 @@ public static class PhotoManager
 
     private static bool IsVisualComponent(Component component)
     {
-        return component is Renderer or MeshFilter or Transform or LevelEffects;
+        return component is Renderer or MeshFilter or Transform;
     }
     
     private static GameObject SpawnAndRemoveComponents(RenderRequest obj)
     {
         GameObject tempObj = Object.Instantiate(obj.Target, INACTIVE.transform);
-        List<Component> components = tempObj.GetComponentsInChildren<Component>().ToList();
-        List<Component> ToRemove = [];
-        ToRemove.AddRange(components.Where(comp => !IsVisualComponent(comp)));
-        ToRemove.Reverse();
-        ToRemove.ForEach(Object.DestroyImmediate);
+        foreach (Component comp in tempObj.GetComponentsInChildren<Component>(true).Reverse())
+        {
+            if (!IsVisualComponent(comp)) Object.DestroyImmediate(comp);
+        }
         tempObj.layer = MAINLAYER;
         foreach (Transform VARIABLE in tempObj.GetComponentsInChildren<Transform>()) VARIABLE.gameObject.layer = MAINLAYER;
         tempObj.transform.SetParent(null);

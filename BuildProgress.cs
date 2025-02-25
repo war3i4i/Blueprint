@@ -4,7 +4,8 @@ public static class BuildProgress
 {
     private static readonly int Visibility = Shader.PropertyToID("_Visibility");
     public static GameObject _piece;
-    private static Shader _shader;
+    public static Material _ghostMat;
+    public static Shader _shader;
     [HarmonyPatch(typeof(ZNetScene), nameof(ZNetScene.Awake))]
     private static class ZNetScene_Awake_Patch
     {
@@ -13,6 +14,7 @@ public static class BuildProgress
     public static void Init()
     {
         _shader = kg_Blueprint.Asset.LoadAsset<Shader>("kg_Blueprint_BuildShader");
+        _ghostMat = kg_Blueprint.Asset.LoadAsset<Material>("kg_Blueprint_GhostMat");
         _piece = kg_Blueprint.Asset.LoadAsset<GameObject>("kg_Blueprint_BuildProgressPiece");
         _piece.AddComponent<BuildProgressComponent>();
     }
@@ -122,7 +124,7 @@ public static class BuildProgress
                 if (!checkComponent(comp))
                     Destroy(comp);
 
-            foreach (Collider collider in PieceObject.GetComponentsInChildren<Collider>(true))
+            foreach (Collider collider in PieceObject.GetComponentsInChildren<Collider>())
             {
                 collider.isTrigger = !isSolid;
             }

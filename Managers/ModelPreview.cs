@@ -54,7 +54,6 @@ public static class ModelPreview
             min = Vector3.Min(min, meshRenderer.bounds.min);
             max = Vector3.Max(max, meshRenderer.bounds.max);
         }
-
         CurrentPreviewGO.transform.position = SpawnPoint - (min + max) / 2f;
         OriginalYPos = CurrentPreviewGO.transform.position.y;
         OriginalXPos = CurrentPreviewGO.transform.position.x;

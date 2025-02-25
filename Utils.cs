@@ -391,6 +391,7 @@ public static class Utils
     }
     public static GameObject CreateViewGameObjectForBlueprint(this BlueprintRoot root)
     {
+        kg_Blueprint.Logger.LogDebug($"Creating preview for blueprint. Objects: {root.Objects.Length}");
         GameObject newObj = new GameObject("BlueprintPreview");
         newObj.transform.position = Vector3.zero;
         newObj.transform.rotation = Quaternion.identity;
@@ -400,14 +401,15 @@ public static class Utils
         {
             BlueprintObject obj = root.Objects[i];
             GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
-            if (!prefab) continue;  
+            if (!prefab) continue;
             GameObject go = Object.Instantiate(prefab, newObj.transform);
             Quaternion deltaRotation = Quaternion.identity * Quaternion.Inverse(Quaternion.Euler(root.BoxRotation));
             go.transform.position = deltaRotation * obj.RelativePosition;
             go.transform.rotation = Quaternion.Euler(obj.Rotation) * deltaRotation;
             foreach (Component comp in go.GetComponentsInChildren<Component>(true).Reverse())
             {
-                if (comp is not Renderer and not MeshFilter and not Transform and not Animator) Object.DestroyImmediate(comp);
+                if (comp is Renderer or MeshFilter or Transform or Animator) continue;
+                Object.DestroyImmediate(comp);
             }
         }
         return newObj;

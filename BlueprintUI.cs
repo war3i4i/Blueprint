@@ -160,6 +160,7 @@ public static class InteractionUI
 }
 public static class BlueprintUI
 {
+    private static bool IsVisible => UI && UI.activeSelf;
     private static BlueprintRoot Current;
     private static GameObject LastPressedEntry;
     private static KeyValuePair<Piece, BlueprintRoot> _Internal_SelectedPiece;
@@ -175,8 +176,7 @@ public static class BlueprintUI
     public static Sprite NoIcon;
     private static GameObject Projector;
     private static int CreatorRadius = 5;
-    private static bool IsVisible => UI && UI.activeSelf;
-
+    public static Coroutine CreateViewCoroutine;
     private static Transform Main;
     private static readonly RawImage[] Previews = new RawImage[3];
     private static TMP_Text BlueprintName, BlueprintDescription, BlueprintAuthor;
@@ -188,6 +188,9 @@ public static class BlueprintUI
     private static Button DeleteButton_Foreign;
     private static ForeignBlueprintSource ForeignSource;
     private static bool IsForeign;
+    private static GameObject ViewObject;
+    private static GameObject ViewProgress;
+    private static Image ViewFill;
     
     public static void Init()
     {
@@ -306,13 +309,13 @@ public static class BlueprintUI
         ModelView = Main.Find("ModelView/View").GetComponent<RawImage>();
         ModelView.transform.parent.gameObject.AddComponent<ModelPreview.PreviewModelAngleController>();
         ModelViewStart = Main.Find("ModelView/Show").GetComponent<Button>();
+        ViewProgress = Main.Find("ModelView/Loading").gameObject;
+        ViewFill = ViewProgress.transform.Find("Fill").GetComponent<Image>();
         ModelViewStart.onClick.AddListener(() =>
-        {
-            if (Current == null) return;
-            ModelPreview.SetAsCurrent(ModelView, Current.CreateViewGameObjectForBlueprint());
-            ModelViewStart.gameObject.SetActive(false);
-            ModelView.gameObject.SetActive(true);
-        });
+        { 
+            if (Current == null || CreateViewCoroutine != null) return;
+            CreateViewCoroutine = kg_Blueprint._thistype.StartCoroutine(LoadView(Current));
+        }); 
         UI.transform.Find("Canvas/UI/List/ReloadDisk").GetComponent<Button>().onClick.AddListener(kg_Blueprint.ReadBlueprints);
         UI.transform.Find("Canvas/UI/List/AddFromClipboard").GetComponent<Button>().onClick.AddListener(kg_Blueprint.TryLoadFromClipboard);
         CopyToClipboardButton = UI.transform.Find("Canvas/UI/List/CopyToClipboard").GetComponent<Button>();
@@ -344,6 +347,43 @@ public static class BlueprintUI
         IsForeign = false;
         ClearSelections();
         StopPreview();
+    }
+    private static IEnumerator LoadView(BlueprintRoot root)
+    {
+        if (ViewObject) Object.Destroy(ViewObject); 
+        ViewObject = new GameObject("kg_Blueprint_Preview");
+        ViewObject.transform.position = Vector3.zero;
+        ViewObject.transform.rotation = Quaternion.identity;
+        ViewObject.SetActive(false);
+        const int maxPerFrame = 20;
+        int total = root.Objects.Length;
+        ViewProgress.SetActive(true);
+        ViewFill.fillAmount = 0;
+        for (int i = 0; i < total; i += maxPerFrame)
+        {
+            int count = Mathf.Min(maxPerFrame, total - i);
+            for (int j = 0; j < count; ++j) 
+            {
+                BlueprintObject obj = root.Objects[i + j];
+                GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
+                if (!prefab) continue;
+                GameObject go = Object.Instantiate(prefab, ViewObject.transform);
+                Quaternion deltaRotation = Quaternion.identity * Quaternion.Inverse(Quaternion.Euler(root.BoxRotation));
+                go.transform.position = deltaRotation * obj.RelativePosition;
+                go.transform.rotation = Quaternion.Euler(obj.Rotation) * deltaRotation;
+                foreach (Component comp in go.GetComponentsInChildren<Component>(true).Reverse())
+                {
+                    if (comp is not Renderer and not MeshFilter and not Transform and not Animator) Object.DestroyImmediate(comp);
+                }
+            }
+            ViewFill.fillAmount = (float)(i + count) / total;
+            yield return null;
+        }
+        ModelPreview.SetAsCurrent(ModelView, ViewObject);
+        ModelViewStart.gameObject.SetActive(false);
+        ModelView.gameObject.SetActive(true);
+        ViewProgress.SetActive(false);
+        CreateViewCoroutine = null;
     }
     public static void Update() { if (Input.GetKeyDown(KeyCode.Escape) && IsVisible) Hide(); }
     private static void UpdateCanvases() 
@@ -470,7 +510,7 @@ public static class BlueprintUI
         for (int i = 0; i < Current.Objects.Length; ++i)
         { 
             BlueprintObject obj = Current.Objects[i];  
-            GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id); 
+            GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
             if (!prefab) continue;
             GameObject go = Object.Instantiate(prefab, _Internal_SelectedPiece.Key.transform);
             go.transform.position = obj.RelativePosition;
@@ -546,6 +586,11 @@ public static class BlueprintUI
         ModelViewStart.gameObject.SetActive(true);
         ModelView.texture = null;
         ModelView.gameObject.SetActive(false);
+        ViewProgress.SetActive(false);
+        ViewFill.fillAmount = 0;
+        if (CreateViewCoroutine != null) kg_Blueprint._thistype.StopCoroutine(CreateViewCoroutine);
+        CreateViewCoroutine = null;
+        if (ViewObject) Object.Destroy(ViewObject);
         ModelPreview.StopPreview();
     }
     private static void Hide()
