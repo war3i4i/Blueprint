@@ -203,9 +203,9 @@ public class BlueprintRoot : ISerializableParameter
         if (Objects == null || Objects.Length == 0) return;
         Vector3 center = Objects.Aggregate(Vector3.zero, (current, t) => current + t.RelativePosition);
         center /= Objects.Length;
-        foreach (var o in Objects) o.RelativePosition -= center;
+        foreach (BlueprintObject o in Objects) o.RelativePosition -= center;
         float minY = Objects.Min(x => x.RelativePosition.y);
-        foreach (var o in Objects) o.RelativePosition.y -= minY;
+        foreach (BlueprintObject o in Objects) o.RelativePosition.y -= minY;
     } 
     public Piece.Requirement[] GetRequirements() => Objects.Select(x => x.Id).ToArray().GetRequirements();
     public IOrderedEnumerable<KeyValuePair<string, Utils.NumberedData>> GetPiecesNumbered() => Objects.Select(x => x.Id).ToArray().GetPiecesNumbered();
@@ -215,15 +215,15 @@ public class BlueprintRoot : ISerializableParameter
         for (int i = 0; i < Objects.Length; ++i)
         {
             GameObject prefab = ZNetScene.instance.GetPrefab(Objects[i].Id);
-            if (prefab == null)
-            {
+            if (prefab == null) 
+            { 
                 kg_Blueprint.Logger.LogDebug($"Failed to find prefab with id {Objects[i].Id} while applying blueprint ({Name})");
-                continue; 
+                continue;
             } 
-            Vector3 pos = center + rootRot * Objects[i].RelativePosition;
+            Quaternion deltaRotation = rootRot * Quaternion.Inverse(Quaternion.Euler(BoxRotation));
+            Vector3 pos = center + deltaRotation * Objects[i].RelativePosition;
             if (deactivate && !BlueprintPiece.IsInside(pos)) continue;
-            Quaternion rot = Quaternion.Euler(Objects[i].Rotation) * rootRot;
-            instantBuild = true;
+            Quaternion rot = Quaternion.Euler(Objects[i].Rotation) * deltaRotation; 
             if (instantBuild || deactivate)
             {
                 GameObject newObj = Object.Instantiate(prefab, pos, rot);
@@ -254,6 +254,7 @@ public class BlueprintRoot : ISerializableParameter
             }
             yield return Utils.WaitFrames(Configs.BlueprintBuildFrameSkip.Value);
         }
+        yield break;
     }
     public void Save(bool forget = true)
     {

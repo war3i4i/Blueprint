@@ -85,11 +85,6 @@ public static class ValheimFixes
         }
     }
     
-    [HarmonyPatch(typeof(Terminal),nameof(Terminal.IsCheatsEnabled))]
-    private static class Terminal_IsCheatsEnabled_Patch
-    {
-        [UsedImplicitly] private static void Postfix(ref bool __result) => __result = true;
-    }
     [HarmonyPatch]
     private static class Player_CleanupGhostMaterials_Patch
     {

@@ -15,7 +15,7 @@ public static class PlayerState
 }
 public class BlueprintSharing : MonoBehaviour, Interactable, Hoverable, ForeignBlueprintSource
 {
-    private ZNetView _znv;
+    private ZNetView _znv; 
     private List<BlueprintRoot> Current = null;
     private void Awake()
     {
@@ -30,14 +30,15 @@ public class BlueprintSharing : MonoBehaviour, Interactable, Hoverable, ForeignB
             kg_Blueprint.Logger.LogDebug($"Got Blueprints data size: {data.Length.SizeSuffix()}");
             ZPackage pkg = new(data);
             pkg.Decompress();
+            kg_Blueprint.Logger.LogDebug($"Decompressed Blueprints data size: {pkg.Size().SizeSuffix()}");
             int count = pkg.ReadInt();
             BlueprintRoot[] result = new BlueprintRoot[count];
-            for (int i = 0; i < count; ++i)
+            for (int i = 0; i < count; ++i) 
             {
                 result[i] = new(); 
                 result[i].Deserialize(ref pkg);
             }
-            return result;
+            return result; 
         }
         set
         { 

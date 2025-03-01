@@ -51,3 +51,5 @@ kg_blueprint_selectall: Select
 kg_blueprint_add: Add
 kg_blueprint_opensharing: Open Sharing
 kg_blueprint_sharing_piece: Sharing
+kg_blueprint_sharingpiece: Blueprint Table
+kg_blueprint_sharingpiece_desc: "Blueprint Table is a structure that allows you to share your blueprints with other players.\nYou can add your blueprints to the table and other players can load them."

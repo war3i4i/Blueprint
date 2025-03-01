@@ -1078,104 +1078,7 @@ public class Item
 				recipe.m_enabled = true;
 			}
 		}
-	}
-
-	// Ensure valheim distinguishes between active and inactive (belonging to another upgrade level) requirements when cutting off at 4 items displayed 
-	internal static IEnumerable<CodeInstruction> Transpile_SetupRequirementList(IEnumerable<CodeInstruction> instructionsEnumerable, ILGenerator ilg)
-	{
-		/*
-		for (int index2 = num; index2 < requirementArray.Length; ++index2)
-		{
-		 if (InventoryGui.SetupRequirement(this.m_recipeRequirementList[index1].transform, requirementArray[index2], player, true, quality))
-		  ++index1;
-		 if (index1 >= this.m_recipeRequirementList.Length)
-		  break;
-		}
-
-		// =>
-
-
-		for (int index2 = [<check is 0> start: <pop>] num; index2 < requirementArray.Length; ++index2)
-		{
-		 if (InventoryGui.SetupRequirement(this.m_recipeRequirementList[index1].transform, requirementArray[index2], player, true, quality))
-		  ++index1;
-		 if (index1 >= this.m_recipeRequirementList.Length)
-		  goto end;
-		}
-		if (!<result of check is 0> && index1 < this.m_recipeRequirementList.Length)
-		{
-		 index1 = 0;
-		 goto start;
-		}
-		end:
-		*/
-
-		List<CodeInstruction> instructions = instructionsEnumerable.ToList();
-		MethodInfo setupRequirement = AccessTools.DeclaredMethod(typeof(InventoryGui), nameof(InventoryGui.SetupRequirement));
-		CodeInstruction index1Load = null!;
-		CodeInstruction index1Store = null!;
-		LocalBuilder skippedNum = ilg.DeclareLocal(typeof(int));
-		Dictionary<Label, int> encounteredLabels = new();
-		bool inLoop = false;
-		int loopEndInstruction = 0;
-		int loopStartInstruction = 0;
-		for (int i = 0; i < instructions.Count; ++i)
-		{
-			if (instructions[i].Calls(setupRequirement))
-			{
-				index1Load = instructions[i + 2];
-				index1Store = instructions[i + 5];
-				inLoop = true;
-			}
-
-			if (inLoop)
-			{
-				if (instructions[i].Branches(out Label? target) && encounteredLabels.TryGetValue(target!.Value, out loopStartInstruction))
-				{
-					loopEndInstruction = i;
-					break;
-				}
-			}
-			else
-			{
-				foreach (Label label in instructions[i].labels)
-				{
-					encounteredLabels[label] = i;
-				}
-			}
-		}
-
-		if (instructions[loopStartInstruction - 3].opcode == OpCodes.Dup)
-		{
-			// Don't patch ourselves twice?!
-			return instructions;
-		}
-
-		Label loopSkipLabel = ilg.DefineLabel();
-		Label loopStartLabel = ilg.DefineLabel();
-		instructions[loopEndInstruction + 1].labels.Add(loopSkipLabel);
-
-		instructions.InsertRange(loopEndInstruction + 1, [
-			new CodeInstruction(OpCodes.Ldloc, skippedNum),
-			new CodeInstruction(OpCodes.Brfalse, loopSkipLabel),
-			index1Load.Clone(),
-			new CodeInstruction(OpCodes.Ldarg_0),
-			new CodeInstruction(OpCodes.Ldfld, AccessTools.DeclaredField(typeof(InventoryGui), nameof(InventoryGui.m_recipeRequirementList))),
-			new CodeInstruction(OpCodes.Ldlen),
-			new CodeInstruction(OpCodes.Bgt, loopSkipLabel),
-			new CodeInstruction(OpCodes.Ldc_I4_0),
-			index1Store.Clone(),
-			new CodeInstruction(OpCodes.Ldc_I4_0),
-			new CodeInstruction(OpCodes.Br, loopStartLabel)
-		]);
-
-		instructions.InsertRange(loopStartInstruction - 2, [
-			new CodeInstruction(OpCodes.Dup) { labels = [loopStartLabel] },
-			new CodeInstruction(OpCodes.Stloc, skippedNum)
-		]);
-
-		return instructions;
-	}
+	} 
 
 	internal static bool Patch_RequirementGetAmount(Piece.Requirement __instance, int qualityLevel, ref int __result)
 	{
@@ -1782,7 +1685,6 @@ public static class PrefabManager
 		harmony.Patch(AccessTools.DeclaredMethod(typeof(ZNetScene), nameof(ZNetScene.Awake)), postfix: new HarmonyMethod(AccessTools.DeclaredMethod(typeof(Item), nameof(Patch_ZNetSceneAwake))));
 		harmony.Patch(AccessTools.DeclaredMethod(typeof(ZNetScene), nameof(ZNetScene.Awake)), new HarmonyMethod(AccessTools.DeclaredMethod(typeof(PrefabManager), nameof(Patch_ZNetSceneAwake))));
 		harmony.Patch(AccessTools.DeclaredMethod(typeof(InventoryGui), nameof(InventoryGui.UpdateRecipe)), transpiler: new HarmonyMethod(AccessTools.DeclaredMethod(typeof(Item), nameof(Item.Transpile_InventoryGui))));
-		harmony.Patch(AccessTools.DeclaredMethod(typeof(InventoryGui), nameof(InventoryGui.SetupRequirementList)), transpiler: new HarmonyMethod(AccessTools.DeclaredMethod(typeof(Item), nameof(Item.Transpile_SetupRequirementList))));
 		harmony.Patch(AccessTools.DeclaredMethod(typeof(Piece.Requirement), nameof(Piece.Requirement.GetAmount)), prefix: new HarmonyMethod(AccessTools.DeclaredMethod(typeof(Item), nameof(Item.Patch_RequirementGetAmount))));
 		harmony.Patch(AccessTools.DeclaredMethod(typeof(Player), nameof(Player.GetAvailableRecipes)), prefix: new HarmonyMethod(AccessTools.DeclaredMethod(typeof(Item), nameof(Item.Patch_GetAvailableRecipesPrefix))), finalizer: new HarmonyMethod(AccessTools.DeclaredMethod(typeof(Item), nameof(Item.Patch_GetAvailableRecipesFinalizer))));
 		harmony.Patch(AccessTools.DeclaredMethod(typeof(Recipe), nameof(Recipe.GetRequiredStationLevel)), postfix: new HarmonyMethod(AccessTools.DeclaredMethod(typeof(Item), nameof(Item.Patch_MaximumRequiredStationLevel))));

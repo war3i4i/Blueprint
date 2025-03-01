@@ -60,6 +60,9 @@
         <Reference Include="gui_framework">
           <HintPath>Libs\gui_framework.dll</HintPath>
         </Reference>
+        <Reference Include="KeyManager">
+          <HintPath>KeyManager.dll</HintPath>
+        </Reference>
         <Reference Include="kg_BlueprintScripts">
           <HintPath>Assets\kg_BlueprintScripts.dll</HintPath>
         </Reference>
@@ -68,6 +71,9 @@
         </Reference>
         <Reference Include="MonoMod.Utils">
           <HintPath>Libs\MonoMod.Utils.dll</HintPath>
+        </Reference>
+        <Reference Include="netstandard">
+          <HintPath>..\..\..\..\Program Files (x86)\Steam\steamapps\common\Valheim\valheim_Data\Managed\netstandard.dll</HintPath>
         </Reference>
         <Reference Include="System"/>
         <Reference Include="System.Core"/>
@@ -161,7 +167,11 @@
       </PropertyGroup>
       <Error Condition="!Exists('packages\ILRepack.Lib.MSBuild.Task.2.0.37\build\ILRepack.Lib.MSBuild.Task.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\ILRepack.Lib.MSBuild.Task.2.0.37\build\ILRepack.Lib.MSBuild.Task.targets'))" />
     </Target>
-    <Target Name="Copy" AfterTargets="ILRepack">
+    <UsingTask AssemblyFile="KeyManager.dll" TaskName="KeyManager.Seal"/>
+    <Target Name="KeyManager" AfterTargets="ILRepack">
+        <Seal DLL="$(TargetPath)"/>
+    </Target>
+    <Target Name="Copy" AfterTargets="KeyManager">
         <Exec Command="copy /Y &quot;$(TargetDir)$(AssemblyName).dll&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Valheim\BepInEx\plugins\$(AssemblyName).dll&quot;" />
         <Exec Command="copy /Y &quot;$(TargetDir)$(AssemblyName).dll&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Valheim Dedicated Server\BepInEx\plugins\$(AssemblyName).dll&quot;" />
         <Exec Command="pdb2mdb.exe &quot;$(TargetDir)$(AssemblyName).dll&quot;" />
@@ -171,6 +181,7 @@
         <Exec Command="copy /Y &quot;$(TargetDir)$(AssemblyName).dll&quot; &quot;$(ProjectDir)ThunderstorePackage\$(AssemblyName).dll&quot;" />
         <Exec Command="copy /Y &quot;$(TargetDir)$(AssemblyName).dll.mdb&quot; &quot;$(ProjectDir)ThunderstorePackage\$(AssemblyName).dll.mdb&quot;" />
     </Target>
+
 
     <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
          Other similar extension points exist, see Microsoft.Common.targets.

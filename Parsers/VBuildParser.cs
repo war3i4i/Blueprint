@@ -41,7 +41,7 @@ public class VBuildParser
         }
         catch (Exception e)
         {
-            kg_Blueprint.Logger.LogError($"Error parsing PB blueprint: {e}");
+            kg_Blueprint.Logger.LogError($"Error parsing VBuild blueprint: {e}");
             return null;
         }
     }

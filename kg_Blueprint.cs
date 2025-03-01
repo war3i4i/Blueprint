@@ -2,15 +2,16 @@
 using System.Text;
 using System.Threading;
 using ItemManager;
+using KeyManager;
 using LocalizationManager;
 using PieceManager;
-using Conversion = ItemManager.Conversion;
 
 namespace kg_Blueprint;
 
 [BepInPlugin(GUID, NAME, VERSION)]
+[VerifyKey("KGvalheim/BlueprintTest", LicenseMode.Always)]
 public class kg_Blueprint : BaseUnityPlugin
-{
+{ 
     public static kg_Blueprint _thistype;
     private const string GUID = "kg.Blueprint";
     private const string NAME = "Blueprint";
@@ -19,22 +20,41 @@ public class kg_Blueprint : BaseUnityPlugin
     public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");
     public static readonly string BlueprintsPath = Path.Combine(Paths.ConfigPath, "Blueprints");
     private static readonly List<GameObject> ReplaceMaterials = [];
+    private static readonly List<GameObject> ReplaceShaders = []; 
     private void Awake() 
     {
         _thistype = this;
         Localizer.Load();
         LoadAsm("kg_BlueprintScripts"); 
-        ReplaceMaterials.Add(new BuildPiece(Asset, "kg_BlueprintBox").Prefab.AddComponent<BlueprintPiece>().gameObject);
-        ReplaceMaterials.Add(new BuildPiece(Asset, "kg_BlueprintBox_Large").Prefab.AddComponent<BlueprintPiece>().gameObject);
-        ReplaceMaterials.Add(new BuildPiece(Asset, "kg_BlueprintBox_Large_NoFloor").Prefab.AddComponent<BlueprintPiece>().gameObject);
-        new BuildPiece(Asset, "kg_BlueprintSharing").Prefab.AddComponent<BlueprintSharing>();
-        new Item(Asset, "kg_BlueprintHammer"){ Configurable = Configurability.Recipe };
-        Configs.Init();
+        BuildPiece blueprintBox = new BuildPiece(Asset, "kg_BlueprintBox");
+        blueprintBox.RequiredItems.Add("Grausten", 10, false);
+        blueprintBox.RequiredItems.Add("SurtlingCore", 4, false);
+        BuildPiece blueprintBoxLarge = new BuildPiece(Asset, "kg_BlueprintBox_Large");
+        blueprintBoxLarge.RequiredItems.Add("Grausten", 20, false);
+        blueprintBoxLarge.RequiredItems.Add("SurtlingCore", 8, false);
+        BuildPiece blueprintBoxLargeNoFloor = new BuildPiece(Asset, "kg_BlueprintBox_Large_NoFloor");
+        blueprintBoxLargeNoFloor.RequiredItems.Add("Grausten", 20, false);
+        blueprintBoxLargeNoFloor.RequiredItems.Add("SurtlingCore", 8, false);
+        blueprintBox.Prefab.AddComponent<BlueprintPiece>();
+        blueprintBoxLarge.Prefab.AddComponent<BlueprintPiece>();
+        blueprintBoxLargeNoFloor.Prefab.AddComponent<BlueprintPiece>();
+        ReplaceMaterials.Add(blueprintBox.Prefab);
+        ReplaceMaterials.Add(blueprintBoxLarge.Prefab);
+        ReplaceMaterials.Add(blueprintBoxLargeNoFloor.Prefab);
+        BuildPiece sharingPiece = new BuildPiece(Asset, "kg_BlueprintSharing");
+        sharingPiece.Prefab.AddComponent<BlueprintSharing>();
+        sharingPiece.RequiredItems.Add("Wood", 30, true);
+        sharingPiece.RequiredItems.Add("Iron", 5, true); 
+        ReplaceShaders.Add(sharingPiece.Prefab);
+        Item blueprintHammer = new Item(Asset, "kg_BlueprintHammer"){ Configurable = Configurability.Recipe };
+        blueprintHammer.RequiredItems.Add("Wood", 10);
+        blueprintHammer.RequiredItems.Add("Blueberries", 5);
+        Configs.Init(); 
         if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null) return;
         if (!Directory.Exists(BlueprintsPath)) Directory.CreateDirectory(BlueprintsPath); 
-        BlueprintUI.Init();
+        BlueprintUI.Init(); 
         BuildProgress.Init();
-        ReadBlueprints();
+        ReadBlueprints(); 
         new Harmony(GUID).PatchAll();
     }
     private void FixedUpdate() => PlayerState.Update();
@@ -215,12 +235,18 @@ public class kg_Blueprint : BaseUnityPlugin
     { 
         [UsedImplicitly] private static void Postfix(ZNetScene __instance) 
         {
+            Material orig = __instance.GetPrefab("Piece_grausten_floor_2x2").transform.Find("new/high").GetComponent<MeshRenderer>().material;
             foreach (GameObject obj in ReplaceMaterials) 
             { 
                 Transform View = obj.transform.Find("Scale/View");
                 MeshRenderer[] renderers = View.GetComponentsInChildren<MeshRenderer>(true);
-                var orig = __instance.GetPrefab("Piece_grausten_floor_2x2").transform.Find("new/high").GetComponent<MeshRenderer>().material;
                 foreach (MeshRenderer renderer in renderers) renderer.material = orig;
+            }
+            
+            foreach (GameObject obj in ReplaceShaders) 
+            { 
+                MeshRenderer[] renderers = obj.GetComponentsInChildren<MeshRenderer>(true);
+                foreach (Material mat in renderers.SelectMany(x => x.materials)) mat.shader = orig.shader;
             }
         }
     }

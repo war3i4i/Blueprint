@@ -59,7 +59,7 @@ public static class InteractionUI
             Icon.texture = icon ? icon : OriginalIcon;
         });
         Localization.instance.Localize(UI.transform);
-        foreach (var button in UI.GetComponentsInChildren<Button>(true)) button.onClick.AddListener(AudioMan_Awake_Patch.Click);
+        foreach (Button button in UI.GetComponentsInChildren<Button>(true)) button.onClick.AddListener(AudioMan_Awake_Patch.Click);
     }
     public static void Update()
     {
@@ -154,7 +154,7 @@ public static class InteractionUI
             if (done) return;
             done = true;
             if (__instance.transform.Find("StartGame/Panel/JoinPanel/serverCount")?.GetComponent<TextMeshProUGUI>() is not { } tmp) return;
-            foreach (var componentsInChild in UI.GetComponentsInChildren<TMP_Text>(true)) componentsInChild.font = tmp.font;
+            foreach (TMP_Text componentsInChild in UI.GetComponentsInChildren<TMP_Text>(true)) componentsInChild.font = tmp.font;
         }
     }
 }
@@ -316,7 +316,7 @@ public static class BlueprintUI
         ModelViewStart.onClick.AddListener(() =>
         { 
             if (Current == null || CreateViewCoroutine != null) return;
-            CreateViewCoroutine = kg_Blueprint._thistype.StartCoroutine(LoadView(Current));
+            CreateViewCoroutine = ZNetScene.instance.StartCoroutine(LoadView(Current));
         }); 
         UI.transform.Find("Canvas/UI/List/ReloadDisk").GetComponent<Button>().onClick.AddListener(kg_Blueprint.ReadBlueprints);
         UI.transform.Find("Canvas/UI/List/AddFromClipboard").GetComponent<Button>().onClick.AddListener(kg_Blueprint.TryLoadFromClipboard);
@@ -328,14 +328,14 @@ public static class BlueprintUI
         BlueprintAuthor = Main.transform.Find("Author").GetComponent<TMP_Text>();
         Localization.instance.Localize(UI.transform);
         ResetMain(); 
-        foreach (var button in UI.GetComponentsInChildren<Button>(true)) button.onClick.AddListener(AudioMan_Awake_Patch.Click);
+        foreach (Button button in UI.GetComponentsInChildren<Button>(true)) button.onClick.AddListener(AudioMan_Awake_Patch.Click);
         InteractionUI.Init();
     }
     private static void ResetMain()
     {
         Current = null;
         Main.gameObject.SetActive(false);
-        foreach (var rawImage in Previews)
+        foreach (RawImage rawImage in Previews)
         {
             rawImage.texture = null;
             rawImage.transform.parent.gameObject.SetActive(false);
@@ -442,18 +442,18 @@ public static class BlueprintUI
         };
         handler.m_onPointerEnter += (_) => 
         {
-            var img = entry.transform.Find("Selection").GetComponent<Image>();
+            Image img = entry.transform.Find("Selection").GetComponent<Image>();
             if (img.color != Color.green) img.color = Color.white;
         };
         handler.m_onPointerExit += (_) => 
         {
-            var img = entry.transform.Find("Selection").GetComponent<Image>();
+            Image img = entry.transform.Find("Selection").GetComponent<Image>();
             if (img.color != Color.green) img.color = Color.clear;
         };
         for (int i = 3; i >= 1; --i)
         {
             Texture2D preview = root.GetPreview(i - 1);
-            var previewGo = entry.transform.Find($"Preview{i}").gameObject;
+            GameObject previewGo = entry.transform.Find($"Preview{i}").gameObject;
             previewGo.SetActive(preview);
             if (!preview) continue;
             entry.transform.Find($"Preview{i}/Img").GetComponent<RawImage>().texture = preview;
@@ -504,7 +504,7 @@ public static class BlueprintUI
             if (Input.GetKey(KeyCode.U)) return false;
             return true;
         }
-    }
+    } 
     public class BlueprintRoutineBuilder : MonoBehaviour
     {
         private BlueprintRoot root;
@@ -515,7 +515,7 @@ public static class BlueprintUI
             current = 0; 
             if (_Internal_SelectedPiece.Value != null) root = _Internal_SelectedPiece.Value;
             materialPropertyBlock.SetFloat(valueNoise, 0f); 
-            materialPropertyBlock.SetFloat(triplanarLocalPos, 1f);
+            materialPropertyBlock.SetFloat(triplanarLocalPos, 1f); 
         }
         private void Update()
         {
@@ -573,7 +573,7 @@ public static class BlueprintUI
         _Internal_SelectedPiece.Key.m_resources = [];
         _Internal_SelectedPiece.Key.m_clipEverything = true;
         _Internal_SelectedPiece.Key.m_noInWater = false;
-        var proj = _Internal_SelectedPiece.Key.gameObject.AddComponent<CircleProjector>();
+        CircleProjector proj = _Internal_SelectedPiece.Key.gameObject.AddComponent<CircleProjector>();
         proj.m_prefab = BlueprintUI.Projector; 
         proj.m_radius = CreatorRadius;
         proj.m_nrOfSegments = CreatorRadius * 4; 
@@ -753,7 +753,7 @@ public static class BlueprintUI
             if (done) return;
             done = true;
             if (__instance.transform.Find("StartGame/Panel/JoinPanel/serverCount")?.GetComponent<TextMeshProUGUI>() is not { } tmp) return;
-            foreach (var componentsInChild in UI.GetComponentsInChildren<TMP_Text>(true)) componentsInChild.font = tmp.font;
+            foreach (TMP_Text componentsInChild in UI.GetComponentsInChildren<TMP_Text>(true)) componentsInChild.font = tmp.font;
         }
     }
     [HarmonyPatch(typeof(Player),nameof(Player.UpdatePlacement))]
@@ -770,9 +770,9 @@ public static class BlueprintUI
         [UsedImplicitly] private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> code)
         { 
             CodeMatcher matcher = new(code);
-            var firstTarget = AccessTools.Method(typeof(ZInput), nameof(ZInput.GetMouseScrollWheel));
+            MethodInfo firstTarget = AccessTools.Method(typeof(ZInput), nameof(ZInput.GetMouseScrollWheel));
             matcher.MatchForward(false, new CodeMatch(OpCodes.Call, firstTarget));
-            var field = AccessTools.Field(typeof(Player), nameof(Player.m_placeRotation));
+            FieldInfo field = AccessTools.Field(typeof(Player), nameof(Player.m_placeRotation));
             matcher.MatchForward(false, new CodeMatch(OpCodes.Stfld, field));
             matcher.Advance(1);
             matcher.InsertAndAdvance(new CodeInstruction(OpCodes.Ldloc_S, 8)); 
@@ -795,7 +795,7 @@ public static class BlueprintUI
     {
         [UsedImplicitly] private static void Postfix(InventoryGui __instance)
         {
-            foreach (var tooltip in UI.GetComponentsInChildren<UITooltip>())
+            foreach (UITooltip tooltip in UI.GetComponentsInChildren<UITooltip>())
             {
                 tooltip.m_tooltipPrefab = __instance.m_playerGrid.m_elementPrefab.GetComponent<UITooltip>().m_tooltipPrefab;
             }

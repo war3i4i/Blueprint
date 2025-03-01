@@ -363,7 +363,7 @@ public static class Utils
             Piece p = pieces[i].GetComponent<Piece>();
             Sprite icon = p?.m_icon;
             string name = p ? p.m_name.Localize() : pieces[i].name;
-            if (numbered.TryGetValue(name, out var value)) value.Amount++;
+            if (numbered.TryGetValue(name, out NumberedData value)) value.Amount++;
             else numbered[name] = new NumberedData() { Amount = 1, Icon = icon };
         }
 
