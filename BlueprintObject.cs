@@ -254,7 +254,6 @@ public class BlueprintRoot : ISerializableParameter
             }
             yield return Utils.WaitFrames(Configs.BlueprintBuildFrameSkip.Value);
         }
-        yield break;
     }
     public void Save(bool forget = true)
     {

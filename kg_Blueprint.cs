@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using ItemManager;
@@ -157,7 +158,7 @@ public class kg_Blueprint : BaseUnityPlugin
                     {
                         Logger.LogError($"Error reading VBuild blueprint {vbuild_files[i]}: {e}");
                     }
-                }
+                } 
                 
                 kg_Blueprint.Logger.LogDebug($"Loaded {Blueprints.Count} blueprints in {stopwatch.ElapsedMilliseconds}ms");
                 token.ThrowIfCancellationRequested();
@@ -233,7 +234,7 @@ public class kg_Blueprint : BaseUnityPlugin
     [HarmonyPatch(typeof(ZNetScene),nameof(ZNetScene.Awake))]
     private static class ZNetScene_Awake_Patch
     { 
-        [UsedImplicitly] private static void Postfix(ZNetScene __instance) 
+        [UsedImplicitly] private static void Postfix(ZNetScene __instance)
         {
             Material orig = __instance.GetPrefab("Piece_grausten_floor_2x2").transform.Find("new/high").GetComponent<MeshRenderer>().material;
             foreach (GameObject obj in ReplaceMaterials) 

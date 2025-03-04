@@ -548,6 +548,7 @@ public static class BlueprintUI
     {
         if (_Internal_SelectedPiece.Key) Object.DestroyImmediate(_Internal_SelectedPiece.Key.gameObject);
         _Internal_SelectedPiece = default;
+        Player_UpdatePlacementGhost_Patch_Precise.PreciseOffset = Vector3.zero;
         Player.m_localPlayer?.SetupPlacementGhost();
         if (Current == null) return;
         _Internal_SelectedPiece = new KeyValuePair<Piece, BlueprintRoot>(Object.Instantiate(CopyFrom, Vector3.zero, Quaternion.identity).GetComponent<Piece>(), Current);
@@ -801,4 +802,52 @@ public static class BlueprintUI
             }
         }
     }
+    [HarmonyPatch(typeof(Player),nameof(Player.UpdatePlacementGhost))]
+    private static class Player_UpdatePlacementGhost_Patch_Precise
+    {
+        public static Vector3 PreciseOffset;
+        [UsedImplicitly] private static void Postfix(Player __instance)
+        {
+            if (!__instance.m_placementGhost) return;
+            float dt = Time.deltaTime;
+            Vector3 toGhost = __instance.m_placementGhost.transform.position - __instance.transform.position;
+            Vector3 rightDir = Vector3.Cross(Vector3.up, toGhost).normalized;
+            Vector3 forwardDir = Vector3.Cross(rightDir, Vector3.up).normalized;
+            Vector3 moveDir = Vector3.zero;
+            if (Input.GetKey(KeyCode.LeftArrow)) moveDir -= rightDir;
+            if (Input.GetKey(KeyCode.RightArrow)) moveDir += rightDir;
+            if (Input.GetKey(KeyCode.UpArrow)) moveDir += forwardDir;
+            if (Input.GetKey(KeyCode.DownArrow)) moveDir -= forwardDir;
+            if (Input.GetKey(KeyCode.PageUp)) moveDir += Vector3.up;
+            if (Input.GetKey(KeyCode.PageDown)) moveDir -= Vector3.up;
+            PreciseOffset += moveDir * dt * 2f;
+            __instance.m_placementGhost.transform.position += PreciseOffset;
+        }
+    }
+    [HarmonyPatch(typeof(KeyHints),nameof(KeyHints.Awake))]
+    private static class KeyHints_Awake_Patch 
+    {
+        public static GameObject KeyHint_LeftControl_Snap;
+        [UsedImplicitly] private static void Postfix(KeyHints __instance)
+        {
+            var copyFrom = __instance.m_buildHints.transform.Find("Keyboard/Place");
+            if (copyFrom is null) return;
+            KeyHint_LeftControl_Snap = Object.Instantiate(copyFrom.gameObject, copyFrom.parent);
+            KeyHint_LeftControl_Snap.name = "KeyHint_Blueprint_PrecisePlacement";
+            KeyHint_LeftControl_Snap.transform.SetAsFirstSibling();
+            KeyHint_LeftControl_Snap.transform.Find("Text").GetComponent<TMP_Text>().text = "$kg_blueprint_preciseplacement".Localize();
+            KeyHint_LeftControl_Snap.transform.Find("Text").GetComponent<TMP_Text>().color = new Color(0.16f, 0.53f, 1f);
+            KeyHint_LeftControl_Snap.transform.Find("key_bkg/Key").GetComponent<TMP_Text>().text = "$kg_blueprint_preciseplacement_keys".Localize();
+            KeyHint_LeftControl_Snap.transform.Find("key_bkg/Key").GetComponent<TMP_Text>().color = new Color(0.16f, 0.53f, 1f);
+            KeyHint_LeftControl_Snap.SetActive(false);
+        }
+    }
+    [HarmonyPatch(typeof(KeyHints),nameof(KeyHints.UpdateHints))]
+    private static class KeyHints_UpdateHints_Patch
+    {
+        [UsedImplicitly] private static void Postfix(KeyHints __instance)
+        {
+            if(__instance.m_buildHints.activeSelf) KeyHints_Awake_Patch.KeyHint_LeftControl_Snap.SetActive(IsHoldingHammer);
+        } 
+    } 
 }

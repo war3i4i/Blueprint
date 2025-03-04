@@ -53,3 +53,5 @@ kg_blueprint_opensharing: Open Sharing
 kg_blueprint_sharing_piece: Sharing
 kg_blueprint_sharingpiece: Blueprint Table
 kg_blueprint_sharingpiece_desc: "Blueprint Table is a structure that allows you to share your blueprints with other players.\nYou can add your blueprints to the table and other players can load them."
+kg_blueprint_preciseplacement: "Precise Placement"
+kg_blueprint_preciseplacement_keys: "← ↑ → ↓ PgUp PgDn"
