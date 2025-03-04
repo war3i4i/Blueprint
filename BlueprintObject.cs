@@ -158,8 +158,8 @@ public class BlueprintRoot : ISerializableParameter
         };
         objects = objects.OrderBy(x => x.transform.position.y).ToArray(); 
         for (int i = 0; i < objects.Length; ++i)
-        { 
-            int id = objects[i].name.Replace("(Clone)", "").GetStableHashCode();
+        {
+            string id = objects[i].name.Replace("(Clone)", "");
             if (!ZNetScene.instance.GetPrefab(id)) continue;
             root.Objects[i] = new BlueprintObject
             {
@@ -243,8 +243,8 @@ public class BlueprintRoot : ISerializableParameter
         float minY = Objects.Min(x => x.RelativePosition.y);
         foreach (BlueprintObject o in Objects) o.RelativePosition.y -= minY;
     }
-    public Piece.Requirement[] GetRequirements() => Objects.Select(x => (int)x.Id).ToArray().GetRequirements();
-    public IOrderedEnumerable<KeyValuePair<string, Utils.NumberedData>> GetPiecesNumbered() => Objects.Select(x => (int)x.Id).ToArray().GetPiecesNumbered();
+    public Piece.Requirement[] GetRequirements() => Objects.Select(x => x.Id).ToArray().GetRequirements();
+    public IOrderedEnumerable<KeyValuePair<string, Utils.NumberedData>> GetPiecesNumbered() => Objects.Select(x => x.Id).ToArray().GetPiecesNumbered();
     public void Apply(Vector3 center, Quaternion rootRot, bool deactivate) => ZNetScene.instance.StartCoroutine(Internal_Apply(Configs.InstantBuild.Value, center, rootRot, deactivate));
     private IEnumerator Internal_Apply(bool instantBuild, Vector3 center, Quaternion rootRot, bool deactivate)
     {

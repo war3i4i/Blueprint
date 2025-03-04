@@ -100,7 +100,7 @@ public static class InteractionUI
     }  
     public static void Show(BlueprintSource source) 
     { 
-        if (source == null) return; 
+        if (source == null) return;
         InputField_Name.text = "";
         InputField_Description.text = "";
         Icon.texture = OriginalIcon;
@@ -108,7 +108,7 @@ public static class InteractionUI
         PiecesContent.RemoveAllChildrenExceptFirst();
         Current = source;
         GameObject[] inside = source.GetObjectedInside;
-        int[] objects = inside.Select(o => o.name.Replace("(Clone)", "").GetStableHashCode()).ToArray();
+        IntOrString[] objects = inside.Select(o => new IntOrString(o.name.Replace("(Clone)", ""))).ToArray();
         Piece.Requirement[] reqs = objects.GetRequirements();
         for (int i = 0; i < reqs.Length; i++)
         {
@@ -565,6 +565,7 @@ public static class BlueprintUI
     private static void SelectBlueprintCreator() 
     {
         if (_Internal_SelectedPiece.Key) Object.DestroyImmediate(_Internal_SelectedPiece.Key.gameObject);
+        Player_UpdatePlacementGhost_Patch_Precise.PreciseOffset = Vector3.zero;
         _Internal_SelectedPiece = new KeyValuePair<Piece, BlueprintRoot>(Object.Instantiate(CopyFrom, Vector3.zero, Quaternion.identity).GetComponent<Piece>(), null);
         _Internal_SelectedPiece.Key.gameObject.SetActive(false);
         _Internal_SelectedPiece.Key.name = "kg_Blueprint_Internal_Creator";
@@ -810,7 +811,7 @@ public static class BlueprintUI
         [UsedImplicitly] private static void Postfix(Player __instance)
         {
             if (!__instance.m_placementGhost) return;
-            if (!IsHoldingHammer) return;
+            if (__instance.m_placementGhost.name != "kg_Blueprint_Internal_PlacePiece") return;
             __instance.m_placementStatus = Player.PlacementStatus.Valid;
             float dt = Time.deltaTime; 
             Vector3 toGhost = __instance.m_placementGhost.transform.position - __instance.transform.position;

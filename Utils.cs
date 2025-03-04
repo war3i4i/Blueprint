@@ -328,10 +328,10 @@ public static class Utils
         frames = Mathf.Max(1, frames);
         for (int i = 0; i < frames; ++i) yield return null;
     }
-    public static Piece.Requirement[] GetRequirements(this int[] Objects)
+    public static Piece.Requirement[] GetRequirements(this IntOrString[] Objects)
     {
         GameObject[] gameObjects = new GameObject[Objects.Length];
-        for (int i = 0; i < Objects.Length; ++i) gameObjects[i] = ZNetScene.instance.GetPrefab(Objects[i]);
+        for (int i = 0; i < Objects.Length; ++i) gameObjects[i] = ZNetScene.instance.GetPrefab((int)Objects[i]);
         Dictionary<ItemDrop, int> requirements = new Dictionary<ItemDrop, int>();
         for (int i = 0; i < gameObjects.Length; ++i)
         {
@@ -354,16 +354,16 @@ public static class Utils
         public int Amount;
         public Sprite Icon;
     }
-    public static IOrderedEnumerable<KeyValuePair<string, NumberedData>> GetPiecesNumbered(this int[] Objects)
+    public static IOrderedEnumerable<KeyValuePair<string, NumberedData>> GetPiecesNumbered(this IntOrString[] Objects)
     {
         GameObject[] pieces = new GameObject[Objects.Length];
-        for (int i = 0; i < Objects.Length; ++i) pieces[i] = ZNetScene.instance.GetPrefab(Objects[i]);
+        for (int i = 0; i < Objects.Length; ++i) pieces[i] = ZNetScene.instance.GetPrefab((int)Objects[i]);
         Dictionary<string, NumberedData> numbered = new Dictionary<string, NumberedData>();
         for (int i = 0; i < pieces.Length; ++i)
         {
             if (!pieces[i])
             {
-                string unknownName = $"Unknown ({Objects[i]})";
+                string unknownName = $"<color=red>Missing</color> ({Objects[i]})";
                 if (numbered.TryGetValue(unknownName, out NumberedData unknownValue)) unknownValue.Amount++;
                 else numbered[unknownName] = new NumberedData() { Amount = 1, Icon = null };
                 continue;
