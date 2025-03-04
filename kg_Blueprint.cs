@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using ItemManager;
@@ -22,12 +21,12 @@ public class kg_Blueprint : BaseUnityPlugin
     public static readonly string BlueprintsPath = Path.Combine(Paths.ConfigPath, "Blueprints");
     private static readonly List<GameObject> ReplaceMaterials = [];
     private static readonly List<GameObject> ReplaceShaders = []; 
-    private void Awake() 
+    private void Awake()  
     {
         _thistype = this;
         Localizer.Load();
-        LoadAsm("kg_BlueprintScripts"); 
-        BuildPiece blueprintBox = new BuildPiece(Asset, "kg_BlueprintBox");
+        LoadAsm("kg_BlueprintScripts");  
+        BuildPiece blueprintBox = new BuildPiece(Asset, "kg_BlueprintBox"); 
         blueprintBox.RequiredItems.Add("Grausten", 10, false);
         blueprintBox.RequiredItems.Add("SurtlingCore", 4, false);
         BuildPiece blueprintBoxLarge = new BuildPiece(Asset, "kg_BlueprintBox_Large");

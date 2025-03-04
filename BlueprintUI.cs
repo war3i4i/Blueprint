@@ -551,25 +551,29 @@ public static class BlueprintUI
     {
         private BlueprintRoot root;
         private int current;
+        private GameObject inactive;
         private void Awake()
         {
             current = 0; 
             if (_Internal_SelectedPiece.Value != null) root = _Internal_SelectedPiece.Value;
+            inactive = new GameObject("kg_Blueprint_Internal_Inactive");
+            inactive.transform.SetParent(transform);
+            inactive.transform.localPosition = Vector3.zero;
+            inactive.transform.localRotation = Quaternion.identity;
+            inactive.SetActive(false);
         }
         private void Update()
         {
             if (root == null || current >= root.Objects.Length) return;
-            this.gameObject.SetActive(false);
             const int maxPerFrame = 10;
             int total = root.Objects.Length;
             int count = maxPerFrame;
-            
             for(; current < total && count > 0; ++current, --count)
             {
-                BlueprintObject obj = root.Objects[current];
+                BlueprintObject obj = root.Objects[current]; 
                 GameObject prefab = ZNetScene.instance.GetPrefab((int)obj.Id);
                 if (!prefab) continue;
-                GameObject go = Object.Instantiate(prefab, transform); 
+                GameObject go = Object.Instantiate(prefab, inactive.transform); 
                 Quaternion deltaRotation = transform.rotation * Quaternion.Inverse(Quaternion.Euler(root.BoxRotation));
                 go.transform.position = transform.position + deltaRotation * obj.RelativePosition;
                 go.transform.rotation = deltaRotation * Quaternion.Euler(obj.Rotation); 
@@ -578,9 +582,14 @@ public static class BlueprintUI
                     if (comp is not Renderer and not MeshFilter and not Transform and not Animator) Object.DestroyImmediate(comp);
                 }
                 MeshRenderer[] renderers = go.GetComponentsInChildren<MeshRenderer>();
-                foreach (MeshRenderer t in renderers) t.SetPropertyBlock(MaterialPropertyBlock);
+                foreach (MeshRenderer t in renderers)
+                {
+                    t.SetPropertyBlock(MaterialPropertyBlock);
+                    t.receiveShadows = false;
+                    t.shadowCastingMode = ShadowCastingMode.Off;
+                }
+                go.transform.SetParent(transform);
             }
-            this.gameObject.SetActive(true);
         }
     }
     private static void OnSelect()  
