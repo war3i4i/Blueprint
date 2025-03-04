@@ -30,7 +30,8 @@ public static class InteractionUI
     private static TMP_InputField InputField_Description;
     private static Transform ReqsContent;
     private static Transform PiecesContent;
-    private static GameObject Entry;
+    private static GameObject PiecesEntry;
+    private static GameObject ResourceEntry;
     private static RawImage Icon;
     private static Texture OriginalIcon;
     private static readonly RawImage[] Previews = new RawImage[3];
@@ -39,7 +40,8 @@ public static class InteractionUI
         UI = Object.Instantiate(kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintInteractUI"));
         Object.DontDestroyOnLoad(UI);
         UI.SetActive(false);
-        Entry = UI.transform.Find("Canvas/UI/Pieces/Viewport/Content/Entry").gameObject;
+        PiecesEntry = UI.transform.Find("Canvas/UI/Pieces/Viewport/Content/Entry").gameObject;
+        ResourceEntry = UI.transform.Find("Canvas/UI/Reqs/Viewport/Content/Entry").gameObject;
         ReqsContent = UI.transform.Find("Canvas/UI/Reqs/Viewport/Content");
         PiecesContent = UI.transform.Find("Canvas/UI/Pieces/Viewport/Content");
         Icon = UI.transform.Find("Canvas/UI/Icon").GetComponent<RawImage>();
@@ -94,38 +96,73 @@ public static class InteractionUI
         if (string.IsNullOrWhiteSpace(name) || Current == null) return;
         string description = string.IsNullOrWhiteSpace(InputField_Description.text) ? null : InputField_Description.text;
         Texture2D icon = Icon.texture == OriginalIcon ? null : Icon.texture as Texture2D;
-        if (Current.CreateBlueprint(name, description, Game.instance.m_playerProfile.m_playerName, icon, out string reason)) MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, $"<color=green>{name}</color> $kg_blueprint_saved".Localize());
+        if (Current.CreateBlueprint(GetExcludedObjects(), name, description, Game.instance.m_playerProfile.m_playerName, icon, out string reason)) MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, $"<color=green>{name}</color> $kg_blueprint_saved".Localize());
         else MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, reason.Localize());
         Current = null;
-    }  
+    }
+    private static HashSet<string> GetExcludedObjects()
+    {
+        HashSet<string> excludeObjects = [];
+        for (int i = 1; i < PiecesContent.childCount; ++i)
+        {
+            GameObject entry = PiecesContent.GetChild(i).gameObject;
+            string[] split = entry.name.Split('%');
+            if (split.Length != 2) continue;
+            if (split[1] != "false") continue;
+            excludeObjects.Add(split[0]);
+            excludeObjects.Add(split[0] + "(Clone)");
+        }
+        return excludeObjects;
+    }
+    private static void ShowRequirements(IntOrString[] inside)
+    {
+        ReqsContent.RemoveAllChildrenExceptFirst();
+        HashSet<string> excluded = GetExcludedObjects(); 
+        inside = inside.Where(o => !excluded.Contains(o.ToString())).ToArray();
+        Piece.Requirement[] reqs = inside.GetRequirements();
+        for (int i = 0; i < reqs.Length; i++)
+        {
+            Piece.Requirement req = reqs[i];
+            GameObject entry = Object.Instantiate(ResourceEntry, ReqsContent); 
+            entry.SetActive(true);
+            entry.transform.Find("Icon").GetComponent<Image>().sprite = req.m_resItem.m_itemData.GetIcon();
+            entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{req.m_resItem.m_itemData.m_shared.m_name} x{req.m_amount}".Localize();
+        }
+    }
     public static void Show(BlueprintSource source) 
     { 
         if (source == null) return;
         InputField_Name.text = "";
         InputField_Description.text = "";
         Icon.texture = OriginalIcon;
-        ReqsContent.RemoveAllChildrenExceptFirst(); 
-        PiecesContent.RemoveAllChildrenExceptFirst();
+        PiecesContent.RemoveAllChildrenExceptFirst(); 
         Current = source;
         GameObject[] inside = source.GetObjectedInside;
         IntOrString[] objects = inside.Select(o => new IntOrString(o.name.Replace("(Clone)", ""))).ToArray();
-        Piece.Requirement[] reqs = objects.GetRequirements();
-        for (int i = 0; i < reqs.Length; i++)
-        {
-            Piece.Requirement req = reqs[i];
-            GameObject entry = Object.Instantiate(Entry, ReqsContent); 
-            entry.SetActive(true);
-            entry.transform.Find("Icon").GetComponent<Image>().sprite = req.m_resItem.m_itemData.GetIcon();
-            entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{req.m_resItem.m_itemData.m_shared.m_name} x{req.m_amount}".Localize();
-        }
         foreach (KeyValuePair<string, Utils.NumberedData> pair in objects.GetPiecesNumbered())
         {
-            GameObject entry = Object.Instantiate(Entry, PiecesContent);
+            GameObject entry = Object.Instantiate(PiecesEntry, PiecesContent);
             entry.SetActive(true); 
             entry.transform.Find("Icon").GetComponent<Image>().sprite = pair.Value.Icon ?? BlueprintUI.NoIcon;
             entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{pair.Key} x{pair.Value.Amount}".Localize();
+            
+            Button switchButton = entry.transform.Find("_bg").GetComponent<Button>();
+            switchButton.interactable = !pair.Value.Unknown;
+            entry.name = $"{pair.Value.PrefabName}%true";
+            if (switchButton.interactable) switchButton.onClick.AddListener(() =>
+            {
+                string[] split = entry.name.Split('%');
+                string key = split[0]; 
+                bool state = split[1] == "true";
+                entry.name = $"{key}%{(state ? "false" : "true")}";
+                entry.transform.Find("Icon").GetComponent<Image>().color = state ? Color.gray : Color.white;
+                entry.transform.Find("Name").GetComponent<TMP_Text>().color = state ? Color.gray : new Color(1f, 0.5882353f, 0.1176471f);
+                ShowRequirements(objects);
+                UpdateCanvases();
+            });
         }
-        Texture2D[] previews = Current.CreatePreviews(inside);
+        ShowRequirements(objects);
+        Texture2D[] previews = Current.CreatePreviews(inside); 
         for (int i = 0; i < 3; ++i) Previews[i].texture = previews[i];
         UI.SetActive(true);
         UpdateCanvases();

@@ -353,6 +353,8 @@ public static class Utils
     {
         public int Amount;
         public Sprite Icon;
+        public bool Unknown;
+        public string PrefabName;
     }
     public static IOrderedEnumerable<KeyValuePair<string, NumberedData>> GetPiecesNumbered(this IntOrString[] Objects)
     {
@@ -365,29 +367,29 @@ public static class Utils
             {
                 string unknownName = $"<color=red>Missing</color> ({Objects[i]})";
                 if (numbered.TryGetValue(unknownName, out NumberedData unknownValue)) unknownValue.Amount++;
-                else numbered[unknownName] = new NumberedData() { Amount = 1, Icon = null };
+                else numbered[unknownName] = new NumberedData() { Amount = 1, Icon = null, Unknown = true };
                 continue;
             }
             Piece p = pieces[i].GetComponent<Piece>();
             Sprite icon = p?.m_icon;
             string name = p ? p.m_name.Localize() : pieces[i].name;
             if (numbered.TryGetValue(name, out NumberedData value)) value.Amount++;
-            else numbered[name] = new NumberedData() { Amount = 1, Icon = icon };
+            else numbered[name] = new NumberedData() { Amount = 1, Icon = icon, Unknown = false, PrefabName = pieces[i].name };
         }
 
         return numbered.OrderByDescending(x => x.Value.Amount);
     }
-    public static bool CreateBlueprint(this BlueprintSource source, string bpName, string bpDesc, string bpAuthor, Texture2D icon, out string reason)
+    public static bool CreateBlueprint(this BlueprintSource source, HashSet<string> exclude, string bpName, string bpDesc, string bpAuthor, Texture2D icon, out string reason)
     {
         Stopwatch dbg_watch = Stopwatch.StartNew();
         reason = null;
         Vector3 start = source.StartPoint;
-        GameObject[] objects = source.GetObjectedInside;
+        GameObject[] objects = source.GetObjectedInside.Where(go => !exclude.Contains(go.name)).ToArray();
         if (objects.Length == 0)
         {
             reason = "$kg_blueprint_createblueprint_no_objects";
             return false;
-        }
+        } 
         BlueprintRoot root = BlueprintRoot.CreateNew(bpName, bpDesc, bpAuthor, source.Rotation, start, objects, icon);
         Texture2D[] previews = source.CreatePreviews(objects);
         root.SetPreviews(previews);
