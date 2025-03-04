@@ -29,7 +29,7 @@ public static class PlanbuildParser
                 else
                 {
                     string[] parts = line.Split(';');
-                    int id = parts[0].GetStableHashCode();
+                    string id = parts[0];
                     float posX = InvariantFloat(parts[2]);
                     float posY = InvariantFloat(parts[3]);
                     float posZ = InvariantFloat(parts[4]);

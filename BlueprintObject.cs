@@ -1,4 +1,7 @@
-﻿namespace kg_Blueprint;
+﻿using YamlDotNet.Core;
+using YamlDotNet.Core.Events;
+
+namespace kg_Blueprint;
 public interface ForeignBlueprintSource
 {
     public BlueprintRoot[] Blueprints { get; }
@@ -11,6 +14,10 @@ public interface BlueprintSource
     public GameObject[] GetObjectedInside { get; }
     public Vector3 StartPoint { get; }
     public Vector3 Rotation { get; }
+}
+public struct Prefab
+{
+    
 }
 public class BlueprintCircleCreator(Vector3 pos, float radius, float height) : BlueprintSource
 {
@@ -68,10 +75,39 @@ public class RenameBlueprintRoot(BlueprintRoot root, Action<string> callback) : 
         }
     }
 }
+public readonly struct IntOrString
+{
+    public IntOrString(string strVal)
+    {
+        _strValue = strVal;
+        _intValue = strVal.GetStableHashCode();
+    }
+    public IntOrString(int intVal) 
+    {
+        _intValue = intVal;
+    }
+    private readonly string _strValue;
+    private readonly int _intValue;
+    public static explicit operator int(IntOrString value) => value._intValue;
+    public static implicit operator IntOrString(int value) => new(value);
+    public static implicit operator IntOrString(string value) => new(value);
+    public override string ToString() => _strValue ?? _intValue.ToString();
+}
+public class IntOrStringConverter : IYamlTypeConverter
+{
+    public bool Accepts(Type type) => type == typeof(IntOrString);
+    public object ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer)
+    {
+        Scalar scalar = parser.Consume<Scalar>();
+        return int.TryParse(scalar.Value, out int intValue) ? new IntOrString(intValue) : new IntOrString(scalar.Value);
+    }
+    public void WriteYaml(IEmitter emitter, object value, Type type, ObjectSerializer serializer) =>
+        emitter.Emit(new Scalar(value?.ToString() ?? "ERROR"));
+}
 [Serializable]
 public class BlueprintObject
 {
-    public int Id;
+    public IntOrString Id;
     public SimpleVector3 RelativePosition;
     public SimpleVector3 Rotation;
     public string ZDOData;
@@ -131,7 +167,7 @@ public class BlueprintRoot : ISerializableParameter
                 RelativePosition = objects[i].transform.position - start,
                 Rotation = objects[i].transform.rotation.eulerAngles
             };
-            if (!Configs.SaveZDOHashset.Contains(root.Objects[i].Id)) continue;
+            if (!Configs.SaveZDOHashset.Contains((int)root.Objects[i].Id)) continue;
             ZDO zdo = objects[i].GetComponent<ZNetView>()?.GetZDO();
             if (zdo == null) continue;
             ZPackage pkg = new();
@@ -206,15 +242,15 @@ public class BlueprintRoot : ISerializableParameter
         foreach (BlueprintObject o in Objects) o.RelativePosition -= center;
         float minY = Objects.Min(x => x.RelativePosition.y);
         foreach (BlueprintObject o in Objects) o.RelativePosition.y -= minY;
-    } 
-    public Piece.Requirement[] GetRequirements() => Objects.Select(x => x.Id).ToArray().GetRequirements();
-    public IOrderedEnumerable<KeyValuePair<string, Utils.NumberedData>> GetPiecesNumbered() => Objects.Select(x => x.Id).ToArray().GetPiecesNumbered();
+    }
+    public Piece.Requirement[] GetRequirements() => Objects.Select(x => (int)x.Id).ToArray().GetRequirements();
+    public IOrderedEnumerable<KeyValuePair<string, Utils.NumberedData>> GetPiecesNumbered() => Objects.Select(x => (int)x.Id).ToArray().GetPiecesNumbered();
     public void Apply(Vector3 center, Quaternion rootRot, bool deactivate) => ZNetScene.instance.StartCoroutine(Internal_Apply(Configs.InstantBuild.Value, center, rootRot, deactivate));
     private IEnumerator Internal_Apply(bool instantBuild, Vector3 center, Quaternion rootRot, bool deactivate)
     {
         for (int i = 0; i < Objects.Length; ++i)
         {
-            GameObject prefab = ZNetScene.instance.GetPrefab(Objects[i].Id);
+            GameObject prefab = ZNetScene.instance.GetPrefab((int)Objects[i].Id);
             if (prefab == null) 
             { 
                 kg_Blueprint.Logger.LogDebug($"Failed to find prefab with id {Objects[i].Id} while applying blueprint ({Name})");
@@ -223,9 +259,9 @@ public class BlueprintRoot : ISerializableParameter
             Quaternion deltaRotation = rootRot * Quaternion.Inverse(Quaternion.Euler(BoxRotation));
             Vector3 pos = center + deltaRotation * Objects[i].RelativePosition;
             if (deactivate && !BlueprintPiece.IsInside(pos)) continue;
-            Quaternion rot = Quaternion.Euler(Objects[i].Rotation) * deltaRotation; 
+            Quaternion rot = deltaRotation * Quaternion.Euler(Objects[i].Rotation); 
             if (instantBuild || deactivate)
-            {
+            { 
                 GameObject newObj = Object.Instantiate(prefab, pos, rot);
                 Piece p = newObj.GetComponent<Piece>();
                 if (p) 
@@ -233,7 +269,7 @@ public class BlueprintRoot : ISerializableParameter
                     p.m_placeEffect.Create(pos, rot, p.transform);
                     p.SetCreator(Game.instance.m_playerProfile.m_playerID);
                     if (p.GetComponent<ItemDrop>() is {} item) item.MakePiece(true);
-                    if (deactivate && !Configs.SaveZDOHashset.Contains(Objects[i].Id))
+                    if (deactivate && !Configs.SaveZDOHashset.Contains((int)Objects[i].Id))
                     {
                         p.m_nview.m_zdo.Set("kg_Blueprint", true);
                         Piece_Awake_Patch.DeactivatePiece(p);
@@ -262,12 +298,12 @@ public class BlueprintRoot : ISerializableParameter
         if (forget)
             Task.Run(() =>
             {  
-                string data = new SerializerBuilder().ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitDefaults).Build().Serialize(clone);
+                string data = new SerializerBuilder().ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitDefaults).WithTypeConverter(new IntOrStringConverter()).Build().Serialize(clone);
                 path.WriteNoDupes(data, false);
             });
         else
         {
-            string data = new SerializerBuilder().ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitDefaults).Build().Serialize(clone);
+            string data = new SerializerBuilder().ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitDefaults).WithTypeConverter(new IntOrStringConverter()).Build().Serialize(clone);
             path.WriteNoDupes(data, false);
         }
     }
@@ -280,7 +316,7 @@ public class BlueprintRoot : ISerializableParameter
         pkg.Write(Objects.Length);
         for (int i = 0; i < Objects.Length; ++i)
         {
-            pkg.Write(Objects[i].Id);
+            pkg.Write((int)Objects[i].Id);
             pkg.Write(Objects[i].RelativePosition);
             pkg.Write(Objects[i].Rotation);
             pkg.Write(Objects[i].ZDOData != null);

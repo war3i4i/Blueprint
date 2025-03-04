@@ -2,6 +2,8 @@
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using YamlDotNet.Core;
+using YamlDotNet.Core.Events;
 using CompressionLevel = UnityEngine.CompressionLevel;
 
 namespace kg_Blueprint;
@@ -359,7 +361,13 @@ public static class Utils
         Dictionary<string, NumberedData> numbered = new Dictionary<string, NumberedData>();
         for (int i = 0; i < pieces.Length; ++i)
         {
-            if (!pieces[i]) continue;
+            if (!pieces[i])
+            {
+                string unknownName = $"Unknown ({Objects[i]})";
+                if (numbered.TryGetValue(unknownName, out NumberedData unknownValue)) unknownValue.Amount++;
+                else numbered[unknownName] = new NumberedData() { Amount = 1, Icon = null };
+                continue;
+            }
             Piece p = pieces[i].GetComponent<Piece>();
             Sprite icon = p?.m_icon;
             string name = p ? p.m_name.Localize() : pieces[i].name;
@@ -400,7 +408,7 @@ public static class Utils
         for (int i = 0; i < root.Objects.Length; ++i)
         {
             BlueprintObject obj = root.Objects[i];
-            GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
+            GameObject prefab = ZNetScene.instance.GetPrefab((int)obj.Id);
             if (!prefab) continue;
             GameObject go = Object.Instantiate(prefab, newObj.transform);
             Quaternion deltaRotation = Quaternion.Inverse(Quaternion.Euler(root.BoxRotation));

@@ -175,7 +175,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, BlueprintS
         for (int i = 0; i < root.Objects.Length; ++i)
         {
             BlueprintObject obj = root.Objects[i]; 
-            GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
+            GameObject prefab = ZNetScene.instance.GetPrefab((int)obj.Id);
             if (!prefab)
             {
                 kg_Blueprint.Logger.LogError($"Failed to load {obj.Id}");
@@ -184,7 +184,7 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, BlueprintS
             Quaternion deltaRotation = transform.rotation * Quaternion.Inverse(Quaternion.Euler(root.BoxRotation));
             Vector3 pos = center + deltaRotation * obj.RelativePosition;
             if (!IsInside(pos)) continue;
-            Quaternion rot = Quaternion.Euler(obj.Rotation) * deltaRotation;
+            Quaternion rot = deltaRotation * Quaternion.Euler(obj.Rotation); 
             GameObject go = Object.Instantiate(prefab, pos, rot);
             if (go.GetComponent<Piece>() is { } p) 
             { 

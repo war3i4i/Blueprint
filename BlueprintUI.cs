@@ -212,7 +212,7 @@ public static class BlueprintUI
         BlueprintEntry.SetActive(false); 
         ResourceEntry.SetActive(false);
         Content = BlueprintEntry.transform.parent;  
-        UI.transform.Find("Canvas/UI/Create").GetComponent<Button>().onClick.AddListener(() =>
+        UI.transform.Find("Canvas/UI/Create/Create").GetComponent<Button>().onClick.AddListener(() =>
         {
             Hide();
             SelectBlueprintCreator();
@@ -367,12 +367,12 @@ public static class BlueprintUI
             for (int j = 0; j < count; ++j) 
             {
                 BlueprintObject obj = root.Objects[i + j]; 
-                GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
+                GameObject prefab = ZNetScene.instance.GetPrefab((int)obj.Id);
                 if (!prefab) continue;
                 GameObject go = Object.Instantiate(prefab, ViewObject.transform);
                 Quaternion deltaRotation = Quaternion.Inverse(Quaternion.Euler(root.BoxRotation));
                 go.transform.position = deltaRotation * obj.RelativePosition;
-                go.transform.rotation = Quaternion.Euler(obj.Rotation) * deltaRotation;
+                go.transform.rotation = deltaRotation * Quaternion.Euler(obj.Rotation);
                 foreach (Component comp in go.GetComponentsInChildren<Component>(true).Reverse())
                 {
                     if (comp is not Renderer and not MeshFilter and not Transform and not Animator) Object.DestroyImmediate(comp);
@@ -528,12 +528,12 @@ public static class BlueprintUI
             for(; current < total && count > 0; ++current, --count)
             {
                 BlueprintObject obj = root.Objects[current];
-                GameObject prefab = ZNetScene.instance.GetPrefab(obj.Id);
+                GameObject prefab = ZNetScene.instance.GetPrefab((int)obj.Id);
                 if (!prefab) continue;
                 GameObject go = Object.Instantiate(prefab, transform); 
                 Quaternion deltaRotation = transform.rotation * Quaternion.Inverse(Quaternion.Euler(root.BoxRotation));
                 go.transform.position = transform.position + deltaRotation * obj.RelativePosition;
-                go.transform.rotation = Quaternion.Euler(obj.Rotation) * deltaRotation; 
+                go.transform.rotation = deltaRotation * Quaternion.Euler(obj.Rotation); 
                 foreach (Component comp in go.GetComponentsInChildren<Component>(true).Reverse())
                 {
                     if (comp is not Renderer and not MeshFilter and not Transform and not Animator) Object.DestroyImmediate(comp);
@@ -617,10 +617,11 @@ public static class BlueprintUI
         ButtonsTab.SetActive(ForeignSource == null);
         DeleteButton_Foreign.gameObject.SetActive(ForeignSource != null);
         if (ForeignSource != null) Load(ForeignSource.Blueprints, true);
+        UI.transform.Find("Canvas/UI/Create").gameObject.SetActive(ForeignSource == null);
         UI.SetActive(true);
     }
     private static void StopPreview()
-    {
+    { 
         ModelViewStart.gameObject.SetActive(true);
         ModelView.texture = null;
         ModelView.gameObject.SetActive(false);
@@ -809,7 +810,9 @@ public static class BlueprintUI
         [UsedImplicitly] private static void Postfix(Player __instance)
         {
             if (!__instance.m_placementGhost) return;
-            float dt = Time.deltaTime;
+            if (!IsHoldingHammer) return;
+            __instance.m_placementStatus = Player.PlacementStatus.Valid;
+            float dt = Time.deltaTime; 
             Vector3 toGhost = __instance.m_placementGhost.transform.position - __instance.transform.position;
             Vector3 rightDir = Vector3.Cross(Vector3.up, toGhost).normalized;
             Vector3 forwardDir = Vector3.Cross(rightDir, Vector3.up).normalized;
@@ -817,7 +820,7 @@ public static class BlueprintUI
             if (Input.GetKey(KeyCode.LeftArrow)) moveDir -= rightDir;
             if (Input.GetKey(KeyCode.RightArrow)) moveDir += rightDir;
             if (Input.GetKey(KeyCode.UpArrow)) moveDir += forwardDir;
-            if (Input.GetKey(KeyCode.DownArrow)) moveDir -= forwardDir;
+            if (Input.GetKey(KeyCode.DownArrow)) moveDir -= forwardDir; 
             if (Input.GetKey(KeyCode.PageUp)) moveDir += Vector3.up;
             if (Input.GetKey(KeyCode.PageDown)) moveDir -= Vector3.up;
             PreciseOffset += moveDir * dt * 2f;

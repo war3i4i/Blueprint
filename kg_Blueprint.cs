@@ -89,9 +89,9 @@ public class kg_Blueprint : BaseUnityPlugin
             try
             {
                 token.ThrowIfCancellationRequested();
+                IDeserializer builder = new DeserializerBuilder().WithTypeConverter(new IntOrStringConverter()).Build();
                 Stopwatch stopwatch = Stopwatch.StartNew();
                 List<BlueprintRoot> Blueprints = []; 
-                Deserializer deserializer = new Deserializer(); 
                 string[] files = Directory.GetFiles(BlueprintsPath, "*.yml", SearchOption.AllDirectories);
                 for (int i = 0; i < files.Length; ++i)
                 {
@@ -99,7 +99,7 @@ public class kg_Blueprint : BaseUnityPlugin
                     token.ThrowIfCancellationRequested();
                     try
                     {
-                        BlueprintRoot root = deserializer.Deserialize<BlueprintRoot>(File.ReadAllText(files[i]));
+                        BlueprintRoot root = builder.Deserialize<BlueprintRoot>(File.ReadAllText(files[i]));
                         if (!root.IsValid(out string reason))
                         {
                             Logger.LogError($"Blueprint {files[i]} is invalid: {reason}");
@@ -181,9 +181,9 @@ public class kg_Blueprint : BaseUnityPlugin
             try { bytes = Convert.FromBase64String(clipboard); }
             catch (Exception) { bytes = null; }
             try
-            {
+            { 
                 string data = bytes == null ? clipboard : Encoding.UTF8.GetString(bytes);
-                BlueprintRoot root = new Deserializer().Deserialize<BlueprintRoot>(data);
+                BlueprintRoot root = new DeserializerBuilder().WithTypeConverter(new IntOrStringConverter()).Build().Deserialize<BlueprintRoot>(data);
                 if (!root.IsValid(out string reason))
                 {
                     Logger.LogError($"Blueprint from clipboard is invalid: {reason}");

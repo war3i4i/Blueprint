@@ -21,7 +21,7 @@ public class VBuildParser
             {
                 string line = lines[i];
                 string[] parts = line.Split(' ');
-                int id = parts[0].GetStableHashCode();
+                string id = parts[0];
                 float rotX = InvariantFloat(parts[1]);
                 float rotY = InvariantFloat(parts[2]);
                 float rotZ = InvariantFloat(parts[3]);
