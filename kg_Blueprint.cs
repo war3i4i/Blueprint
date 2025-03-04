@@ -94,7 +94,7 @@ public class kg_Blueprint : BaseUnityPlugin
                 List<BlueprintRoot> Blueprints = []; 
                 string[] files = Directory.GetFiles(BlueprintsPath, "*.yml", SearchOption.AllDirectories);
                 for (int i = 0; i < files.Length; ++i)
-                {
+                { 
                     lastFile = files[i];
                     token.ThrowIfCancellationRequested();
                     try

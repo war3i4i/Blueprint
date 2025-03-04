@@ -193,6 +193,7 @@ public static class BlueprintUI
     private static Image ViewFill;
     private static readonly int valueNoise = Shader.PropertyToID("_ValueNoise");
     private static readonly int triplanarLocalPos = Shader.PropertyToID("_TriplanarLocalPos");
+    public static readonly MaterialPropertyBlock MaterialPropertyBlock = new MaterialPropertyBlock();
 
     public static void Init()
     {
@@ -212,6 +213,8 @@ public static class BlueprintUI
         BlueprintEntry.SetActive(false); 
         ResourceEntry.SetActive(false);
         Content = BlueprintEntry.transform.parent;  
+        MaterialPropertyBlock.SetFloat(valueNoise, 0f); 
+        MaterialPropertyBlock.SetFloat(triplanarLocalPos, 1f); 
         UI.transform.Find("Canvas/UI/Create/Create").GetComponent<Button>().onClick.AddListener(() =>
         {
             Hide();
@@ -381,6 +384,8 @@ public static class BlueprintUI
             ViewFill.fillAmount = (float)(i + count) / total;
             yield return null;
         }
+        MeshRenderer[] renderers = ViewObject.GetComponentsInChildren<MeshRenderer>();
+        foreach (MeshRenderer t in renderers) t.SetPropertyBlock(MaterialPropertyBlock);
         ModelPreview.SetAsCurrent(ModelView, ViewObject);
         ModelViewStart.gameObject.SetActive(false);
         ViewProgress.SetActive(false);
@@ -509,13 +514,10 @@ public static class BlueprintUI
     {
         private BlueprintRoot root;
         private int current;
-        private readonly MaterialPropertyBlock materialPropertyBlock = new MaterialPropertyBlock();
         private void Awake()
         {
             current = 0; 
             if (_Internal_SelectedPiece.Value != null) root = _Internal_SelectedPiece.Value;
-            materialPropertyBlock.SetFloat(valueNoise, 0f); 
-            materialPropertyBlock.SetFloat(triplanarLocalPos, 1f); 
         }
         private void Update()
         {
@@ -539,7 +541,7 @@ public static class BlueprintUI
                     if (comp is not Renderer and not MeshFilter and not Transform and not Animator) Object.DestroyImmediate(comp);
                 }
                 MeshRenderer[] renderers = go.GetComponentsInChildren<MeshRenderer>();
-                foreach (MeshRenderer t in renderers) t.SetPropertyBlock(materialPropertyBlock);
+                foreach (MeshRenderer t in renderers) t.SetPropertyBlock(MaterialPropertyBlock);
             }
             this.gameObject.SetActive(true);
         }
