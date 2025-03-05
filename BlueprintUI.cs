@@ -213,7 +213,7 @@ public static class BlueprintUI
     public static Sprite NoIcon;
     private static GameObject Projector;
     private static int CreatorRadius = 5;
-    public static Coroutine CreateViewCoroutine;
+    private static Coroutine CreateViewCoroutine;
     private static Transform Main;
     private static readonly RawImage[] Previews = new RawImage[3];
     private static TMP_Text BlueprintName, BlueprintDescription, BlueprintAuthor;
@@ -230,7 +230,7 @@ public static class BlueprintUI
     private static Image ViewFill;
     private static readonly int valueNoise = Shader.PropertyToID("_ValueNoise");
     private static readonly int triplanarLocalPos = Shader.PropertyToID("_TriplanarLocalPos");
-    public static readonly MaterialPropertyBlock MaterialPropertyBlock = new MaterialPropertyBlock();
+    private static readonly MaterialPropertyBlock MaterialPropertyBlock = new MaterialPropertyBlock();
 
     public static void Init()
     {
@@ -397,7 +397,7 @@ public static class BlueprintUI
         ViewObject.transform.position = Vector3.zero;
         ViewObject.transform.rotation = Quaternion.identity;
         ViewObject.SetActive(false);
-        const int maxPerFrame = 20;
+        int maxPerFrame = Configs.LoadViewMaxPerFrame.Value;
         int total = root.Objects.Length;
         ViewProgress.SetActive(true);
         ViewFill.fillAmount = 0;
@@ -561,13 +561,12 @@ public static class BlueprintUI
             inactive.transform.localPosition = Vector3.zero;
             inactive.transform.localRotation = Quaternion.identity;
             inactive.SetActive(false);
-        }
+        } 
         private void Update()
         {
             if (root == null || current >= root.Objects.Length) return;
-            const int maxPerFrame = 10;
             int total = root.Objects.Length;
-            int count = maxPerFrame;
+            int count = Configs.GhostmentPlaceMaxPerFrame.Value;
             for(; current < total && count > 0; ++current, --count)
             {
                 BlueprintObject obj = root.Objects[current]; 
@@ -583,7 +582,7 @@ public static class BlueprintUI
                 }
                 MeshRenderer[] renderers = go.GetComponentsInChildren<MeshRenderer>();
                 foreach (MeshRenderer t in renderers)
-                {
+                { 
                     t.SetPropertyBlock(MaterialPropertyBlock);
                     t.receiveShadows = false;
                     t.shadowCastingMode = ShadowCastingMode.Off;

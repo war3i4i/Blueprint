@@ -1,3 +1,4 @@
+kg_blueprint: Blueprint
 kg_blueprint_piece: Blueprint Box
 kg_blueprint_piece_large: Blueprint Box (Large)
 kg_blueprint_piece_large_nofloor: Blueprint Box (Large) No Floor
@@ -55,3 +56,8 @@ kg_blueprint_sharingpiece: Blueprint Table
 kg_blueprint_sharingpiece_desc: "Blueprint Table is a structure that allows you to share your blueprints with other players.\nYou can add your blueprints to the table and other players can load them."
 kg_blueprint_preciseplacement: "Precise Placement"
 kg_blueprint_preciseplacement_keys: "← ↑ → ↓ PgUp PgDn"
+kg_blueprint_removeplacementonunequip: "Remove Placement on Unequip"
+kg_blueprint_loadframeskip: "Load frame skip"
+kg_blueprint_buildframeskip: "Build frame skip"
+kg_blueprint_loadviewmaxperframe: "Load model view max per frame"
+kg_blueprint_ghostplacementmaxperframe: "Blueprint placement ghost max per frame"

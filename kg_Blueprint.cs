@@ -5,6 +5,7 @@ using ItemManager;
 using KeyManager;
 using LocalizationManager;
 using PieceManager;
+using ServerSync;
 
 namespace kg_Blueprint;
 
@@ -20,7 +21,16 @@ public class kg_Blueprint : BaseUnityPlugin
     public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");
     public static readonly string BlueprintsPath = Path.Combine(Paths.ConfigPath, "Blueprints");
     private static readonly List<GameObject> ReplaceMaterials = [];
-    private static readonly List<GameObject> ReplaceShaders = []; 
+    private static readonly List<GameObject> ReplaceShaders = [];
+    private static ServerSync.ConfigSync configSync = new ServerSync.ConfigSync(GUID) { DisplayName = NAME, CurrentVersion = VERSION, MinimumRequiredVersion = VERSION, ModRequired = false, IsLocked = true};
+    private static ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description, bool synchronizedSetting = true)
+    {
+        ConfigEntry<T> configEntry = _thistype.Config.Bind(group, name, value, description);
+        SyncedConfigEntry<T> syncedConfigEntry = configSync.AddConfigEntry(configEntry);
+        syncedConfigEntry.SynchronizedConfig = synchronizedSetting;
+        return configEntry;
+    }
+    public static ConfigEntry<T> config<T>(string group, string name, T value, string description, bool synchronizedSetting = true) => config(group, name, value, new ConfigDescription(description), synchronizedSetting);
     private void Awake()  
     {
         _thistype = this;
