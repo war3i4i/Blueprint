@@ -157,6 +157,7 @@ public class BlueprintRoot : ISerializableParameter
             Icon = icon ? Convert.ToBase64String(icon.EncodeToPNG()) : null
         };
         objects = objects.OrderBy(x => x.transform.position.y).ToArray(); 
+        List<Renderer> views = new();
         for (int i = 0; i < objects.Length; ++i)
         {
             string id = objects[i].name.Replace("(Clone)", "");
@@ -167,6 +168,7 @@ public class BlueprintRoot : ISerializableParameter
                 RelativePosition = objects[i].transform.position - start,
                 Rotation = objects[i].transform.rotation.eulerAngles
             };
+            views.AddRange(objects[i].GetComponentsInChildren<Renderer>());
             if (!Configs.SaveZDOHashset.Contains((int)root.Objects[i].Id)) continue;
             ZDO zdo = objects[i].GetComponent<ZNetView>()?.GetZDO();
             if (zdo == null) continue;
@@ -174,7 +176,7 @@ public class BlueprintRoot : ISerializableParameter
             zdo.SerializeZDO(pkg);
             root.Objects[i].ZDOData = Convert.ToBase64String(pkg.GetArray());
         }
-        root.NormalizeVectors();
+        root.NormalizeVectors(views, start);
         return root;
     }
     public void Delete()
@@ -234,14 +236,27 @@ public class BlueprintRoot : ISerializableParameter
         reason = "No objects in blueprint";
         return false;
     }
-    public void NormalizeVectors()
+    public void NormalizeVectors(List<Renderer> views = null, Vector3 startPoint = default)
     {
         if (Objects == null || Objects.Length == 0) return;
-        Vector3 center = Objects.Aggregate(Vector3.zero, (current, t) => current + t.RelativePosition);
-        center /= Objects.Length;
-        foreach (BlueprintObject o in Objects) o.RelativePosition -= center;
-        float minY = Objects.Min(x => x.RelativePosition.y);
-        foreach (BlueprintObject o in Objects) o.RelativePosition.y -= minY;
+        if (views == null)
+        {
+            Vector3 center = Objects.Aggregate(Vector3.zero, (current, t) => current + t.RelativePosition);
+            center /= Objects.Length;
+            foreach (BlueprintObject o in Objects) o.RelativePosition -= center;
+            float minY = Objects.Min(x => x.RelativePosition.y);
+            foreach (BlueprintObject o in Objects) o.RelativePosition.y -= minY;
+        }
+        else
+        {
+            Vector3 center = Vector3.zero;
+            foreach (Renderer r in views) center += r.bounds.center;
+            center /= views.Count;
+            float minY = views.Min(x => x.bounds.min.y);
+            Vector3 offset = center - startPoint; 
+            offset.y = minY - startPoint.y;
+            foreach (BlueprintObject o in Objects) o.RelativePosition -= offset;
+        }
     }
     public Piece.Requirement[] GetRequirements() => Objects.Select(x => x.Id).ToArray().GetRequirements();
     public IOrderedEnumerable<KeyValuePair<string, Utils.NumberedData>> GetPiecesNumbered() => Objects.Select(x => x.Id).ToArray().GetPiecesNumbered();
@@ -282,16 +297,16 @@ public class BlueprintRoot : ISerializableParameter
                         znv.m_zdo.DeserializeZDO(new(Objects[i].ZDOData));
                     }
                 } catch (Exception e) { kg_Blueprint.Logger.LogError(e); }
-            }
+            } 
             else
             {
                 BuildProgress.BuildProgressComponent component = Object.Instantiate(BuildProgress._piece, pos, rot).GetComponent<BuildProgress.BuildProgressComponent>();
                 component.Setup(prefab.name, Game.instance.m_playerProfile.m_playerID, Mathf.Max(1f, Configs.BuildTime.Value), Objects[i].ZDOData);
-            }
+            } 
             yield return Utils.WaitFrames(Configs.BlueprintBuildFrameSkip.Value);
-        }
+        } 
     }
-    public void Save(bool forget = true)
+    public void Save(bool forget = true) 
     {
         if (!TryGetFilePath(out string path)) return;
         BlueprintRoot clone = (BlueprintRoot)MemberwiseClone();

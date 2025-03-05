@@ -186,8 +186,8 @@ public class BlueprintPiece : MonoBehaviour, Interactable, Hoverable, BlueprintS
             if (!IsInside(pos)) continue;
             Quaternion rot = deltaRotation * Quaternion.Euler(obj.Rotation); 
             GameObject go = Object.Instantiate(prefab, pos, rot);
-            if (go.GetComponent<Piece>() is { } p) 
-            { 
+            if (go.GetComponent<Piece>() is { } p)
+            {  
                 if (go.GetComponent<ItemDrop>() is {} item) item.MakePiece(true);
                 p.m_nview?.m_zdo.Set("kg_Blueprint", true);
                 Piece_Awake_Patch.DeactivatePiece(p);

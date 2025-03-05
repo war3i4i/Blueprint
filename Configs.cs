@@ -14,7 +14,7 @@ public static class Configs
     private static void UpdateHashset() => SaveZDOHashset = [..SaveZDOForPrefabs.Value.Replace(" ", "").Split(',').Select(x => x.GetStableHashCode())];
     public static ConfigEntry<bool> IncludeTrees, IncludeDestructibles;
     public static void Init()
-    {
+    { 
         //synced
         InstantBuild = kg_Blueprint.config("General", "InstantBuild", false, "Instantly build blueprints when they are placed");
         BuildTime = kg_Blueprint.config("General", "BuildTime", 30, "Time in seconds it takes to build a blueprint (if InstantBuild is false)");
@@ -89,14 +89,14 @@ public static class Configs
             BlueprintLoadFrameSkip.onValueChanged.AddListener((float value) =>
             {
                 var tmp_value = BlueprintLoadFrameSkip.transform.parent.Find("Value").GetComponent<TMP_Text>();
-                tmp_value.text = ((int)value).ToString();
+                tmp_value.text = ((int)value).ToString(); 
             });
             BlueprintLoadFrameSkip.value = Configs.BlueprintLoadFrameSkip.Value;
             BlueprintBuildFrameSkip.onValueChanged.AddListener((float value) =>
             { 
                 var tmp_value = BlueprintBuildFrameSkip.transform.parent.Find("Value").GetComponent<TMP_Text>();
                 tmp_value.text = ((int)value).ToString();
-            });
+            }); 
             BlueprintBuildFrameSkip.value = Configs.BlueprintBuildFrameSkip.Value;
             LoadViewMaxPerFrame.onValueChanged.AddListener((float value) =>
             {
@@ -110,8 +110,8 @@ public static class Configs
                 tmp_value.text = ((int)value).ToString();
             });
             GhostmentPlaceMaxPerFrame.value = Configs.GhostmentPlaceMaxPerFrame.Value;
-        } 
-        public override void SaveSettings() 
+        }
+        public override void SaveSettings()
         { 
             Configs.RemoveBlueprintPlacementOnUnequip.Value = RemoveBlueprintPlacementOnUnequip.isOn;
             Configs.BlueprintLoadFrameSkip.Value = (int)BlueprintLoadFrameSkip.value;

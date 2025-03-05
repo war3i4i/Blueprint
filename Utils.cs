@@ -384,7 +384,8 @@ public static class Utils
         Stopwatch dbg_watch = Stopwatch.StartNew();
         reason = null;
         Vector3 start = source.StartPoint;
-        GameObject[] objects = source.GetObjectedInside.Where(go => !exclude.Contains(go.name)).ToArray();
+        GameObject[] objects = source.GetObjectedInside;
+        if (exclude.Count > 0) objects = objects.Where(go => !exclude.Contains(go.name)).ToArray();
         if (objects.Length == 0)
         {
             reason = "$kg_blueprint_createblueprint_no_objects";
