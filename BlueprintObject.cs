@@ -238,7 +238,7 @@ public class BlueprintRoot : ISerializableParameter
     }
     public void NormalizeVectors(List<Renderer> views = null, Vector3 startPoint = default)
     {
-        if (Objects == null || Objects.Length == 0) return;
+        if (Objects == null || Objects.Length == 0) return; 
         if (views == null)
         {
             Vector3 center = Objects.Aggregate(Vector3.zero, (current, t) => current + t.RelativePosition);

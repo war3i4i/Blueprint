@@ -848,7 +848,7 @@ public class ConfigSync
 			var socketField = AccessTools.Field(typeof(ZNetPeer), "m_socket");
 			var remotePlayerIdField = AccessTools.Field(typeof(ZPlayFabSocket), "m_remotePlayerId");
 			matcher.MatchForward(false,
-					new CodeMatch(OpCodes.Ldloc_1),
+					new CodeMatch(OpCodes.Ldloc_1), 
 					new CodeMatch(OpCodes.Ldfld, socketField),
 					new CodeMatch(OpCodes.Isinst),
 					new CodeMatch(OpCodes.Ldfld, remotePlayerIdField));

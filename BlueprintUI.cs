@@ -675,7 +675,7 @@ public static class BlueprintUI
         ModelView.gameObject.SetActive(false);
         ViewProgress.SetActive(false);
         ViewFill.fillAmount = 0;
-        if (CreateViewCoroutine != null) kg_Blueprint._thistype.StopCoroutine(CreateViewCoroutine);
+        if (CreateViewCoroutine != null) ZNetScene.instance.StopCoroutine(CreateViewCoroutine);
         CreateViewCoroutine = null;
         if (ViewObject) Object.Destroy(ViewObject);
         ModelPreview.StopPreview();

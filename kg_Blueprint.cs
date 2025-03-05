@@ -36,7 +36,7 @@ public class kg_Blueprint : BaseUnityPlugin
         _thistype = this;
         Localizer.Load();
         LoadAsm("kg_BlueprintScripts");  
-        BuildPiece blueprintBox = new BuildPiece(Asset, "kg_BlueprintBox"); 
+        BuildPiece blueprintBox = new BuildPiece(Asset, "kg_BlueprintBox");
         blueprintBox.RequiredItems.Add("Grausten", 10, false);
         blueprintBox.RequiredItems.Add("SurtlingCore", 4, false);
         BuildPiece blueprintBoxLarge = new BuildPiece(Asset, "kg_BlueprintBox_Large");

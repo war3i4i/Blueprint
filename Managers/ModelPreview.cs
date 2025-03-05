@@ -14,16 +14,16 @@ public static class ModelPreview
     private static readonly MaterialPropertyBlock materialPropertyBlock = new MaterialPropertyBlock();
     static ModelPreview()
     {
-        renderCamera = new GameObject("Render Camera", typeof(Camera)).GetComponent<Camera>();
+        renderCamera = new GameObject("Blueprint_ModelPreviewCamera", typeof(Camera)).GetComponent<Camera>();
         renderCamera.backgroundColor = new Color(0, 0, 0, 0);
         renderCamera.clearFlags = CameraClearFlags.SolidColor;
         renderCamera.transform.position = SpawnPoint;
         renderCamera.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
-        renderCamera.fieldOfView = 0.5f;
+        renderCamera.fieldOfView = 1f;
         renderCamera.farClipPlane = 100000;
         renderCamera.targetTexture = new RenderTexture(2048, 2048, 32);
         Object.DontDestroyOnLoad(renderCamera);
-        Light = new GameObject("Render Light", typeof(Light)).GetComponent<Light>();
+        Light = new GameObject("Blueprint_ModelPreviewLight", typeof(Light)).GetComponent<Light>();
         Light.transform.position = SpawnPoint;
         Light.transform.rotation = Quaternion.Euler(5f, 180f, 5f);
         Light.type = LightType.Point;
