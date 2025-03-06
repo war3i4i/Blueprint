@@ -6,6 +6,7 @@ using KeyManager;
 using LocalizationManager;
 using PieceManager;
 using ServerSync;
+using CraftingTable = ItemManager.CraftingTable;
 
 namespace kg_Blueprint;
 
@@ -22,7 +23,7 @@ public class kg_Blueprint : BaseUnityPlugin
     public static readonly string BlueprintsPath = Path.Combine(Paths.ConfigPath, "Blueprints");
     private static readonly List<GameObject> ReplaceMaterials = [];
     private static readonly List<GameObject> ReplaceShaders = [];
-    private static ServerSync.ConfigSync configSync = new ServerSync.ConfigSync(GUID) { DisplayName = NAME, CurrentVersion = VERSION, MinimumRequiredVersion = VERSION, ModRequired = false, IsLocked = true};
+    private static readonly ConfigSync configSync = new ServerSync.ConfigSync(GUID) { DisplayName = NAME, CurrentVersion = VERSION, MinimumRequiredVersion = VERSION, ModRequired = false, IsLocked = true};
     private static ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description, bool synchronizedSetting = true)
     {
         ConfigEntry<T> configEntry = _thistype.Config.Bind(group, name, value, description);
@@ -35,30 +36,26 @@ public class kg_Blueprint : BaseUnityPlugin
     {
         _thistype = this;
         Localizer.Load();
-        LoadAsm("kg_BlueprintScripts");  
+        LoadAsm("kg_BlueprintScripts");
         BuildPiece blueprintBox = new BuildPiece(Asset, "kg_BlueprintBox");
-        blueprintBox.RequiredItems.Add("Grausten", 10, false);
-        blueprintBox.RequiredItems.Add("SurtlingCore", 4, false);
-        BuildPiece blueprintBoxLarge = new BuildPiece(Asset, "kg_BlueprintBox_Large");
-        blueprintBoxLarge.RequiredItems.Add("Grausten", 20, false);
-        blueprintBoxLarge.RequiredItems.Add("SurtlingCore", 8, false);
-        BuildPiece blueprintBoxLargeNoFloor = new BuildPiece(Asset, "kg_BlueprintBox_Large_NoFloor");
-        blueprintBoxLargeNoFloor.RequiredItems.Add("Grausten", 20, false);
-        blueprintBoxLargeNoFloor.RequiredItems.Add("SurtlingCore", 8, false);
+        blueprintBox.RequiredItems.Add("Grausten", 20, false); 
+        blueprintBox.RequiredItems.Add("SurtlingCore", 8, false);
+        BuildPiece blueprintBoxNoFloor = new BuildPiece(Asset, "kg_BlueprintBox_Large_NoFloor");
+        blueprintBoxNoFloor.RequiredItems.Add("Grausten", 20, false);
+        blueprintBoxNoFloor.RequiredItems.Add("SurtlingCore", 8, false);
         blueprintBox.Prefab.AddComponent<BlueprintPiece>();
-        blueprintBoxLarge.Prefab.AddComponent<BlueprintPiece>();
-        blueprintBoxLargeNoFloor.Prefab.AddComponent<BlueprintPiece>();
+        blueprintBoxNoFloor.Prefab.AddComponent<BlueprintPiece>();
         ReplaceMaterials.Add(blueprintBox.Prefab);
-        ReplaceMaterials.Add(blueprintBoxLarge.Prefab);
-        ReplaceMaterials.Add(blueprintBoxLargeNoFloor.Prefab);
+        ReplaceMaterials.Add(blueprintBoxNoFloor.Prefab);
         BuildPiece sharingPiece = new BuildPiece(Asset, "kg_BlueprintSharing");
         sharingPiece.Prefab.AddComponent<BlueprintSharing>();
-        sharingPiece.RequiredItems.Add("Wood", 30, true);
+        sharingPiece.RequiredItems.Add("Wood", 30, true); 
         sharingPiece.RequiredItems.Add("Iron", 5, true); 
         ReplaceShaders.Add(sharingPiece.Prefab);
         Item blueprintHammer = new Item(Asset, "kg_BlueprintHammer"){ Configurable = Configurability.Recipe };
         blueprintHammer.RequiredItems.Add("Wood", 10);
         blueprintHammer.RequiredItems.Add("Blueberries", 5);
+        blueprintHammer.Crafting.Add(CraftingTable.Inventory, 1);
         Configs.Init(); 
         if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null) return;
         if (!Directory.Exists(BlueprintsPath)) Directory.CreateDirectory(BlueprintsPath); 

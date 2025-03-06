@@ -135,7 +135,6 @@
         <Compile Include="GlobalUsings.cs" />
         <Compile Include="Managers\LocalizationManager.cs" />
         <Compile Include="Managers\ModelPreview.cs" />
-        <Compile Include="Managers\oldp.cs" />
         <Compile Include="Managers\ServerSync.cs" />
         <Compile Include="Parsers\PlanbuildParser.cs" />
         <Compile Include="Parsers\VBuildParser.cs" />
