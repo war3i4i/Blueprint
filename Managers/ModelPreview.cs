@@ -11,7 +11,6 @@ public static class ModelPreview
     private static float OriginalXPos;
     private static float OriginalCameraZPos;
     private static GameObject CurrentPreviewGO;
-    private static readonly MaterialPropertyBlock materialPropertyBlock = new MaterialPropertyBlock();
     static ModelPreview()
     {
         renderCamera = new GameObject("Blueprint_ModelPreviewCamera", typeof(Camera)).GetComponent<Camera>();

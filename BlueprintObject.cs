@@ -271,12 +271,16 @@ public class BlueprintRoot : ISerializableParameter
                 kg_Blueprint.Logger.LogDebug($"Failed to find prefab with id {Objects[i].Id} while applying blueprint ({Name})");
                 continue;
             } 
+            if (prefab.GetComponent<TreeBase>() && !Configs.IncludeTrees.Value) continue;
+            if (prefab.GetComponent<Destructible>() && !Configs.IncludeDestructibles.Value) continue;
+            
             Quaternion deltaRotation = rootRot * Quaternion.Inverse(Quaternion.Euler(BoxRotation));
             Vector3 pos = center + deltaRotation * Objects[i].RelativePosition;
             if (deactivate && !BlueprintPiece.IsInside(pos)) continue;
             Quaternion rot = deltaRotation * Quaternion.Euler(Objects[i].Rotation); 
             if (instantBuild || deactivate)
             { 
+                
                 GameObject newObj = Object.Instantiate(prefab, pos, rot);
                 Piece p = newObj.GetComponent<Piece>();
                 if (p) 
@@ -292,7 +296,7 @@ public class BlueprintRoot : ISerializableParameter
                 }
                 try
                 {
-                    if (!string.IsNullOrEmpty(Objects[i].ZDOData) && newObj.GetComponent<ZNetView>() is {} znv)
+                    if (!string.IsNullOrEmpty(Objects[i].ZDOData) && newObj.GetComponent<ZNetView>() is {} znv && Configs.SaveZDOHashset.Contains((int)Objects[i].Id))
                     {
                         znv.m_zdo.DeserializeZDO(new(Objects[i].ZDOData));
                     }

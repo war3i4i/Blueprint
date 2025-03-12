@@ -12,35 +12,37 @@ namespace kg_Blueprint;
 
 [BepInPlugin(GUID, NAME, VERSION)]
 [VerifyKey("KGvalheim/BlueprintTest", LicenseMode.Always)]
-public class kg_Blueprint : BaseUnityPlugin
-{ 
+public class kg_Blueprint : BaseUnityPlugin 
+{
     public static kg_Blueprint _thistype;
     private const string GUID = "kg.Blueprint";
-    private const string NAME = "Blueprint";
+    private const string NAME = "Blueprint"; 
     private const string VERSION = "1.0.0";
     public new static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(GUID);
-    public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");
+    public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");  
     public static readonly string BlueprintsPath = Path.Combine(Paths.ConfigPath, "Blueprints");
-    private static readonly List<GameObject> ReplaceMaterials = [];
-    private static readonly List<GameObject> ReplaceShaders = [];
+    private static readonly List<GameObject> ReplaceMaterials = []; 
+    private static readonly List<GameObject> ReplaceShaders = []; 
     private static readonly ConfigSync configSync = new ServerSync.ConfigSync(GUID) { DisplayName = NAME, CurrentVersion = VERSION, MinimumRequiredVersion = VERSION, ModRequired = false, IsLocked = true};
     private static ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description, bool synchronizedSetting = true)
     {
         ConfigEntry<T> configEntry = _thistype.Config.Bind(group, name, value, description);
-        SyncedConfigEntry<T> syncedConfigEntry = configSync.AddConfigEntry(configEntry);
+        SyncedConfigEntry<T> syncedConfigEntry = configSync.AddConfigEntry(configEntry); 
         syncedConfigEntry.SynchronizedConfig = synchronizedSetting;
         return configEntry;
     }
+    
     public static ConfigEntry<T> config<T>(string group, string name, T value, string description, bool synchronizedSetting = true) => config(group, name, value, new ConfigDescription(description), synchronizedSetting);
     private void Awake()  
     {
-        _thistype = this;
+        _thistype = this; 
         Localizer.Load();
         LoadAsm("kg_BlueprintScripts");
+        PlanbuildParser.CreateIcon();
         BuildPiece blueprintBox = new BuildPiece(Asset, "kg_BlueprintBox");
         blueprintBox.RequiredItems.Add("Grausten", 20, false); 
-        blueprintBox.RequiredItems.Add("SurtlingCore", 8, false);
-        BuildPiece blueprintBoxNoFloor = new BuildPiece(Asset, "kg_BlueprintBox_Large_NoFloor");
+        blueprintBox.RequiredItems.Add("SurtlingCore", 8, false); 
+        BuildPiece blueprintBoxNoFloor = new BuildPiece(Asset, "kg_BlueprintBox_NoFloor");
         blueprintBoxNoFloor.RequiredItems.Add("Grausten", 20, false);
         blueprintBoxNoFloor.RequiredItems.Add("SurtlingCore", 8, false);
         blueprintBox.Prefab.AddComponent<BlueprintPiece>();

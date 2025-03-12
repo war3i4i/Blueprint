@@ -18,9 +18,9 @@ public static class Configs
         //synced
         InstantBuild = kg_Blueprint.config("General", "InstantBuild", false, "Instantly build blueprints when they are placed");
         BuildTime = kg_Blueprint.config("General", "BuildTime", 30, "Time in seconds it takes to build a blueprint (if InstantBuild is false)");
+        SaveZDOForPrefabs = kg_Blueprint.config("General", "SaveZDOForPrefabs", "MarketPlaceNPC,Sign", "Save ZDOs for prefabs with the given name (comma separated)");
         IncludeTrees = kg_Blueprint.config("General", "IncludeTrees", true, "Include trees in blueprints");
         IncludeDestructibles = kg_Blueprint.config("General", "IncludeDestructibles", true, "Include destructibles in blueprints");
-        SaveZDOForPrefabs = kg_Blueprint.config("General", "SaveZDOForPrefabs", "MarketPlaceNPC,Sign", "Save ZDOs for prefabs with the given name (comma separated)");
         UpdateHashset();
         SaveZDOForPrefabs.SettingChanged += (_, _) => UpdateHashset();
         //local

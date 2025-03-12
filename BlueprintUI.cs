@@ -209,30 +209,30 @@ public static class BlueprintUI
     private static GameObject ResourceEntry;
     private static Transform Content;
     private static GameObject ForeignTab;
-    private static Transform ForeignContent;
+    private static Transform ForeignContent; 
     public static Sprite NoIcon;
     private static GameObject Projector;
-    private static int CreatorRadius = 5;
-    private static Coroutine CreateViewCoroutine;
+    private static int CreatorRadius = 5; 
+    private static Coroutine CreateViewCoroutine;  
     private static Transform Main;
     private static readonly RawImage[] Previews = new RawImage[3];
     private static TMP_Text BlueprintName, BlueprintDescription, BlueprintAuthor;
     private static RawImage ModelView;
     private static Button ModelViewStart;
     private static Button CopyToClipboardButton;
-    private static TMP_Text SelectButton_Text;
-    private static GameObject ButtonsTab;
+    private static TMP_Text SelectButton_Text; 
+    private static GameObject ButtonsTab; 
     private static Button DeleteButton_Foreign;
-    private static ForeignBlueprintSource ForeignSource;
-    private static bool IsForeign;
-    private static GameObject ViewObject;
+    private static ForeignBlueprintSource ForeignSource; 
+    private static bool IsForeign;   
+    private static GameObject ViewObject;   
     private static GameObject ViewProgress;
     private static Image ViewFill;
     private static readonly int valueNoise = Shader.PropertyToID("_ValueNoise");
     private static readonly int triplanarLocalPos = Shader.PropertyToID("_TriplanarLocalPos");
     private static readonly MaterialPropertyBlock MaterialPropertyBlock = new MaterialPropertyBlock();
 
-    public static void Init()
+    public static void Init() 
     {
         UI = Object.Instantiate(kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintUI"));
         CopyFrom = kg_Blueprint.Asset.LoadAsset<GameObject>("kg_BlueprintCopyFrom");
@@ -472,8 +472,31 @@ public static class BlueprintUI
     {
         GameObject entry = Object.Instantiate(BlueprintEntry, isForeign ? ForeignContent : Content);
         entry.SetActive(true);
-        entry.transform.Find("Name").GetComponent<TMP_Text>().text = root.Name;
+        string entryName = null;
+        if (isForeign) entryName = root.Name;
+        else
+        {
+            var source = root.Source;
+            switch (source)
+            {
+                case BlueprintRoot.SourceType.Planbuild:
+                    entryName = $"<color=#808080>[.PB]</color> {root.Name}";
+                    break;
+                 case BlueprintRoot.SourceType.VBuild:
+                    entryName = $"<color=#808080>[.VB]</color> {root.Name}";
+                    break;
+                case BlueprintRoot.SourceType.Native:
+                    entryName = root.Name;
+                    break;
+            }
+        } 
+        entry.transform.Find("Name").GetComponent<TMP_Text>().text = entryName;
         if (root.Icon.ToIcon() is {} icon) entry.transform.Find("Icon").GetComponent<RawImage>().texture = icon;
+        else
+        {
+            var source = root.Source;
+            if (source != BlueprintRoot.SourceType.Native) entry.transform.Find("Icon").GetComponent<RawImage>().texture = PlanbuildParser.PB_Icon;
+        }
 
         UIInputHandler handler = entry.GetComponent<UIInputHandler>();
         handler.m_onLeftClick += (_) =>
@@ -521,7 +544,7 @@ public static class BlueprintUI
         if (Current == root || root == null) return;
         Current = root;  
         LastPressedEntry = obj; 
-        BlueprintName.text = Current.Name;
+        BlueprintName.text = Current.Name + $" ($kg_blueprint_pieces: <color=yellow>{Current.Objects.Length}</color>)".Localize();
         CopyToClipboardButton.interactable = Current.Source == BlueprintRoot.SourceType.Native;
         BlueprintDescription.text = string.IsNullOrWhiteSpace(Current.Description) ? "$kg_blueprint_nodescription".Localize() : Current.Description;
         BlueprintAuthor.text = $"$kg_blueprint_author\n<color=green>{(string.IsNullOrWhiteSpace(Current.Author) ? "$kg_blueprint_noauthor" : Current.Author)}</color>".Localize();
@@ -589,7 +612,7 @@ public static class BlueprintUI
                 }
                 go.transform.SetParent(transform);
             }
-        }
+        } 
     }
     private static void OnSelect()  
     {

@@ -67,7 +67,7 @@ public static class PhotoManager
     {
         return component is Renderer or MeshFilter or Transform;
     }
-    
+     
     private static GameObject SpawnAndRemoveComponents(RenderRequest obj)
     {
         GameObject tempObj = Object.Instantiate(obj.Target, INACTIVE.transform);

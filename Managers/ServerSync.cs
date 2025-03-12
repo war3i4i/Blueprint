@@ -59,7 +59,7 @@ public class SyncedConfigEntry<T> : OwnConfigEntryBase
 
 public abstract class CustomSyncedValueBase
 {
-	public event Action? ValueChanged;
+	public Action? ValueChanged;
 
 	public object? LocalBaseValue;
 
@@ -100,6 +100,8 @@ public sealed class CustomSyncedValue<T> : CustomSyncedValueBase
 		get => (T)BoxedValue!;
 		set => BoxedValue = value;
 	}
+
+	public void Update() => ValueChanged?.Invoke();
 
 	public CustomSyncedValue(ConfigSync configSync, string identifier, T value = default!, int priority = 0) : base(configSync, identifier, typeof(T), priority)
 	{
