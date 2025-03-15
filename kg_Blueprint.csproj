@@ -60,9 +60,6 @@
         <Reference Include="gui_framework">
           <HintPath>Libs\gui_framework.dll</HintPath>
         </Reference>
-        <Reference Include="KeyManager">
-          <HintPath>KeyManager.dll</HintPath>
-        </Reference>
         <Reference Include="kg_BlueprintScripts">
           <HintPath>Assets\kg_BlueprintScripts.dll</HintPath>
         </Reference>
@@ -160,13 +157,11 @@
     </ItemGroup>
     <ItemGroup>
       <EmbeddedResource Include="Assets\kg_BlueprintScripts.dll" />
+    </ItemGroup>
+    <ItemGroup>
+      <Content Include="ILRepack.targets" />
     </ItemGroup> 
-    <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
-    <UsingTask AssemblyFile="KeyManager.dll" TaskName="KeyManager.Seal"/>
-    <Target Name="KeyManager" AfterTargets="ILRepack">
-        <Seal DLL="$(TargetPath)"/>
-    </Target>
-    
+    <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>    
     <Target Name="Copy" AfterTargets="KeyManager">
         <Exec Command="copy /Y &quot;$(TargetDir)$(AssemblyName).dll&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Valheim\BepInEx\plugins\$(AssemblyName).dll&quot;" />
         <Exec Command="copy /Y &quot;$(TargetDir)$(AssemblyName).dll&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Valheim Dedicated Server\BepInEx\plugins\$(AssemblyName).dll&quot;" />

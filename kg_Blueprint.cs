@@ -2,7 +2,6 @@
 using System.Text;
 using System.Threading;
 using ItemManager;
-using KeyManager;
 using LocalizationManager;
 using PieceManager;
 using ServerSync;
@@ -11,12 +10,11 @@ using CraftingTable = ItemManager.CraftingTable;
 namespace kg_Blueprint;
 
 [BepInPlugin(GUID, NAME, VERSION)]
-[VerifyKey("KGvalheim/BlueprintTest", LicenseMode.Always)]
 public class kg_Blueprint : BaseUnityPlugin 
 {
     public static kg_Blueprint _thistype;
     private const string GUID = "kg.Blueprint";
-    private const string NAME = "Blueprint"; 
+    private const string NAME = "Blueprint";  
     private const string VERSION = "1.0.0";
     public new static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(GUID);
     public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");  
@@ -196,13 +194,13 @@ public class kg_Blueprint : BaseUnityPlugin
                 {
                     Logger.LogError($"Blueprint from clipboard is invalid: {reason}");
                     return;
-                }
+                } 
                 root.AssignPath(Path.Combine(kg_Blueprint.BlueprintsPath, root.Name + ".yml"), false);
                 root.Save(false);
                 ThreadingHelper.Instance.StartSyncInvoke(() => BlueprintUI.AddEntry(root, true, true));
             }
             catch (Exception e)
-            {
+            { 
                 Logger.LogError($"Error loading blueprint from clipboard: {e}");
             }
         });
