@@ -228,6 +228,7 @@ public static class BlueprintUI
     private static GameObject ViewObject;   
     private static GameObject ViewProgress;
     private static Image ViewFill;
+    private static Button Convert;
     private static readonly int valueNoise = Shader.PropertyToID("_ValueNoise");
     private static readonly int triplanarLocalPos = Shader.PropertyToID("_TriplanarLocalPos");
     private static readonly MaterialPropertyBlock MaterialPropertyBlock = new MaterialPropertyBlock();
@@ -276,23 +277,17 @@ public static class BlueprintUI
                 Hide();
                 return;
             }
-            if (IsForeign) 
-            {
-                GameObject temp = Current.CreateViewGameObjectForBlueprint();
-                Texture2D[] previews = PhotoManager.MakeBulkSprites(temp, 1f, 
-                    Quaternion.Euler(30f, 0f, 0f),
-                    Quaternion.Euler(23f, 51f, 25.8f),
-                    Quaternion.Euler(23f, 51f, 25.8f) * Quaternion.Euler(0f, 180f, 0f));
-                Object.DestroyImmediate(temp); 
-                Current.SetPreviews(previews);
-                Current.AssignPath(Path.Combine(kg_Blueprint.BlueprintsPath, Current.Name + ".yml"), false);
-                Current.Save();
-                AddEntry(Current, true);
-            }
-            else
-            {
-                if (ForeignSource.Add(Current)) AddEntry(Current, true, false, true);
-            }
+            if (IsForeign) AddFromForeign(Current);
+            else if (ForeignSource.Add(Current)) AddEntry(Current, true, false, true);
+            ResetMain();
+        });
+        Convert = Main.transform.Find("Convert").GetComponent<Button>();
+        Convert.onClick.AddListener(() =>
+        { 
+            if (Current == null || ForeignSource != null) return;
+            BlueprintRoot clone = Current.Clone();
+            clone.Source = BlueprintRoot.SourceType.Native;
+            AddFromForeign(clone);
             ResetMain();
         });
         SelectButton_Text = Main.transform.Find("Select/text").GetComponent<TMP_Text>();
@@ -370,6 +365,19 @@ public static class BlueprintUI
         ResetMain(); 
         foreach (Button button in UI.GetComponentsInChildren<Button>(true)) button.onClick.AddListener(AudioMan_Awake_Patch.Click);
         InteractionUI.Init();
+    } 
+    private static void AddFromForeign(BlueprintRoot root)
+    {
+        GameObject temp = root.CreateViewGameObjectForBlueprint();
+        Texture2D[] previews = PhotoManager.MakeBulkSprites(temp, 1f, 
+            Quaternion.Euler(30f, 0f, 0f),
+            Quaternion.Euler(23f, 51f, 25.8f),
+            Quaternion.Euler(23f, 51f, 25.8f) * Quaternion.Euler(0f, 180f, 0f));
+        Object.DestroyImmediate(temp); 
+        root.SetPreviews(previews);
+        root.AssignPath(Path.Combine(kg_Blueprint.BlueprintsPath, Current.Name + ".yml"), false);
+        root.Save();
+        AddEntry(root, true);
     }
     private static void ResetMain()
     {
@@ -542,8 +550,8 @@ public static class BlueprintUI
         ResetMain();
         OnSelect();
         if (Current == root || root == null) return;
-        Current = root;  
-        LastPressedEntry = obj; 
+        Current = root;
+        LastPressedEntry = obj;
         BlueprintName.text = Current.Name + $" ($kg_blueprint_pieces: <color=yellow>{Current.Objects.Length}</color>)".Localize();
         CopyToClipboardButton.interactable = Current.Source == BlueprintRoot.SourceType.Native;
         BlueprintDescription.text = string.IsNullOrWhiteSpace(Current.Description) ? "$kg_blueprint_nodescription".Localize() : Current.Description;
@@ -557,6 +565,7 @@ public static class BlueprintUI
         Main.gameObject.SetActive(true);
         IsForeign = isForeign;
         DeleteButton_Foreign.interactable = isForeign;
+        Convert.gameObject.SetActive(Current.Source != BlueprintRoot.SourceType.Native);
         if (ForeignSource == null) SelectButton_Text.text = "$kg_blueprint_select".Localize();
         else  SelectButton_Text.text =  IsForeign ? "$kg_blueprint_copy".Localize() : "$kg_blueprint_add".Localize();
         UpdateCanvases(); 

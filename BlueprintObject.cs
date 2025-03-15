@@ -310,6 +310,7 @@ public class BlueprintRoot : ISerializableParameter
             yield return Utils.WaitFrames(Configs.BlueprintBuildFrameSkip.Value);
         } 
     }
+    public BlueprintRoot Clone() => (BlueprintRoot)MemberwiseClone();
     public void Save(bool forget = true) 
     {
         if (!TryGetFilePath(out string path)) return;

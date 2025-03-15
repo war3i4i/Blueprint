@@ -20,7 +20,7 @@ public class VBuildParser
             for (int i = 0; i < lines.Length; ++i)
             {
                 string line = lines[i];
-                string[] parts = line.Split(' ');
+                string[] parts = line.Replace(',','.').Split(' ');
                 string id = parts[0];
                 float rotX = InvariantFloat(parts[1]);
                 float rotY = InvariantFloat(parts[2]);

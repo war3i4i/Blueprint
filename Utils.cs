@@ -416,7 +416,7 @@ public static class Utils
             GameObject go = Object.Instantiate(prefab, newObj.transform);
             Quaternion deltaRotation = Quaternion.Inverse(Quaternion.Euler(root.BoxRotation));
             go.transform.position = deltaRotation * obj.RelativePosition;
-            go.transform.rotation = Quaternion.Euler(obj.Rotation) * deltaRotation;
+            go.transform.rotation = deltaRotation * Quaternion.Euler(obj.Rotation);
             foreach (Component comp in go.GetComponentsInChildren<Component>(true).Reverse())
             {
                 if (comp is Renderer or MeshFilter or Transform or Animator) continue;

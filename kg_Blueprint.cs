@@ -33,7 +33,7 @@ public class kg_Blueprint : BaseUnityPlugin
     }
     
     public static ConfigEntry<T> config<T>(string group, string name, T value, string description, bool synchronizedSetting = true) => config(group, name, value, new ConfigDescription(description), synchronizedSetting);
-    private void Awake()  
+    private void Awake()
     {
         _thistype = this; 
         Localizer.Load();

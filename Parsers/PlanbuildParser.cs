@@ -36,7 +36,7 @@ public static class PlanbuildParser
                 }
                 else
                 {
-                    string[] parts = line.Split(';');
+                    string[] parts = line.Replace(',','.').Split(';');
                     string id = parts[0];
                     float posX = InvariantFloat(parts[2]);
                     float posY = InvariantFloat(parts[3]);

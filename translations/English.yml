@@ -61,3 +61,4 @@ kg_blueprint_buildframeskip: "Build blueprint frame skip"
 kg_blueprint_loadviewmaxperframe: "Load blueprint model view max per frame"
 kg_blueprint_ghostplacementmaxperframe: "Blueprint placement ghost max per frame"
 kg_blueprint_pieces: Pieces
+kg_blueprint_converttonative: Convert to Native
