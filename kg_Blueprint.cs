@@ -14,7 +14,7 @@ public class kg_Blueprint : BaseUnityPlugin
 {
     public static kg_Blueprint _thistype;
     private const string GUID = "kg.Blueprint";
-    private const string NAME = "Blueprint";  
+    private const string NAME = "Blueprint";
     private const string VERSION = "1.0.0";
     public new static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(GUID);
     public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");  
@@ -67,22 +67,16 @@ public class kg_Blueprint : BaseUnityPlugin
     private void FixedUpdate() => PlayerState.Update();
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.I)) kg_Blueprint.Logger.LogDebug($"Pieces: {Piece.s_allPieces.Count}");
-        if (Input.GetKeyDown(KeyCode.Equals))
-        {
-            foreach (Piece piece in Piece.s_allPieces) piece.m_nview.Destroy();
-            kg_Blueprint.Logger.LogDebug("Destroyed all pieces. Now: " + Piece.s_allPieces.Count);
-        }
         BlueprintUI.Update();
         InteractionUI.Update();  
     }
-    private static AssetBundle GetAssetBundle(string filename)
+    private static AssetBundle GetAssetBundle(string filename) 
     {
         Assembly execAssembly = Assembly.GetExecutingAssembly(); 
         string resourceName = execAssembly.GetManifestResourceNames().Single(str => str.EndsWith(filename));
         using Stream stream = execAssembly.GetManifestResourceStream(resourceName)!;
         return AssetBundle.LoadFromStream(stream);
-    } 
+    }  
     private static CancellationTokenSource _cts = new CancellationTokenSource();
     public static void ReadBlueprints()
     {
