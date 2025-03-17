@@ -56,7 +56,7 @@ kg_blueprint_sharingpiece_desc: "Blueprint Table is a structure that allows you 
 kg_blueprint_preciseplacement: "Precise Placement"
 kg_blueprint_preciseplacement_keys: "← ↑ → ↓ PgUp PgDn"
 kg_blueprint_hiderequirements: "Hide Requirements"
-kg_blueprint_hiderequirements_keys: "L. Ctrl"
+kg_blueprint_hiderequirements_keys: "~"
 kg_blueprint_removeplacementonunequip: "Remove Placement on Unequip"
 kg_blueprint_loadframeskip: "Load blueprint frame skip"
 kg_blueprint_buildframeskip: "Build blueprint frame skip"

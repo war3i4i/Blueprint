@@ -752,7 +752,7 @@ public static class BlueprintUI
             }
         }
     }
-    public static bool IsHoldingHammer => Player.m_localPlayer.m_buildPieces == kg_Blueprint.Blueprint_PT;
+    public static bool IsHoldingHammer => Player.m_localPlayer?.m_buildPieces == kg_Blueprint.Blueprint_PT;
     [HarmonyPatch(typeof(Hud),nameof(Hud.TogglePieceSelection))]
     private static class Hud_UpdateBuild_Patch
     {
@@ -958,7 +958,7 @@ public static class BlueprintUI
                 HideRequirements = false;
                 return;
             }
-            if (Input.GetKeyDown(KeyCode.LeftControl)) HideRequirements = !HideRequirements;
+            if (Input.GetKeyDown(KeyCode.BackQuote)) HideRequirements = !HideRequirements;
             __instance.m_buildHud.gameObject.SetActive(!HideRequirements);
         }
     }

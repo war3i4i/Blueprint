@@ -15,7 +15,7 @@ public class kg_Blueprint : BaseUnityPlugin
     public static kg_Blueprint _thistype;
     private const string GUID = "kg.Blueprint";
     private const string NAME = "Blueprint";
-    private const string VERSION = "1.3.0";
+    private const string VERSION = "1.3.1";
     public new static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(GUID);
     public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");  
     public static readonly string BlueprintsPath = Path.Combine(Paths.ConfigPath, "Blueprints");
