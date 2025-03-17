@@ -175,36 +175,40 @@ public static class BuildProgress
             {
                 WearNTear wnt = gameObject.AddComponent<WearNTear>();
                 wnt.m_autoCreateFragments = false;
-            }*/
+            }*/ 
         }
         private void FixedUpdate()
         {
-            if (!_znet.IsOwner()) return;
-            _Time += Time.fixedDeltaTime;
-            if (_Time >= _MaxTime)
-            { 
-                GameObject orig = ZNetScene.instance.GetPrefab(_Prefab);
-                if (orig)
-                {
-                    GameObject newObj = Instantiate(orig, transform.position, transform.rotation);
-                    Piece p = newObj.GetComponent<Piece>();
-                    if (p)
+            if (_znet.IsOwner())
+            {
+                float time = _Time;
+                time += Time.fixedDeltaTime;
+                _Time = time;
+                if (time >= _MaxTime)
+                { 
+                    GameObject orig = ZNetScene.instance.GetPrefab(_Prefab);
+                    if (orig)
                     {
-                        p.SetCreator(_Creator);
-                        p.m_placeEffect.Create(p.transform.position, p.transform.rotation, p.transform);  
-                        if (p.GetComponent<ItemDrop>() is {} item) item.MakePiece(true);
-                    }
-                    try
-                    {
-                        string zdoData = _ZDOData;
-                        if (!string.IsNullOrEmpty(zdoData) && newObj.GetComponent<ZNetView>() is {} znv)
+                        GameObject newObj = Instantiate(orig, transform.position, transform.rotation);
+                        Piece p = newObj.GetComponent<Piece>();
+                        if (p)
                         {
-                            znv.m_zdo.DeserializeZDO(new(zdoData));
+                            p.SetCreator(_Creator);
+                            p.m_placeEffect.Create(p.transform.position, p.transform.rotation, p.transform);  
+                            if (p.GetComponent<ItemDrop>() is {} item) item.MakePiece(true);
                         }
-                    } catch (Exception e) { kg_Blueprint.Logger.LogError(e); }
+                        try
+                        {
+                            string zdoData = _ZDOData;
+                            if (!string.IsNullOrEmpty(zdoData) && newObj.GetComponent<ZNetView>() is {} znv)
+                            {
+                                znv.m_zdo.DeserializeZDO(new(zdoData));
+                            }
+                        } catch (Exception e) { kg_Blueprint.Logger.LogError(e); }
+                    }
+                    _znet.Destroy();
+                    return; 
                 }
-                _znet.Destroy();
-                return;
             }
             float progress = _Time / _MaxTime;
             float setCurrentWorldSpaceVisibility = Mathf.Lerp(MinY, MaxY, progress);

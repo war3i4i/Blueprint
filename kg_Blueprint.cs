@@ -15,11 +15,11 @@ public class kg_Blueprint : BaseUnityPlugin
     public static kg_Blueprint _thistype;
     private const string GUID = "kg.Blueprint";
     private const string NAME = "Blueprint";
-    private const string VERSION = "1.0.0";
+    private const string VERSION = "1.1.0";
     public new static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(GUID);
     public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");  
     public static readonly string BlueprintsPath = Path.Combine(Paths.ConfigPath, "Blueprints");
-    private static readonly List<GameObject> ReplaceMaterials = []; 
+    private static readonly List<GameObject> ReplaceMaterials = [];  
     private static readonly List<GameObject> ReplaceShaders = []; 
     private static readonly ConfigSync configSync = new ServerSync.ConfigSync(GUID) { DisplayName = NAME, CurrentVersion = VERSION, MinimumRequiredVersion = VERSION, ModRequired = false, IsLocked = true};
     private static ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description, bool synchronizedSetting = true)
@@ -47,11 +47,11 @@ public class kg_Blueprint : BaseUnityPlugin
         blueprintBoxNoFloor.Prefab.AddComponent<BlueprintPiece>();
         ReplaceMaterials.Add(blueprintBox.Prefab);
         ReplaceMaterials.Add(blueprintBoxNoFloor.Prefab);
-        BuildPiece sharingPiece = new BuildPiece(Asset, "kg_BlueprintSharing");
+        /*BuildPiece sharingPiece = new BuildPiece(Asset, "kg_BlueprintSharing");
         sharingPiece.Prefab.AddComponent<BlueprintSharing>();
         sharingPiece.RequiredItems.Add("Wood", 30, true); 
         sharingPiece.RequiredItems.Add("Iron", 5, true); 
-        ReplaceShaders.Add(sharingPiece.Prefab);
+        ReplaceShaders.Add(sharingPiece.Prefab); */
         Item blueprintHammer = new Item(Asset, "kg_BlueprintHammer"){ Configurable = Configurability.Recipe };
         blueprintHammer.RequiredItems.Add("Wood", 10);
         blueprintHammer.RequiredItems.Add("Blueberries", 5);
@@ -61,7 +61,7 @@ public class kg_Blueprint : BaseUnityPlugin
         if (!Directory.Exists(BlueprintsPath)) Directory.CreateDirectory(BlueprintsPath); 
         BlueprintUI.Init(); 
         BuildProgress.Init();
-        ReadBlueprints(); 
+        ReadBlueprints();  
         new Harmony(GUID).PatchAll();
     }
     private void FixedUpdate() => PlayerState.Update();
