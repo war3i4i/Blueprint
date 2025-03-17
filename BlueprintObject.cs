@@ -307,7 +307,8 @@ public class BlueprintRoot : ISerializableParameter
                 BuildProgress.BuildProgressComponent component = Object.Instantiate(BuildProgress._piece, pos, rot).GetComponent<BuildProgress.BuildProgressComponent>();
                 component.Setup(prefab.name, Game.instance.m_playerProfile.m_playerID, Mathf.Max(1f, Configs.BuildTime.Value), Objects[i].ZDOData);
             } 
-            yield return Utils.WaitFrames(Configs.BlueprintBuildFrameSkip.Value);
+            int frameSkip = Configs.BlueprintBuildFrameSkip.Value;
+            if (frameSkip > 0) yield return Utils.WaitFrames(Configs.BlueprintBuildFrameSkip.Value);
         } 
     }
     public BlueprintRoot Clone() => (BlueprintRoot)MemberwiseClone();

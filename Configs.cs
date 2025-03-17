@@ -82,6 +82,7 @@ public static class Configs
             RemoveBlueprintPlacementOnUnequip = this.transform.Find("List/RemoveBlueprintPlacementOnUnequip").GetComponent<GuiToggle>();
             BlueprintLoadFrameSkip = this.transform.Find("List/BlueprintLoadFrameSkip/Slider").GetComponent<Slider>();
             BlueprintBuildFrameSkip = this.transform.Find("List/BlueprintBuildFrameSkip/Slider").GetComponent<Slider>();
+            BlueprintBuildFrameSkip.minValue = 0f;
             LoadViewMaxPerFrame = this.transform.Find("List/LoadViewMaxPerFrame/Slider").GetComponent<Slider>();
             GhostmentPlaceMaxPerFrame = this.transform.Find("List/GhostmentPlaceMaxPerFrame/Slider").GetComponent<Slider>();
             

@@ -65,7 +65,7 @@ public static class InteractionUI
     }
     public static void Update()
     {
-        bool isVisible = IsVisible; 
+        bool isVisible = IsVisible;
         if (Input.GetKeyDown(KeyCode.Escape) && isVisible)
         {
             Hide();
@@ -134,7 +134,7 @@ public static class InteractionUI
         if (source == null) return;
         InputField_Name.text = "";
         InputField_Description.text = "";
-        Icon.texture = OriginalIcon;
+        Icon.texture = OriginalIcon; 
         PiecesContent.RemoveAllChildrenExceptFirst(); 
         Current = source;
         GameObject[] inside = source.GetObjectedInside;
@@ -144,11 +144,11 @@ public static class InteractionUI
             GameObject entry = Object.Instantiate(PiecesEntry, PiecesContent);
             entry.SetActive(true); 
             entry.transform.Find("Icon").GetComponent<Image>().sprite = pair.Value.Icon ?? BlueprintUI.NoIcon;
-            entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{pair.Key} x{pair.Value.Amount}".Localize();
+            entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{pair.Value.PrefabName} x{pair.Value.Amount}".Localize();
             
             Button switchButton = entry.transform.Find("_bg").GetComponent<Button>();
             switchButton.interactable = !pair.Value.Unknown;
-            entry.name = $"{pair.Value.PrefabName}%true";
+            entry.name = $"{pair.Key}%true";
             if (switchButton.interactable) switchButton.onClick.AddListener(() =>
             {
                 string[] split = entry.name.Split('%');
@@ -686,7 +686,7 @@ public static class BlueprintUI
             GameObject entry = Object.Instantiate(ResourceEntry, PiecesContent);
             entry.SetActive(true);
             entry.transform.Find("Icon").GetComponent<Image>().sprite = pair.Value.Icon ?? NoIcon;
-            entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{pair.Key} x{pair.Value.Amount}".Localize();
+            entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{pair.Value.PrefabName} x{pair.Value.Amount}".Localize();
         }
     }
 
@@ -738,9 +738,11 @@ public static class BlueprintUI
     {
         [UsedImplicitly] private static void Postfix(Humanoid __instance, ItemDrop.ItemData item)
         {
-            if (Player.m_localPlayer != __instance) return;
-            if (item?.m_dropPrefab.name == "kg_BlueprintHammer")
+            if (Player.m_localPlayer != __instance || item == null) return; 
+            if (item.m_shared.m_buildPieces == kg_Blueprint.Blueprint_PT)
             {
+                kg_Blueprint.Logger.LogDebug($"Hiding stuff");
+                Hud_UpdateBuild_Patch_HideMenu.HideRequirements = false;
                 Hide();
                 if (Configs.RemoveBlueprintPlacementOnUnequip.Value)
                 {
@@ -750,7 +752,7 @@ public static class BlueprintUI
             }
         }
     }
-    private static bool IsHoldingHammer => Player.m_localPlayer?.m_rightItem?.m_dropPrefab?.name == "kg_BlueprintHammer";
+    public static bool IsHoldingHammer => Player.m_localPlayer.m_buildPieces == kg_Blueprint.Blueprint_PT;
     [HarmonyPatch(typeof(Hud),nameof(Hud.TogglePieceSelection))]
     private static class Hud_UpdateBuild_Patch
     {
@@ -908,21 +910,28 @@ public static class BlueprintUI
         }
     }
     [HarmonyPatch(typeof(KeyHints),nameof(KeyHints.Awake))]
-    private static class KeyHints_Awake_Patch 
+    private static class KeyHints_Awake_Patch
     {
+        public static GameObject KeyHint_HideRequirements;
         public static GameObject KeyHint_LeftControl_Snap;
+        private static GameObject CreateNewKeyHint(Transform parent, string name, string text, string keys)
+        {
+            GameObject go = Object.Instantiate(parent.gameObject, parent.parent);
+            go.name = "KeyHint_Blueprint_" + name;
+            go.transform.SetAsFirstSibling();
+            go.transform.Find("Text").GetComponent<TMP_Text>().text = text;
+            go.transform.Find("Text").GetComponent<TMP_Text>().color = new Color(0.16f, 0.53f, 1f);
+            go.transform.Find("key_bkg/Key").GetComponent<TMP_Text>().text = keys;
+            go.transform.Find("key_bkg/Key").GetComponent<TMP_Text>().color = new Color(0.16f, 0.53f, 1f);
+            go.SetActive(false);
+            return go;
+        }
         [UsedImplicitly] private static void Postfix(KeyHints __instance)
         {
             var copyFrom = __instance.m_buildHints.transform.Find("Keyboard/Place");
             if (copyFrom is null) return;
-            KeyHint_LeftControl_Snap = Object.Instantiate(copyFrom.gameObject, copyFrom.parent);
-            KeyHint_LeftControl_Snap.name = "KeyHint_Blueprint_PrecisePlacement";
-            KeyHint_LeftControl_Snap.transform.SetAsFirstSibling();
-            KeyHint_LeftControl_Snap.transform.Find("Text").GetComponent<TMP_Text>().text = "$kg_blueprint_preciseplacement".Localize();
-            KeyHint_LeftControl_Snap.transform.Find("Text").GetComponent<TMP_Text>().color = new Color(0.16f, 0.53f, 1f);
-            KeyHint_LeftControl_Snap.transform.Find("key_bkg/Key").GetComponent<TMP_Text>().text = "$kg_blueprint_preciseplacement_keys".Localize();
-            KeyHint_LeftControl_Snap.transform.Find("key_bkg/Key").GetComponent<TMP_Text>().color = new Color(0.16f, 0.53f, 1f);
-            KeyHint_LeftControl_Snap.SetActive(false);
+            KeyHint_HideRequirements = CreateNewKeyHint(copyFrom, "HideRequirements", "$kg_blueprint_hiderequirements".Localize(), "$kg_blueprint_hiderequirements_keys".Localize());
+            KeyHint_LeftControl_Snap = CreateNewKeyHint(copyFrom, "PrecisePlacement", "$kg_blueprint_preciseplacement".Localize(), "$kg_blueprint_preciseplacement_keys".Localize());
         }
     }
     [HarmonyPatch(typeof(KeyHints),nameof(KeyHints.UpdateHints))]
@@ -930,7 +939,27 @@ public static class BlueprintUI
     {
         [UsedImplicitly] private static void Postfix(KeyHints __instance)
         {
-            if(__instance.m_buildHints.activeSelf) KeyHints_Awake_Patch.KeyHint_LeftControl_Snap.SetActive(IsHoldingHammer);
+            if (__instance.m_buildHints.activeSelf)
+            {
+                bool holdingHammer = IsHoldingHammer;
+                KeyHints_Awake_Patch.KeyHint_LeftControl_Snap.SetActive(holdingHammer);
+                KeyHints_Awake_Patch.KeyHint_HideRequirements.SetActive(holdingHammer);
+            }
         } 
-    } 
+    }
+    [HarmonyPatch(typeof(Hud),nameof(Hud.UpdateBuild))]
+    private static class Hud_UpdateBuild_Patch_HideMenu
+    {
+        public static bool HideRequirements = false;
+        private static void Postfix(Hud __instance)
+        {
+            if (!IsHoldingHammer)
+            {
+                HideRequirements = false;
+                return;
+            }
+            if (Input.GetKeyDown(KeyCode.LeftControl)) HideRequirements = !HideRequirements;
+            __instance.m_buildHud.gameObject.SetActive(!HideRequirements);
+        }
+    }
 }

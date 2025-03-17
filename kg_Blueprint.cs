@@ -15,7 +15,7 @@ public class kg_Blueprint : BaseUnityPlugin
     public static kg_Blueprint _thistype;
     private const string GUID = "kg.Blueprint";
     private const string NAME = "Blueprint";
-    private const string VERSION = "1.1.0";
+    private const string VERSION = "1.3.0";
     public new static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(GUID);
     public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");  
     public static readonly string BlueprintsPath = Path.Combine(Paths.ConfigPath, "Blueprints");
@@ -26,10 +26,10 @@ public class kg_Blueprint : BaseUnityPlugin
     {
         ConfigEntry<T> configEntry = _thistype.Config.Bind(group, name, value, description);
         SyncedConfigEntry<T> syncedConfigEntry = configSync.AddConfigEntry(configEntry); 
-        syncedConfigEntry.SynchronizedConfig = synchronizedSetting;
+        syncedConfigEntry.SynchronizedConfig = synchronizedSetting; 
         return configEntry;
     }
-    
+    public static PieceTable Blueprint_PT;
     public static ConfigEntry<T> config<T>(string group, string name, T value, string description, bool synchronizedSetting = true) => config(group, name, value, new ConfigDescription(description), synchronizedSetting);
     private void Awake()
     {
@@ -56,6 +56,7 @@ public class kg_Blueprint : BaseUnityPlugin
         blueprintHammer.RequiredItems.Add("Wood", 10);
         blueprintHammer.RequiredItems.Add("Blueberries", 5);
         blueprintHammer.Crafting.Add(CraftingTable.Inventory, 1);
+        Blueprint_PT = blueprintHammer.Prefab.GetComponent<ItemDrop>().m_itemData.m_shared.m_buildPieces;
         Configs.Init(); 
         if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null) return;
         if (!Directory.Exists(BlueprintsPath)) Directory.CreateDirectory(BlueprintsPath); 

@@ -365,16 +365,17 @@ public static class Utils
         {
             if (!pieces[i])
             {
-                string unknownName = $"<color=red>Missing</color> ({Objects[i]})";
-                if (numbered.TryGetValue(unknownName, out NumberedData unknownValue)) unknownValue.Amount++;
-                else numbered[unknownName] = new NumberedData() { Amount = 1, Icon = null, Unknown = true };
+                string missingKey = Objects[i].ToString();
+                if (numbered.TryGetValue(missingKey, out NumberedData unknownValue)) unknownValue.Amount++;
+                else numbered[missingKey] = new NumberedData() { Amount = 1, Icon = null, Unknown = true, PrefabName = $"<color=red>Missing</color> ({missingKey})" };
                 continue;
             }
+            string key = pieces[i].name;
             Piece p = pieces[i].GetComponent<Piece>();
             Sprite icon = p?.m_icon;
             string name = p ? p.m_name.Localize() : pieces[i].name;
-            if (numbered.TryGetValue(name, out NumberedData value)) value.Amount++;
-            else numbered[name] = new NumberedData() { Amount = 1, Icon = icon, Unknown = false, PrefabName = pieces[i].name };
+            if (numbered.TryGetValue(key, out NumberedData value)) value.Amount++;
+            else numbered[key] = new NumberedData() { Amount = 1, Icon = icon, Unknown = false, PrefabName = name };
         }
 
         return numbered.OrderByDescending(x => x.Value.Amount);
