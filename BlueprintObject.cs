@@ -164,6 +164,8 @@ public class BlueprintRoot : ISerializableParameter
     private string FilePath;
     private Texture2D[] CachedPreviews;
     public string Name;
+    public string Category;
+    public string CategoryColor;
     public string Author;
     public string Description;
     public string Icon;

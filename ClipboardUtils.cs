@@ -1,6 +1,4 @@
 ﻿using System.Runtime.InteropServices;
-namespace kg_Blueprint;
-
 public static class ClipboardUtils
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]

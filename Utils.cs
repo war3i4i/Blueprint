@@ -32,8 +32,8 @@ public static class Utils
     public static string Localize(this string str, params string[] args) => Localization.instance.Localize(str, args);
     public static string ValidPath(this string path, [CallerMemberName] string caller = "", [CallerLineNumber] int line = 0)
     {
+        if (string.IsNullOrWhiteSpace(path)) return null;
         string msg = $"{caller}({line})";
-        if (string.IsNullOrWhiteSpace(path)) throw new Exception($"Path is null or empty [{msg}]");
         return Path.GetInvalidPathChars().Aggregate(path, (current, c) => current.Replace(c.ToString(), string.Empty));
     }
     public static void WriteNoDupes(this string path, string data, bool forget)
@@ -128,6 +128,13 @@ public static class Utils
     public static void RemoveAllChildrenExceptFirst(this Transform t)
     {
         for (int i = t.childCount - 1; i > 0; --i)
+        {
+            Object.DestroyImmediate(t.GetChild(i).gameObject);
+        }
+    }
+    public static void RemoveAllChildrenExceptFirstTwo(this Transform t)
+    {
+        for (int i = t.childCount - 1; i > 1; --i)
         {
             Object.DestroyImmediate(t.GetChild(i).gameObject);
         }

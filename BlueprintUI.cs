@@ -205,6 +205,7 @@ public static class BlueprintUI
     private static GameObject CopyFrom;
     private static GameObject UI;
     private static GameObject BlueprintEntry;
+    private static GameObject BlueprintCategoryEntry;
     private static Transform ResourceContent;
     private static Transform PiecesContent;
     private static GameObject ResourceEntry;
@@ -244,6 +245,7 @@ public static class BlueprintUI
         UI.SetActive(false);
         Main = UI.transform.Find("Canvas/UI/Main");
         BlueprintEntry = UI.transform.Find("Canvas/UI/List/Scroll View/Viewport/Content/Entry").gameObject;
+        BlueprintCategoryEntry = UI.transform.Find("Canvas/UI/List/Scroll View/Viewport/Content/CategoryEntry").gameObject;
         ForeignTab = UI.transform.Find("Canvas/UI/ForeignList").gameObject;
         ForeignContent = ForeignTab.transform.Find("Scroll View/Viewport/Content");
         ResourceEntry = Main.transform.Find("Reqs/Viewport/Content/Entry").gameObject;
@@ -454,6 +456,12 @@ public static class BlueprintUI
             fitter.enabled = false;
             fitter.enabled = true;
         }
+        Canvas.ForceUpdateCanvases(); 
+        foreach (ContentSizeFitter fitter in fitters)
+        {
+            fitter.enabled = false;
+            fitter.enabled = true;
+        }
     }
     public static void Load(IReadOnlyList<BlueprintRoot> blueprints, bool isForeign = false)
     {
@@ -461,7 +469,7 @@ public static class BlueprintUI
         _Internal_SelectedPiece = default;
         Player.m_localPlayer?.SetupPlacementGhost();
         if (isForeign) ForeignContent.RemoveAllChildrenExceptFirst();
-        else Content.RemoveAllChildrenExceptFirst();
+        else Content.RemoveAllChildrenExceptFirstTwo();
         for (int i = 0; i < blueprints.Count; i++)
         {
             BlueprintRoot blueprint = blueprints[i];
@@ -474,13 +482,62 @@ public static class BlueprintUI
     }
     private static void ClearSelections()
     {
-        UIInputHandler[] UIInputHandlers = Content.GetComponentsInChildren<UIInputHandler>().Concat(ForeignContent.GetComponentsInChildren<UIInputHandler>()).ToArray();
+        UIInputHandler[] UIInputHandlers = Content.GetComponentsInChildren<UIInputHandler>(true).Concat(ForeignContent.GetComponentsInChildren<UIInputHandler>(true)).ToArray();
         for (int i = 0; i < UIInputHandlers.Length; i++) UIInputHandlers[i].transform.Find("Selection").GetComponent<Image>().color = Color.clear;
+    }
+    private static void ClearSoftSelections()
+    {
+        UIInputHandler[] UIInputHandlers = Content.GetComponentsInChildren<UIInputHandler>(true).Concat(ForeignContent.GetComponentsInChildren<UIInputHandler>(true)).ToArray();
+        for (int i = 0; i < UIInputHandlers.Length; i++)
+        {
+            Image img = UIInputHandlers[i].transform.Find("Selection").GetComponent<Image>();
+            if (img.color != Color.green) img.color = Color.clear;
+        }
     }
     public static void AddEntry(BlueprintRoot root, bool updateCanvases, bool select = false, bool isForeign = false)
     {
-        GameObject entry = Object.Instantiate(BlueprintEntry, isForeign ? ForeignContent : Content);
-        entry.SetActive(true);
+        GameObject entry = null; 
+        string category = root.Category.ValidPath();
+        if (string.IsNullOrWhiteSpace(category) || isForeign)
+        {
+            entry = Object.Instantiate(BlueprintEntry, isForeign ? ForeignContent : Content);
+            entry.SetActive(true);
+        }
+        else
+        {
+            string catName = $"???Category_{category}"; 
+            Transform existing = Content.Find(catName);
+            if (!existing)
+            { 
+                GameObject catEntry = Object.Instantiate(BlueprintCategoryEntry, Content);
+                catEntry.name = catName;
+                catEntry.transform.Find("Button/Name").GetComponent<TMP_Text>().text = category;
+                existing = catEntry.transform;
+                var catHandler = existing.transform.Find("Button").GetComponent<Button>();
+                catHandler.onClick.AddListener(() =>
+                { 
+                    AudioMan_Awake_Patch.Click(); 
+                    bool opened = existing.tag == "spawned";
+                    existing.tag = opened ? "Untagged" : "spawned";
+                    if (opened) for (int i = 1; i < existing.childCount; ++i) existing.GetChild(i).gameObject.SetActive(false);
+                    else for (int i = 1; i < existing.childCount; ++i) existing.GetChild(i).gameObject.SetActive(true);
+                    
+                    Transform openedIcon = existing.Find("Button/Img_O");
+                    Transform closedIcon = existing.Find("Button/Img_C");
+                    openedIcon.gameObject.SetActive(opened);
+                    closedIcon.gameObject.SetActive(!opened);
+                    existing.GetComponent<Image>().enabled = !opened;
+                    existing.GetComponent<VerticalLayoutGroup>().padding.top = opened ? 40 : 44;
+                    UpdateCanvases(); 
+                });
+                Color c = (!string.IsNullOrEmpty(root.CategoryColor) && ColorUtility.TryParseHtmlString(root.CategoryColor, out Color color)) ? color : Color.white;
+                existing.GetComponent<Image>().color = c;
+                existing.transform.Find("Button/_bg").GetComponent<Image>().color = c;
+                existing.gameObject.SetActive(true);
+            }
+            entry = Object.Instantiate(BlueprintEntry, existing);
+            entry.SetActive(false);
+        }
         string entryName = null;
         if (isForeign) entryName = root.Name;
         else
@@ -539,15 +596,31 @@ public static class BlueprintUI
         }
         if (select) handler.m_onLeftClick(null);
     }
-    private static void SortEntriesByName()
+    private static void SortEntriesByName() 
     {
-        List<Transform> children = new(Content.childCount - 1);
-        for (int i = 1; i < Content.childCount; ++i) children.Add(Content.GetChild(i));
+        List<Transform> children = new(Content.childCount - 2);
+        List<Transform> categories = new(Content.childCount - 2);
+        for (int i = 2; i < Content.childCount; ++i)
+        { 
+            if (Content.GetChild(i).name.Contains("???Category_"))
+            {
+                Transform catTransform = Content.GetChild(i);
+                categories.Add(catTransform);
+                for (int catI = 1; catI < catTransform.childCount; ++catI)
+                {
+                    Transform child = catTransform.GetChild(catI);
+                    children.Add(child);
+                }
+            } 
+            else children.Add(Content.GetChild(i));
+        }
+        categories.Sort((a, b) => a.name.CompareTo(b.name));
+        foreach (Transform category in categories) category.SetAsLastSibling();
         children.Sort((a, b) => string.Compare(a.Find("Name").GetComponent<TMP_Text>().text, b.Find("Name").GetComponent<TMP_Text>().text, StringComparison.CurrentCultureIgnoreCase));
         foreach (Transform child in children) child.SetAsLastSibling();
     }
     private static void ShowBlueprint(GameObject obj, BlueprintRoot root, bool isForeign)
-    {
+    { 
         ResetMain();
         OnSelect();
         if (Current == root || root == null) return;
@@ -715,6 +788,7 @@ public static class BlueprintUI
     }
     private static void Hide()
     {
+        ClearSoftSelections();
         StopPreview();
         if (ForeignSource != null)
         {
