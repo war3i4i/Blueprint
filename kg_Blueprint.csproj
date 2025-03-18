@@ -130,6 +130,7 @@
         <Compile Include="ClipboardUtils.cs" />
         <Compile Include="Configs.cs" />
         <Compile Include="GlobalUsings.cs" />
+        <Compile Include="Managers\ItemDataManager.cs" />
         <Compile Include="Managers\LocalizationManager.cs" />
         <Compile Include="Managers\ModelPreview.cs" />
         <Compile Include="Managers\ServerSync.cs" />

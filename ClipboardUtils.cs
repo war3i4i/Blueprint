@@ -8,7 +8,7 @@ public static class ClipboardUtils
     {
         public uint biSize;
         public int biWidth;
-        public int biHeight;
+        public int biHeight; 
         public ushort biPlanes;
         public ushort biBitCount;
         public uint biCompression;

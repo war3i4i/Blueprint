@@ -1,10 +1,11 @@
-﻿using YamlDotNet.Core;
+﻿using ItemDataManager;
+using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 
 namespace kg_Blueprint;
 public interface ForeignBlueprintSource
 {
-    public BlueprintRoot[] Blueprints { get; }
+    public IReadOnlyList<BlueprintRoot> Blueprints { get; }
     public void Delete(BlueprintRoot blueprint);
     public bool Add(BlueprintRoot blueprint);
 }
@@ -15,14 +16,58 @@ public interface BlueprintSource
     public Vector3 StartPoint { get; }
     public Vector3 Rotation { get; }
 }
-public struct Prefab
+public class BlueprintItemDataSource : ItemData, ForeignBlueprintSource
 {
-    
+    public class Wrapper : ISerializableParameter
+    {
+        public List<BlueprintRoot> Blueprints = [];
+        public void Serialize(ref ZPackage pkg)
+        {
+            pkg.Write(Blueprints.Count);
+            foreach (BlueprintRoot blueprint in Blueprints) blueprint.Serialize(ref pkg);
+        }
+        public void Deserialize(ref ZPackage pkg)
+        {
+            Blueprints = new List<BlueprintRoot>(pkg.ReadInt());
+            for (int i = 0; i < Blueprints.Capacity; ++i)
+            {
+                BlueprintRoot blueprint = new();
+                blueprint.Deserialize(ref pkg);
+                Blueprints.Add(blueprint);
+            }
+        }
+    }
+    public override void FirstLoad()
+    {
+        _blueprints = new();
+        Save();
+    }
+    [SerializeField] private Wrapper _blueprints;
+    private const int Max = 3;
+    public IReadOnlyList<BlueprintRoot> Blueprints => _blueprints.Blueprints;
+    private bool PlayerAlive => Player.m_localPlayer && !Player.m_localPlayer.IsDead();
+    public void Delete(BlueprintRoot blueprint)
+    {
+        if (_blueprints.Blueprints.Count == 0 || !PlayerAlive) return;
+        _blueprints.Blueprints.Remove(blueprint);
+        Save();
+    }
+    public bool Add(BlueprintRoot blueprint)
+    {
+        if (!PlayerAlive) return false;
+        if (_blueprints.Blueprints.Count >= Max) return false;
+        _blueprints.Blueprints.Add(blueprint);
+        Save();
+        return true;
+    }
+    public override string Description => (_blueprints.Blueprints.Count == 0) ? "$kg_blueprint_book_desc\n\n$kg_blueprint_itemdata_noblueprints" : 
+        _blueprints.Blueprints.Aggregate("$kg_blueprint_book_desc\n\n$kg_blueprint_itemdata_blueprints\n", (current, blueprint) => current + $"<color=yellow>{blueprint.Name}</color>\n") 
+        + $"\n\n(Data Size: {DataSize})";
 }
 public class BlueprintCircleCreator(Vector3 pos, float radius, float height) : BlueprintSource
 {
     public Texture2D[] CreatePreviews(GameObject[] inside)
-    {
+    { 
         GameObject empty = new GameObject("BlueprintCircle");
         empty.transform.position = pos;
         for (int i = 0; i < inside.Length; ++i) inside[i].transform.SetParent(empty.transform);

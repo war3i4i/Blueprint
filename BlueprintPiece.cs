@@ -16,7 +16,7 @@ public static class PlayerState
 public class BlueprintSharing : MonoBehaviour, Interactable, Hoverable, ForeignBlueprintSource
 {
     private ZNetView _znv; 
-    private List<BlueprintRoot> Current = null;
+    private IList<BlueprintRoot> Current = null;
     private void Awake()
     {
         _znv = GetComponent<ZNetView>();
@@ -58,13 +58,12 @@ public class BlueprintSharing : MonoBehaviour, Interactable, Hoverable, ForeignB
     public bool UseItem(Humanoid user, ItemDrop.ItemData item) => false;
     public string GetHoverText() => "[<color=yellow><b>$KEY_Use</b></color>] $kg_blueprint_opensharing".Localize();
     public string GetHoverName() => "$kg_blueprint_sharing_piece".Localize();
-    public BlueprintRoot[] Blueprints
+    public IReadOnlyList<BlueprintRoot> Blueprints
     {
         get
         {
-            BlueprintRoot[] bp = _Internal_Blueprints;
-            Current = bp.ToList();
-            return bp;
+            Current = _Internal_Blueprints;
+            return Current.ToList();
         }
     }
     private void SetBlueprints(BlueprintRoot[] blueprints) => _Internal_Blueprints = blueprints;

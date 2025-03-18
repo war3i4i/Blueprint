@@ -65,3 +65,7 @@ kg_blueprint_ghostplacementmaxperframe: "Blueprint placement ghost max per frame
 kg_blueprint_pieces: Pieces
 kg_blueprint_converttonative: Convert to Native
 kg_blueprint_createblueprint_no_objects: "No objects to blueprint"
+kg_blueprint_book: Blueprint Book
+kg_blueprint_book_desc: "Blueprint Book is an item that holds multiple blueprints. You can add blueprints to the book and load them later."
+kg_blueprint_itemdata_noblueprints: "<color=red>No blueprints</color>"
+kg_blueprint_itemdata_blueprints: "<color=green>Has Blueprints:</color>"

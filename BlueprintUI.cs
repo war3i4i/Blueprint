@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using BepInEx.Bootstrap;
+using ItemDataManager;
 using kg_Blueprint.Managers;
 
 namespace kg_Blueprint;
@@ -454,7 +455,7 @@ public static class BlueprintUI
             fitter.enabled = true;
         }
     }
-    public static void Load(IList<BlueprintRoot> blueprints, bool isForeign = false)
+    public static void Load(IReadOnlyList<BlueprintRoot> blueprints, bool isForeign = false)
     {
         if (_Internal_SelectedPiece.Key) Object.DestroyImmediate(_Internal_SelectedPiece.Key.gameObject);
         _Internal_SelectedPiece = default;
@@ -847,7 +848,7 @@ public static class BlueprintUI
         {
             if (p.name != "kg_Blueprint_Internal_Creator") return;
             CircleProjector proj = p.GetComponent<CircleProjector>();
-            CreatorRadius = Mathf.Clamp(CreatorRadius + (add ? 1 : -1), 5, 40);
+            CreatorRadius = Mathf.Clamp(CreatorRadius + (add ? 1 : -1), 5, 60); 
             proj.m_radius = CreatorRadius;
             proj.m_nrOfSegments = CreatorRadius * 4;
         } 
@@ -953,13 +954,28 @@ public static class BlueprintUI
         public static bool HideRequirements = false;
         private static void Postfix(Hud __instance)
         {
-            if (!IsHoldingHammer)
+            if (!IsHoldingHammer) 
             {
                 HideRequirements = false;
                 return;
             }
             if (Input.GetKeyDown(KeyCode.BackQuote)) HideRequirements = !HideRequirements;
             __instance.m_buildHud.gameObject.SetActive(!HideRequirements);
+        }
+    }
+    [HarmonyPatch(typeof(InventoryGui),nameof(InventoryGui.OnRightClickItem))]
+    private static class InventoryGui_OnRightClickItem_Patch
+    {
+        private static bool Prefix(ItemDrop.ItemData item) 
+        {
+            if (item == null) return false;
+            if (item.Data().Get<BlueprintItemDataSource>() is { } data)
+            {
+                InventoryGui.instance.Hide();
+                BlueprintUI.Show(data);
+                return false;
+            }
+            return true;
         }
     }
 }

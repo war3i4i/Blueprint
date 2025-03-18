@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text;
 using System.Threading;
+using ItemDataManager;
 using ItemManager;
 using LocalizationManager;
 using PieceManager;
@@ -49,7 +50,7 @@ public class kg_Blueprint : BaseUnityPlugin
         ReplaceMaterials.Add(blueprintBoxNoFloor.Prefab);
         /*BuildPiece sharingPiece = new BuildPiece(Asset, "kg_BlueprintSharing");
         sharingPiece.Prefab.AddComponent<BlueprintSharing>();
-        sharingPiece.RequiredItems.Add("Wood", 30, true); 
+        sharingPiece.RequiredItems.Add("Wood", 30, true);
         sharingPiece.RequiredItems.Add("Iron", 5, true); 
         ReplaceShaders.Add(sharingPiece.Prefab); */
         Item blueprintHammer = new Item(Asset, "kg_BlueprintHammer"){ Configurable = Configurability.Recipe };
@@ -57,11 +58,17 @@ public class kg_Blueprint : BaseUnityPlugin
         blueprintHammer.RequiredItems.Add("Blueberries", 5);
         blueprintHammer.Crafting.Add(CraftingTable.Inventory, 1);
         Blueprint_PT = blueprintHammer.Prefab.GetComponent<ItemDrop>().m_itemData.m_shared.m_buildPieces;
+        Item blueprintScroll = new Item(Asset, "kg_BlueprintBook"){ Configurable = Configurability.Recipe };
+        blueprintScroll.Prefab.GetComponent<ItemDrop>().m_itemData.Data().Add<BlueprintItemDataSource>();
+        ItemData.RegisterOverrideDescription(typeof(BlueprintItemDataSource));
+        blueprintScroll.RequiredItems.Add("Wood", 5);
+        blueprintScroll.RequiredItems.Add("Blueberries", 1);
+        blueprintScroll.Crafting.Add(CraftingTable.Inventory, 1);
         Configs.Init(); 
         if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null) return;
         if (!Directory.Exists(BlueprintsPath)) Directory.CreateDirectory(BlueprintsPath); 
         BlueprintUI.Init(); 
-        BuildProgress.Init();
+        BuildProgress.Init(); 
         ReadBlueprints();  
         new Harmony(GUID).PatchAll();
     }
