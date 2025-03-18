@@ -848,7 +848,7 @@ public static class BlueprintUI
         {
             if (p.name != "kg_Blueprint_Internal_Creator") return;
             CircleProjector proj = p.GetComponent<CircleProjector>();
-            CreatorRadius = Mathf.Clamp(CreatorRadius + (add ? 1 : -1), 5, 60); 
+            CreatorRadius = Mathf.Clamp(CreatorRadius + (add ? 1 : -1), 5, Configs.MaxCreateNewSize.Value); 
             proj.m_radius = CreatorRadius;
             proj.m_nrOfSegments = CreatorRadius * 4;
         } 

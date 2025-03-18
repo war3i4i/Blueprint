@@ -7,7 +7,7 @@ public static class Configs
 {
     public static ConfigEntry<bool> InstantBuild;
     public static ConfigEntry<int> BuildTime;
-    public static ConfigEntry<int> BlueprintLoadFrameSkip, BlueprintBuildFrameSkip, LoadViewMaxPerFrame, GhostmentPlaceMaxPerFrame;
+    public static ConfigEntry<int> BlueprintLoadFrameSkip, BlueprintBuildFrameSkip, LoadViewMaxPerFrame, GhostmentPlaceMaxPerFrame, MaxCreateNewSize;
     public static ConfigEntry<bool> RemoveBlueprintPlacementOnUnequip;
     private static ConfigEntry<string> SaveZDOForPrefabs;
     public static HashSet<int> SaveZDOHashset;
@@ -28,6 +28,7 @@ public static class Configs
         BlueprintBuildFrameSkip = kg_Blueprint._thistype.Config.Bind("General", "BlueprintBuildFrameSkip", 4, "Number of frames to skip when building a blueprint");
         LoadViewMaxPerFrame = kg_Blueprint._thistype.Config.Bind("General", "LoadViewMaxPerFrame", 20, "Maximum number of objects to load per frame when viewing a blueprint");
         GhostmentPlaceMaxPerFrame = kg_Blueprint._thistype.Config.Bind("General", "GhostmentPlaceMaxPerFrame", 10, "Maximum number of ghost objects loaded per frame (placement)");
+        MaxCreateNewSize = kg_Blueprint._thistype.Config.Bind("General", "MaxCreateNewSize", 60, "Max radius of creating new blueprint");
         RemoveBlueprintPlacementOnUnequip = kg_Blueprint._thistype.Config.Bind("General", "RemoveBlueprintPlacementOnUnequip", false, "Remove the ghost object when the blueprint is unequipped");
     }
     [HarmonyPatch(typeof(FejdStartup), nameof(FejdStartup.Awake))]
@@ -76,15 +77,15 @@ public static class Configs
         public override void FixBackButtonNavigation(Button backButton){}
         public override void FixOkButtonNavigation(Button okButton) {}
         private GuiToggle RemoveBlueprintPlacementOnUnequip;
-        private Slider BlueprintLoadFrameSkip, BlueprintBuildFrameSkip, LoadViewMaxPerFrame, GhostmentPlaceMaxPerFrame;
+        private Slider BlueprintLoadFrameSkip, BlueprintBuildFrameSkip, LoadViewMaxPerFrame, GhostmentPlaceMaxPerFrame, MaxCreateNewSize;
         public override void LoadSettings()
         {
             RemoveBlueprintPlacementOnUnequip = this.transform.Find("List/RemoveBlueprintPlacementOnUnequip").GetComponent<GuiToggle>();
             BlueprintLoadFrameSkip = this.transform.Find("List/BlueprintLoadFrameSkip/Slider").GetComponent<Slider>();
             BlueprintBuildFrameSkip = this.transform.Find("List/BlueprintBuildFrameSkip/Slider").GetComponent<Slider>();
-            BlueprintBuildFrameSkip.minValue = 0f;
             LoadViewMaxPerFrame = this.transform.Find("List/LoadViewMaxPerFrame/Slider").GetComponent<Slider>();
             GhostmentPlaceMaxPerFrame = this.transform.Find("List/GhostmentPlaceMaxPerFrame/Slider").GetComponent<Slider>();
+            MaxCreateNewSize = this.transform.Find("List/MaxCreateNewSize/Slider").GetComponent<Slider>();
             
             RemoveBlueprintPlacementOnUnequip.isOn = Configs.RemoveBlueprintPlacementOnUnequip.Value;
             BlueprintLoadFrameSkip.onValueChanged.AddListener((float value) =>
@@ -111,6 +112,13 @@ public static class Configs
                 tmp_value.text = ((int)value).ToString();
             });
             GhostmentPlaceMaxPerFrame.value = Configs.GhostmentPlaceMaxPerFrame.Value;
+            
+            MaxCreateNewSize.onValueChanged.AddListener((float value) =>
+            {
+                var tmp_value = MaxCreateNewSize.transform.parent.Find("Value").GetComponent<TMP_Text>();
+                tmp_value.text = ((int)value).ToString();
+            });
+            MaxCreateNewSize.value = Configs.MaxCreateNewSize.Value;
         }
         public override void SaveSettings()
         { 
@@ -119,7 +127,9 @@ public static class Configs
             Configs.BlueprintBuildFrameSkip.Value = (int)BlueprintBuildFrameSkip.value;
             Configs.LoadViewMaxPerFrame.Value = (int)LoadViewMaxPerFrame.value;
             Configs.GhostmentPlaceMaxPerFrame.Value = (int)GhostmentPlaceMaxPerFrame.value;
-            Saved();  
+            Configs.MaxCreateNewSize.Value = (int)MaxCreateNewSize.value;
+            kg_Blueprint._thistype.Config.Save();
+            Saved();
         }
     }
 }   

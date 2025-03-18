@@ -16,9 +16,9 @@ public class kg_Blueprint : BaseUnityPlugin
     public static kg_Blueprint _thistype;
     private const string GUID = "kg.Blueprint";
     private const string NAME = "Blueprint";
-    private const string VERSION = "1.3.1";
+    private const string VERSION = "1.4.0";
     public new static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(GUID);
-    public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");  
+    public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");   
     public static readonly string BlueprintsPath = Path.Combine(Paths.ConfigPath, "Blueprints");
     private static readonly List<GameObject> ReplaceMaterials = [];  
     private static readonly List<GameObject> ReplaceShaders = []; 
@@ -58,12 +58,12 @@ public class kg_Blueprint : BaseUnityPlugin
         blueprintHammer.RequiredItems.Add("Blueberries", 5);
         blueprintHammer.Crafting.Add(CraftingTable.Inventory, 1);
         Blueprint_PT = blueprintHammer.Prefab.GetComponent<ItemDrop>().m_itemData.m_shared.m_buildPieces;
-        Item blueprintScroll = new Item(Asset, "kg_BlueprintBook"){ Configurable = Configurability.Recipe };
-        blueprintScroll.Prefab.GetComponent<ItemDrop>().m_itemData.Data().Add<BlueprintItemDataSource>();
+        Item blueprintBook = new Item(Asset, "kg_BlueprintBook"){ Configurable = Configurability.Recipe };
+        blueprintBook.Prefab.GetComponent<ItemDrop>().m_itemData.Data().Add<BlueprintItemDataSource>();
         ItemData.RegisterOverrideDescription(typeof(BlueprintItemDataSource));
-        blueprintScroll.RequiredItems.Add("Wood", 5);
-        blueprintScroll.RequiredItems.Add("Blueberries", 1);
-        blueprintScroll.Crafting.Add(CraftingTable.Inventory, 1);
+        /*blueprintBook.RequiredItems.Add("Wood", 5);
+        blueprintBook.RequiredItems.Add("Blueberries", 1);
+        blueprintBook.Crafting.Add(CraftingTable.Inventory, 1);*/
         Configs.Init(); 
         if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null) return;
         if (!Directory.Exists(BlueprintsPath)) Directory.CreateDirectory(BlueprintsPath); 
