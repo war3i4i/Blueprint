@@ -731,7 +731,7 @@ public static class BlueprintUI
     }
     [HarmonyPatch(typeof(Hud),nameof(Hud.HidePieceSelection))]
     private static class Hud_HidePieceSelection_Patch
-    {
+    { 
         [UsedImplicitly] private static void Postfix(Hud __instance) => Hide();
     }
     [HarmonyPatch(typeof(Humanoid),nameof(Humanoid.UnequipItem))]
@@ -742,7 +742,6 @@ public static class BlueprintUI
             if (Player.m_localPlayer != __instance || item == null) return; 
             if (item.m_shared.m_buildPieces == kg_Blueprint.Blueprint_PT)
             {
-                kg_Blueprint.Logger.LogDebug($"Hiding stuff");
                 Hud_UpdateBuild_Patch_HideMenu.HideRequirements = false;
                 Hide();
                 if (Configs.RemoveBlueprintPlacementOnUnequip.Value)
@@ -813,7 +812,7 @@ public static class BlueprintUI
                 Vector3 pos = obj.transform.position;
                 pos.y = Mathf.Max(30f, ZoneSystem.instance.GetGroundHeight(pos));
                 Object.Destroy(obj);
-                BlueprintCircleCreator circleCreator = new(pos, CreatorRadius, 80f);
+                BlueprintCircleCreator circleCreator = new(pos, CreatorRadius, 100f);
                 InteractionUI.Show(circleCreator);
             }
         }
@@ -851,6 +850,13 @@ public static class BlueprintUI
             CreatorRadius = Mathf.Clamp(CreatorRadius + (add ? 1 : -1), 5, Configs.MaxCreateNewSize.Value); 
             proj.m_radius = CreatorRadius;
             proj.m_nrOfSegments = CreatorRadius * 4;
+            
+            if (_Internal_SelectedPiece.Key?.name == "kg_Blueprint_Internal_Creator")
+            {
+                var projOrig = _Internal_SelectedPiece.Key.GetComponent<CircleProjector>();
+                projOrig.m_radius = CreatorRadius;
+                projOrig.m_nrOfSegments = CreatorRadius * 4;
+            }
         } 
         [UsedImplicitly] private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> code)
         { 
