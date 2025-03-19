@@ -1,4 +1,5 @@
-﻿using ItemDataManager;
+﻿using System.Diagnostics;
+using ItemDataManager;
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 
@@ -137,14 +138,14 @@ public readonly struct IntOrString
     public static implicit operator IntOrString(int value) => new(value);
     public static implicit operator IntOrString(string value) => new(value);
     public override string ToString() => _strValue ?? _intValue.ToString();
-}
+} 
 public class IntOrStringConverter : IYamlTypeConverter
 {
     public bool Accepts(Type type) => type == typeof(IntOrString);
     public object ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer)
     {
         Scalar scalar = parser.Consume<Scalar>();
-        return int.TryParse(scalar.Value, out int intValue) ? new IntOrString(intValue) : new IntOrString(scalar.Value);
+        return int.TryParse(scalar.Value, out int intValue) ? new IntOrString(intValue) : new IntOrString(scalar.Value);;
     }
     public void WriteYaml(IEmitter emitter, object value, Type type, ObjectSerializer serializer) =>
         emitter.Emit(new Scalar(value?.ToString() ?? "ERROR"));
