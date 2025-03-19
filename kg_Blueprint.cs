@@ -17,7 +17,7 @@ public class kg_Blueprint : BaseUnityPlugin
     public static kg_Blueprint _thistype;
     private const string GUID = "kg.Blueprint";
     private const string NAME = "Blueprint";
-    private const string VERSION = "1.4.0";
+    private const string VERSION = "1.5.0";
     public new static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(GUID);
     public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");
     public static readonly string BlueprintsPath = Path.Combine(Paths.ConfigPath, "Blueprints");
@@ -48,7 +48,7 @@ public class kg_Blueprint : BaseUnityPlugin
         blueprintBox.Prefab.AddComponent<BlueprintPiece>();
         blueprintBoxNoFloor.Prefab.AddComponent<BlueprintPiece>();
         ReplaceMaterials.Add(blueprintBox.Prefab);
-        ReplaceMaterials.Add(blueprintBoxNoFloor.Prefab);
+        ReplaceMaterials.Add(blueprintBoxNoFloor.Prefab); 
         /*BuildPiece sharingPiece = new BuildPiece(Asset, "kg_BlueprintSharing");
         sharingPiece.Prefab.AddComponent<BlueprintSharing>();
         sharingPiece.RequiredItems.Add("Wood", 30, true);
@@ -123,7 +123,7 @@ public class kg_Blueprint : BaseUnityPlugin
                                 break; 
                             case ".vbuild":
                                 string fNameNoExt = Path.GetFileNameWithoutExtension(file);
-                                root = VBuildParser.Parse(fNameNoExt, File.ReadAllLines(file));
+                                root = VBuildParser.Parse(fNameNoExt, File.ReadAllLines(file)); 
                                 root.Source = BlueprintRoot.SourceType.VBuild;
                                 root.SetCategory(".vbuild#f48b75");
                                 break; 

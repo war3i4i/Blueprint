@@ -639,11 +639,11 @@ public static class BlueprintUI
                     children.Add(child);
                 }
             }
-            else children.Add(Content.GetChild(i));
+            else children.Add(Content.GetChild(i)); 
         }
         categories.Sort((a, b) => a.name.CompareTo(b.name));
         foreach (Transform category in categories) category.SetAsLastSibling();
-        children.Sort((a, b) => string.Compare(a.Find("Name").GetComponent<TMP_Text>().text, b.Find("Name").GetComponent<TMP_Text>().text, StringComparison.CurrentCultureIgnoreCase));
+        children.Sort((a, b) => string.Compare(a.Find("Name").GetComponent<TMP_Text>().text, b.Find("Name").GetComponent<TMP_Text>().text, StringComparison.OrdinalIgnoreCase));
         foreach (Transform child in children) child.SetAsLastSibling();
     }
     private static void ShowBlueprint(GameObject obj, BlueprintRoot root, bool isForeign)
