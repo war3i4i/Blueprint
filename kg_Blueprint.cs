@@ -149,12 +149,13 @@ public class kg_Blueprint : BaseUnityPlugin
                 });
                 kg_Blueprint.Logger.LogDebug($"Loaded blueprints in {stopwatch.ElapsedMilliseconds}ms");
                 token.ThrowIfCancellationRequested();
-                ThreadingHelper.Instance.StartSyncInvoke(() => BlueprintUI.Load(Blueprints.ToList()));
+                ThreadingHelper.Instance.StartSyncInvoke(() => BlueprintUI.Load([..Blueprints]));
             }
             catch (Exception ex)
             { 
                 if (ex is OperationCanceledException) Logger.LogDebug("Blueprint loading canceled.");
                 else Logger.LogError($"Error loading blueprints {ex}");
+                ThreadingHelper.Instance.StartSyncInvoke(() => BlueprintUI.Load([]));
             }
         }, token);
     }

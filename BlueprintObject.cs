@@ -414,4 +414,6 @@ public class BlueprintRoot : ISerializableParameter
             };
         }
     }
+
+    public override string ToString() => $"BlueprintRoot: {Name}, Objects: {Objects.Length}";
 }

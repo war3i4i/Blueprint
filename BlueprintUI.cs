@@ -233,6 +233,7 @@ public static class BlueprintUI
     private static Button Convert;
     private static readonly int valueNoise = Shader.PropertyToID("_ValueNoise");
     private static readonly int triplanarLocalPos = Shader.PropertyToID("_TriplanarLocalPos");
+    private static Button ReloadDiskButton;
     private static readonly MaterialPropertyBlock MaterialPropertyBlock = new MaterialPropertyBlock();
 
     public static void Init() 
@@ -358,8 +359,13 @@ public static class BlueprintUI
         { 
             if (Current == null || CreateViewCoroutine != null) return;
             CreateViewCoroutine = ZNetScene.instance.StartCoroutine(LoadView(Current));
-        }); 
-        UI.transform.Find("Canvas/UI/List/ReloadDisk").GetComponent<Button>().onClick.AddListener(kg_Blueprint.ReadBlueprints);
+        });
+        ReloadDiskButton = UI.transform.Find("Canvas/UI/List/ReloadDisk").GetComponent<Button>();
+        ReloadDiskButton.onClick.AddListener(() =>
+        {
+            ReloadDiskButton.interactable = false;
+            kg_Blueprint.ReadBlueprints();
+        });
         UI.transform.Find("Canvas/UI/List/AddFromClipboard").GetComponent<Button>().onClick.AddListener(kg_Blueprint.TryLoadFromClipboard);
         CopyToClipboardButton = UI.transform.Find("Canvas/UI/List/CopyToClipboard").GetComponent<Button>();
         CopyToClipboardButton.interactable = false;
@@ -461,22 +467,44 @@ public static class BlueprintUI
             fitter.enabled = true; 
         }
     }
-    public static void Load(IReadOnlyList<BlueprintRoot> blueprints, bool isForeign = false)
+    private static Coroutine _LoadRoutine;
+    public static void Load(List<BlueprintRoot> blueprints, bool isForeign = false)
     {
+        if (_LoadRoutine != null) kg_Blueprint._thistype.StopCoroutine(_LoadRoutine);
+        _LoadRoutine = kg_Blueprint._thistype.StartCoroutine(_Internal_Load(blueprints, isForeign));
+    }
+    private static IEnumerator _Internal_Load(List<BlueprintRoot> blueprints, bool isForeign = false)
+    {
+        blueprints.Sort((a, b) =>
+        {
+            string catA = a.GetCategory().ValidPath();
+            string catB = b.GetCategory().ValidPath();
+            bool hasCategoryA = !string.IsNullOrWhiteSpace(catA); 
+            bool hasCategoryB = !string.IsNullOrWhiteSpace(catB);
+            if (hasCategoryA && !hasCategoryB) return -1; 
+            if (!hasCategoryA && hasCategoryB) return 1;
+            if (hasCategoryA && hasCategoryB)
+            {
+                int categoryCompare = string.Compare(catA, catB, StringComparison.OrdinalIgnoreCase);
+                if (categoryCompare != 0) return categoryCompare;
+            }
+            return string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+        });
         if (_Internal_SelectedPiece.Key) Object.DestroyImmediate(_Internal_SelectedPiece.Key.gameObject);
         _Internal_SelectedPiece = default;
         Player.m_localPlayer?.SetupPlacementGhost();
-        if (isForeign) ForeignContent.RemoveAllChildrenExceptFirst();
+        if (isForeign) ForeignContent.RemoveAllChildrenExceptFirst(); 
         else Content.RemoveAllChildrenExceptFirstTwo();
         for (int i = 0; i < blueprints.Count; i++)
         {
             BlueprintRoot blueprint = blueprints[i];
             blueprint.CachePreviews();
             AddEntry(blueprint, false, false, isForeign);
+            yield return null;
         }
-        SortEntriesByName();
         ResetMain();
         UpdateCanvases();
+        ReloadDiskButton.interactable = true;
     }
     private static void ClearSelections()
     {
@@ -610,7 +638,7 @@ public static class BlueprintUI
                     Transform child = catTransform.GetChild(catI);
                     children.Add(child);
                 }
-            } 
+            }
             else children.Add(Content.GetChild(i));
         }
         categories.Sort((a, b) => a.name.CompareTo(b.name));
@@ -769,7 +797,7 @@ public static class BlueprintUI
         ForeignTab.SetActive(ForeignSource != null);
         ButtonsTab.SetActive(ForeignSource == null);
         DeleteButton_Foreign.gameObject.SetActive(ForeignSource != null);
-        if (ForeignSource != null) Load(ForeignSource.Blueprints, true);
+        if (ForeignSource != null) Load((List<BlueprintRoot>)ForeignSource.Blueprints, true);
         UI.transform.Find("Canvas/UI/Create").gameObject.SetActive(ForeignSource == null);
         UI.SetActive(true);
     }
