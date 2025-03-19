@@ -114,6 +114,9 @@ public class kg_Blueprint : BaseUnityPlugin
                             continue;
                         }
                         root.AssignPath(files[i], true);
+                        string parentFolderName = Path.GetFileName(Path.GetDirectoryName(files[i]));
+                        if (parentFolderName != "Blueprints") root.SetCategory(parentFolderName);
+                        
                         Blueprints.Add(root); 
                     }
                     catch (Exception e)
@@ -137,6 +140,7 @@ public class kg_Blueprint : BaseUnityPlugin
                         }
                         root.AssignPath(bp_files[i], true);
                         root.Source = BlueprintRoot.SourceType.Planbuild;
+                        root.SetCategory(".blueprint#4e82ea");
                         Blueprints.Add(root); 
                     }
                     catch (Exception e)
@@ -160,12 +164,13 @@ public class kg_Blueprint : BaseUnityPlugin
                         }
                         root.AssignPath(vbuild_files[i], true);
                         root.Source = BlueprintRoot.SourceType.VBuild;
+                        root.SetCategory(".vbuild#f48b75");
                         Blueprints.Add(root); 
                     }
                     catch (Exception e)
                     {
                         Logger.LogError($"Error reading VBuild blueprint {vbuild_files[i]}: {e}");
-                    }
+                    } 
                 } 
                 
                 kg_Blueprint.Logger.LogDebug($"Loaded {Blueprints.Count} blueprints in {stopwatch.ElapsedMilliseconds}ms");

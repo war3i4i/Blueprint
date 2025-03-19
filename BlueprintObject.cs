@@ -164,8 +164,6 @@ public class BlueprintRoot : ISerializableParameter
     private string FilePath;
     private Texture2D[] CachedPreviews;
     public string Name;
-    public string Category;
-    public string CategoryColor;
     public string Author;
     public string Description;
     public string Icon;
@@ -174,6 +172,9 @@ public class BlueprintRoot : ISerializableParameter
     public string[] Previews;
     public enum SourceType { Native, Planbuild, VBuild }
     public SourceType Source = SourceType.Native;
+    private string Category;
+    public void SetCategory(string category) => Category = category;
+    public string GetCategory() => Category;
     public void AssignPath(string path, bool force)
     {
         path = path.ValidPath();

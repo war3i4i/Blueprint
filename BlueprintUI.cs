@@ -299,7 +299,7 @@ public static class BlueprintUI
         DeleteButton_Foreign.GetComponent<Button>().onClick.AddListener(() =>
         {
             if (ForeignSource == null || Current == null) return;
-            ForeignSource.Delete(Current);
+            ForeignSource.Delete(Current); 
             Object.Destroy(LastPressedEntry); 
             ResetMain();
         }); 
@@ -311,8 +311,11 @@ public static class BlueprintUI
             {
                 UnifiedPopup.Pop();
                 Current.Delete();
-                if (LastPressedEntry) Object.Destroy(LastPressedEntry);
+                Transform parent = LastPressedEntry.transform.parent;
+                if (LastPressedEntry) Object.DestroyImmediate(LastPressedEntry);
+                if (parent.name.Contains("?Category_") && parent.childCount == 1) Object.Destroy(parent.gameObject);
                 ResetMain();
+                UpdateCanvases();
             }, UnifiedPopup.Pop));
         }); 
         Main.transform.Find("Buttons/ShowFile").GetComponent<Button>().onClick.AddListener(() =>
@@ -379,6 +382,7 @@ public static class BlueprintUI
         Object.DestroyImmediate(temp); 
         root.SetPreviews(previews);
         root.AssignPath(Path.Combine(kg_Blueprint.BlueprintsPath, Current.Name + ".yml"), false);
+        root.SetCategory(null);
         root.Save();
         AddEntry(root, true);
     }
@@ -454,13 +458,7 @@ public static class BlueprintUI
         foreach (ContentSizeFitter fitter in fitters)
         {
             fitter.enabled = false;
-            fitter.enabled = true;
-        }
-        Canvas.ForceUpdateCanvases(); 
-        foreach (ContentSizeFitter fitter in fitters)
-        {
-            fitter.enabled = false;
-            fitter.enabled = true;
+            fitter.enabled = true; 
         }
     }
     public static void Load(IReadOnlyList<BlueprintRoot> blueprints, bool isForeign = false)
@@ -497,7 +495,7 @@ public static class BlueprintUI
     public static void AddEntry(BlueprintRoot root, bool updateCanvases, bool select = false, bool isForeign = false)
     {
         GameObject entry = null; 
-        string category = root.Category.ValidPath();
+        string category = root.GetCategory().ValidPath();
         if (string.IsNullOrWhiteSpace(category) || isForeign)
         {
             entry = Object.Instantiate(BlueprintEntry, isForeign ? ForeignContent : Content);
@@ -505,13 +503,14 @@ public static class BlueprintUI
         }
         else
         {
-            string catName = $"???Category_{category}"; 
+            string[] split = category.Split('#');
+            string catName = $"?Category_{split[0]}"; 
             Transform existing = Content.Find(catName);
             if (!existing)
             { 
                 GameObject catEntry = Object.Instantiate(BlueprintCategoryEntry, Content);
                 catEntry.name = catName;
-                catEntry.transform.Find("Button/Name").GetComponent<TMP_Text>().text = category;
+                catEntry.transform.Find("Button/Name").GetComponent<TMP_Text>().text = split[0];
                 existing = catEntry.transform;
                 var catHandler = existing.transform.Find("Button").GetComponent<Button>();
                 catHandler.onClick.AddListener(() =>
@@ -530,13 +529,13 @@ public static class BlueprintUI
                     existing.GetComponent<VerticalLayoutGroup>().padding.top = opened ? 40 : 44;
                     UpdateCanvases(); 
                 });
-                Color c = (!string.IsNullOrEmpty(root.CategoryColor) && ColorUtility.TryParseHtmlString(root.CategoryColor, out Color color)) ? color : Color.white;
+                Color c = (split.Length >= 2 && !string.IsNullOrEmpty(split[1]) && ColorUtility.TryParseHtmlString("#" + split[1], out Color color)) ? color : Color.white;
                 existing.GetComponent<Image>().color = c;
                 existing.transform.Find("Button/_bg").GetComponent<Image>().color = c;
                 existing.gameObject.SetActive(true);
             }
             entry = Object.Instantiate(BlueprintEntry, existing);
-            entry.SetActive(false);
+            entry.SetActive(existing.tag == "spawned");
         }
         string entryName = null;
         if (isForeign) entryName = root.Name;
@@ -602,7 +601,7 @@ public static class BlueprintUI
         List<Transform> categories = new(Content.childCount - 2);
         for (int i = 2; i < Content.childCount; ++i)
         { 
-            if (Content.GetChild(i).name.Contains("???Category_"))
+            if (Content.GetChild(i).name.Contains("?Category_"))
             {
                 Transform catTransform = Content.GetChild(i);
                 categories.Add(catTransform);
