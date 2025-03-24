@@ -117,6 +117,11 @@ public class kg_Blueprint : BaseUnityPlugin
                 if (parentFolderName != "Blueprints") root.SetCategory(parentFolderName);
                 break;
         }
+        if (!root.IsValid(out string reason))
+        {
+            Logger.LogError($"Blueprint {file} is invalid: {reason}");
+            return null;
+        }
         return root;
     }
     public static void ReadBlueprints()
@@ -153,11 +158,7 @@ public class kg_Blueprint : BaseUnityPlugin
                             try 
                             {
                                 BlueprintRoot root = ProcessBlueprint(file, deserializer);
-                                if (!root.IsValid(out string reason))
-                                {
-                                    Logger.LogError($"Blueprint {file} is invalid: {reason}");
-                                    return;
-                                }
+                                if (root == null) continue;
                                 root.AssignPath(file, true);
                                 chunkBlueprints.Add(root);
                             }
@@ -179,11 +180,7 @@ public class kg_Blueprint : BaseUnityPlugin
                         try
                         {
                             BlueprintRoot root = ProcessBlueprint(file, deserializer);
-                            if (!root.IsValid(out string reason))
-                            {
-                                Logger.LogError($"Blueprint {file} is invalid: {reason}");
-                                return;
-                            }
+                            if (root == null) continue;
                             root.AssignPath(file, true);
                         }
                         catch (Exception e)
