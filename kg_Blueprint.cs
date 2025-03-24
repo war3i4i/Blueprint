@@ -8,12 +8,13 @@ using LocalizationManager;
 using PieceManager;
 using ServerSync;
 using CraftingTable = ItemManager.CraftingTable;
+using Debug = System.Diagnostics.Debug;
 
 namespace kg_Blueprint;
 
-[BepInPlugin(GUID, NAME, VERSION)]
+[BepInPlugin(GUID, NAME, VERSION)] 
 public class kg_Blueprint : BaseUnityPlugin 
-{
+{ 
     public static kg_Blueprint _thistype;
     private const string GUID = "kg.Blueprint";
     private const string NAME = "Blueprint";
@@ -48,11 +49,11 @@ public class kg_Blueprint : BaseUnityPlugin
         blueprintBox.Prefab.AddComponent<BlueprintPiece>();
         blueprintBoxNoFloor.Prefab.AddComponent<BlueprintPiece>();
         ReplaceMaterials.Add(blueprintBox.Prefab);
-        ReplaceMaterials.Add(blueprintBoxNoFloor.Prefab); 
+        ReplaceMaterials.Add(blueprintBoxNoFloor.Prefab);
         /*BuildPiece sharingPiece = new BuildPiece(Asset, "kg_BlueprintSharing");
         sharingPiece.Prefab.AddComponent<BlueprintSharing>();
         sharingPiece.RequiredItems.Add("Wood", 30, true);
-        sharingPiece.RequiredItems.Add("Iron", 5, true); 
+        sharingPiece.RequiredItems.Add("Iron", 5, true);
         ReplaceShaders.Add(sharingPiece.Prefab); */
         Item blueprintHammer = new Item(Asset, "kg_BlueprintHammer"){ Configurable = Configurability.Recipe };
         blueprintHammer.RequiredItems.Add("Wood", 10);
@@ -63,7 +64,7 @@ public class kg_Blueprint : BaseUnityPlugin
         blueprintBook.Prefab.GetComponent<ItemDrop>().m_itemData.Data().Add<BlueprintItemDataSource>();
         ItemData.RegisterOverrideDescription(typeof(BlueprintItemDataSource));
         /*blueprintBook.RequiredItems.Add("Wood", 5);
-        blueprintBook.RequiredItems.Add("Blueberries", 1);
+        blueprintBook.RequiredItems.Add("Blueberries", 1); 
         blueprintBook.Crafting.Add(CraftingTable.Inventory, 1);*/
         Configs.Init(); 
         if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null) return;
@@ -85,8 +86,9 @@ public class kg_Blueprint : BaseUnityPlugin
         string resourceName = execAssembly.GetManifestResourceNames().Single(str => str.EndsWith(filename));
         using Stream stream = execAssembly.GetManifestResourceStream(resourceName)!;
         return AssetBundle.LoadFromStream(stream);
-    }  
+    }
     private static CancellationTokenSource _cts = new CancellationTokenSource();
+    private static object _lock = new object();
     public static void ReadBlueprints()
     {
         _cts.Cancel();
@@ -94,62 +96,115 @@ public class kg_Blueprint : BaseUnityPlugin
         CancellationToken token = _cts.Token;
         Task.Run(() =>
         {
-            try 
+            try
             {
                 token.ThrowIfCancellationRequested();
                 Stopwatch stopwatch = Stopwatch.StartNew();
-                ConcurrentBag<BlueprintRoot> Blueprints = [];
-                string[] files = Directory.GetFiles(BlueprintsPath, "*.yml", SearchOption.AllDirectories)
+                string[] search = Directory.GetFiles(BlueprintsPath, "*.yml", SearchOption.AllDirectories)
                     .Concat(Directory.GetFiles(BlueprintsPath, "*.blueprint", SearchOption.AllDirectories))
                     .Concat(Directory.GetFiles(BlueprintsPath, "*.vbuild", SearchOption.AllDirectories)).ToArray();
-                OrderablePartitioner<string> filePartitioner = Partitioner.Create(files, true);
-                int maxproc = Environment.ProcessorCount / 2;
-                using ThreadLocal<IDeserializer> threadLocalDeserializer = new ThreadLocal<IDeserializer>(() => new DeserializerBuilder()
-                        .WithTypeConverter(new IntOrStringConverter()).IgnoreUnmatchedProperties().Build());
-                Parallel.ForEach(filePartitioner, new ParallelOptions { CancellationToken = token, MaxDegreeOfParallelism = maxproc}, file =>
+                Logger.LogDebug($"Found {search.Length} blueprints");
+                List<BlueprintRoot> Blueprints = new(search.Length);
+                if (Configs.UseMultithreadIO.Value)
                 {
-                    token.ThrowIfCancellationRequested();
-                    try
-                    {
-                        string content = File.ReadAllText(file);
-                        string ext = Path.GetExtension(file);
-                        BlueprintRoot root = null;
-                        switch (ext)
-                        { 
-                            case ".blueprint":
-                                root = PlanbuildParser.Parse(File.ReadAllLines(file));
-                                root.Source = BlueprintRoot.SourceType.Planbuild;
-                                root.SetCategory(".blueprint#4e82ea");
-                                break; 
-                            case ".vbuild":
-                                string fNameNoExt = Path.GetFileNameWithoutExtension(file);
-                                root = VBuildParser.Parse(fNameNoExt, File.ReadAllLines(file)); 
-                                root.Source = BlueprintRoot.SourceType.VBuild;
-                                root.SetCategory(".vbuild#f48b75");
-                                break; 
-                            default:
-                                root = threadLocalDeserializer.Value.Deserialize<BlueprintRoot>(content);
-                                root.Source = BlueprintRoot.SourceType.Native;
-                                string parentFolderName = Path.GetFileName(Path.GetDirectoryName(file));
-                                if (parentFolderName != "Blueprints") root.SetCategory(parentFolderName);
-                                break;
-                        }
-                        if (!root.IsValid(out string reason))
+                    const int maxproc = 4;
+                    string[][] chunks = search.SplitIntoChunksWeightLoad(maxproc);
+                    int maxChunkSize = chunks.Max(x => x.Length);
+                    Logger.LogDebug($"Using multithread IO with {maxproc} threads and chunk size {maxChunkSize}. Chunk count: {chunks.Length}");
+                    Parallel.ForEach(chunks, new ParallelOptions { CancellationToken = token}, files =>
+                    { 
+                        List<BlueprintRoot> chunkBlueprints = new List<BlueprintRoot>(maxChunkSize);
+                        IDeserializer deserializer = new DeserializerBuilder().WithTypeConverter(new IntOrStringConverter()).Build();
+                        foreach (string file in files)
                         {
-                            Logger.LogError($"Blueprint {file} is invalid: {reason}");
-                            return;
+                            token.ThrowIfCancellationRequested();
+                            try
+                            {
+                                string ext = Path.GetExtension(file);
+                                BlueprintRoot root = null;
+                                switch (ext)
+                                {
+                                    case ".blueprint": 
+                                        root = PlanbuildParser.Parse(File.ReadAllLines(file));
+                                        root.Source = BlueprintRoot.SourceType.Planbuild; 
+                                        root.SetCategory(".blueprint#4e82ea");
+                                        break; 
+                                    case ".vbuild":
+                                        string fNameNoExt = Path.GetFileNameWithoutExtension(file);
+                                        root = VBuildParser.Parse(fNameNoExt, File.ReadAllLines(file));  
+                                        root.Source = BlueprintRoot.SourceType.VBuild;
+                                        root.SetCategory(".vbuild#f48b75");
+                                        break;
+                                    default: 
+                                        root = deserializer.Deserialize<BlueprintRoot>(File.ReadAllText(file));
+                                        root.Source = BlueprintRoot.SourceType.Native;
+                                        string parentFolderName = Path.GetFileName(Path.GetDirectoryName(file));
+                                        if (parentFolderName != "Blueprints") root.SetCategory(parentFolderName);
+                                        break;
+                                }
+                                if (!root.IsValid(out string reason))
+                                {
+                                    Logger.LogError($"Blueprint {file} is invalid: {reason}");
+                                    return;
+                                } 
+                                root.AssignPath(file, true);
+                                chunkBlueprints.Add(root);
+                            }
+                            catch (Exception e)
+                            {
+                                Logger.LogError($"Error reading blueprint {file}: {e}");
+                            } 
                         }
-                        root.AssignPath(file, true);
-                        Blueprints.Add(root);
-                    }
-                    catch (Exception e)
+                        lock (_lock) Blueprints.AddRange(chunkBlueprints);
+                    });
+                }
+                else
+                {
+                    IDeserializer deserializer = new DeserializerBuilder().WithTypeConverter(new IntOrStringConverter()).Build();
+                    for (int i = 0; i < search.Length; i++)
                     {
-                        Logger.LogError($"Error reading blueprint {file}: {e}");
+                        token.ThrowIfCancellationRequested();
+                        string file = search[i];
+                        try
+                        {
+                            string content = File.ReadAllText(file);
+                            string ext = Path.GetExtension(file);
+                            BlueprintRoot root = null;
+                            switch (ext)
+                            {
+                                case ".blueprint":
+                                    root = PlanbuildParser.Parse(File.ReadAllLines(file));
+                                    root.Source = BlueprintRoot.SourceType.Planbuild; root.SetCategory(".blueprint#4e82ea");
+                                    break;
+                                case ".vbuild":
+                                    string fNameNoExt = Path.GetFileNameWithoutExtension(file);
+                                    root = VBuildParser.Parse(fNameNoExt, File.ReadAllLines(file));
+                                    root.Source = BlueprintRoot.SourceType.VBuild;
+                                    root.SetCategory(".vbuild#f48b75");
+                                    break;
+                                default:
+                                    root = deserializer.Deserialize<BlueprintRoot>(content);
+                                    root.Source = BlueprintRoot.SourceType.Native;
+                                    string parentFolderName = Path.GetFileName(Path.GetDirectoryName(file));
+                                    if (parentFolderName != "Blueprints") root.SetCategory(parentFolderName);
+                                    break;
+                            }
+                            if (!root.IsValid(out string reason))
+                            {
+                                Logger.LogError($"Blueprint {file} is invalid: {reason}");
+                                continue;
+                            }
+                            root.AssignPath(file, true);
+                        }
+                        catch (Exception e)
+                        {
+                            Logger.LogError($"Error reading blueprint {file}: {e}");
+                        }
                     }
-                });
-                kg_Blueprint.Logger.LogDebug($"Loaded blueprints in {stopwatch.ElapsedMilliseconds}ms");
+                }
+                kg_Blueprint.Logger.LogDebug($"[Multithread] Loaded blueprints in {stopwatch.ElapsedMilliseconds}ms.");
                 token.ThrowIfCancellationRequested();
-                ThreadingHelper.Instance.StartSyncInvoke(() => BlueprintUI.Load([..Blueprints]));
+                ThreadingHelper.Instance.StartSyncInvoke(() => BlueprintUI.Load(Blueprints));
             }
             catch (Exception ex)
             { 

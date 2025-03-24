@@ -5,7 +5,7 @@ namespace kg_Blueprint;
 
 public static class Configs
 {
-    public static ConfigEntry<bool> InstantBuild;
+    public static ConfigEntry<bool> UseDelayedBuildProgress;
     public static ConfigEntry<int> BuildTime;
     public static ConfigEntry<int> BlueprintLoadFrameSkip, BlueprintBuildFrameSkip, LoadViewMaxPerFrame, GhostmentPlaceMaxPerFrame, MaxCreateNewSize;
     public static ConfigEntry<bool> RemoveBlueprintPlacementOnUnequip;
@@ -13,11 +13,12 @@ public static class Configs
     public static HashSet<int> SaveZDOHashset;
     private static void UpdateHashset() => SaveZDOHashset = [..SaveZDOForPrefabs.Value.Replace(" ", "").Split(',').Select(x => x.GetStableHashCode())];
     public static ConfigEntry<bool> IncludeTrees, IncludeDestructibles;
+    public static ConfigEntry<bool> UseMultithreadIO;
     public static void Init()
     { 
         //synced
-        InstantBuild = kg_Blueprint.config("General", "InstantBuild", false, "Instantly build blueprints when they are placed");
-        BuildTime = kg_Blueprint.config("General", "BuildTime", 30, "Time in seconds it takes to build a blueprint (if InstantBuild is false)");
+        UseDelayedBuildProgress = kg_Blueprint.config("General", "UseDelayedBuildProgress", false, "Instantly build blueprints when they are placed or use a build progress ghost object");
+        BuildTime = kg_Blueprint.config("General", "BuildTime", 30, "Time in seconds it takes to build a blueprint (if UseDelayedBuildProgress is false)");
         SaveZDOForPrefabs = kg_Blueprint.config("General", "SaveZDOForPrefabs", "MarketPlaceNPC,sign", "Save ZDOs for prefabs with the given name (comma separated)");
         IncludeTrees = kg_Blueprint.config("General", "IncludeTrees", true, "Include trees in blueprints");
         IncludeDestructibles = kg_Blueprint.config("General", "IncludeDestructibles", true, "Include destructibles in blueprints");
@@ -30,6 +31,7 @@ public static class Configs
         GhostmentPlaceMaxPerFrame = kg_Blueprint._thistype.Config.Bind("General", "GhostmentPlaceMaxPerFrame", 10, "Maximum number of ghost objects loaded per frame (placement)");
         MaxCreateNewSize = kg_Blueprint._thistype.Config.Bind("General", "MaxCreateNewSize", 60, "Max radius of creating new blueprint");
         RemoveBlueprintPlacementOnUnequip = kg_Blueprint._thistype.Config.Bind("General", "RemoveBlueprintPlacementOnUnequip", false, "Remove the ghost object when the blueprint is unequipped");
+        UseMultithreadIO = kg_Blueprint._thistype.Config.Bind("General", "UseMultithreadIO", true, "Use multithreaded yml read for loading blueprints");
     }
     [HarmonyPatch(typeof(FejdStartup), nameof(FejdStartup.Awake))]
     static class Menu_Start_Patch

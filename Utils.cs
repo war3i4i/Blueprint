@@ -473,4 +473,51 @@ public static class Utils
             adjustedSize,
             SizeSuffixes[mag]);
     }
+    public static string[][] SplitIntoChunks(this string[] filePaths, int desiredChunks)
+    {
+        if (filePaths == null)
+            throw new ArgumentNullException(nameof(filePaths));
+        if (desiredChunks <= 0)
+            throw new ArgumentOutOfRangeException(nameof(desiredChunks), "Chunk count must be positive");
+        int totalItems = filePaths.Length;
+        if (totalItems == 0 || desiredChunks == 1)
+            return new string[][] { filePaths };
+        int baseChunkSize = totalItems / desiredChunks;
+        int remainder = totalItems % desiredChunks;
+        var chunks = new string[desiredChunks][];
+        int offset = 0;
+        for (int i = 0; i < desiredChunks; i++)
+        {
+            int currentChunkSize = baseChunkSize + (i < remainder ? 1 : 0);
+            chunks[i] = new string[currentChunkSize];
+            Array.Copy(filePaths, offset, chunks[i], 0, currentChunkSize);
+            offset += currentChunkSize;
+        }
+        return chunks;
+    }
+    public static string[][] SplitIntoChunksWeightLoad(this string[] filePaths, int desiredChunks)
+    {
+        if (filePaths == null) throw new ArgumentNullException(nameof(filePaths));
+        if (desiredChunks <= 0) throw new ArgumentOutOfRangeException(nameof(desiredChunks), "Chunk count must be positive");
+        int totalFiles = filePaths.Length;
+        if (totalFiles == 0 || desiredChunks == 1) return new string[][] { filePaths };
+        long[] fileSizes = new long[totalFiles];
+        for (int i = 0; i < totalFiles; i++) fileSizes[i] = new FileInfo(filePaths[i]).Length;
+        int[] indices = Enumerable.Range(0, totalFiles).ToArray();
+        Array.Sort(indices, (a, b) => fileSizes[a].CompareTo(fileSizes[b]));
+        List<string>[] chunks = new List<string>[desiredChunks];
+        long[] chunkWeights = new long[desiredChunks];
+        for (int i = 0; i < desiredChunks; ++i) chunks[i] = [];
+        foreach (int index in indices)
+        {
+            int lightestChunk = 0;
+            for (int i = 1; i < desiredChunks; ++i)
+                if (chunkWeights[i] < chunkWeights[lightestChunk]) lightestChunk = i;
+            chunks[lightestChunk].Add(filePaths[index]);
+            chunkWeights[lightestChunk] += fileSizes[index];
+        }
+        string[][] result = new string[desiredChunks][];
+        for (int i = 0; i < desiredChunks; ++i) result[i] = chunks[i].ToArray();
+        return result;
+    }
 }

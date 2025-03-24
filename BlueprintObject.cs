@@ -309,7 +309,7 @@ public class BlueprintRoot : ISerializableParameter
     }
     public Piece.Requirement[] GetRequirements() => Objects.Select(x => x.Id).ToArray().GetRequirements();
     public IOrderedEnumerable<KeyValuePair<string, Utils.NumberedData>> GetPiecesNumbered() => Objects.Select(x => x.Id).ToArray().GetPiecesNumbered();
-    public void Apply(Vector3 center, Quaternion rootRot, bool deactivate) => ZNetScene.instance.StartCoroutine(Internal_Apply(Configs.InstantBuild.Value, center, rootRot, deactivate));
+    public void Apply(Vector3 center, Quaternion rootRot, bool deactivate) => ZNetScene.instance.StartCoroutine(Internal_Apply(!Configs.UseDelayedBuildProgress.Value, center, rootRot, deactivate));
     private IEnumerator Internal_Apply(bool instantBuild, Vector3 center, Quaternion rootRot, bool deactivate)
     {
         for (int i = 0; i < Objects.Length; ++i)

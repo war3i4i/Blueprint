@@ -992,7 +992,7 @@ public static class BlueprintUI
                 tooltip.m_tooltipPrefab = __instance.m_playerGrid.m_elementPrefab.GetComponent<UITooltip>().m_tooltipPrefab;
             }
         }
-    }
+    } 
     [HarmonyPatch(typeof(Player),nameof(Player.UpdatePlacementGhost))]
     private static class Player_UpdatePlacementGhost_Patch_Precise
     {
@@ -1013,7 +1013,8 @@ public static class BlueprintUI
             if (Input.GetKey(KeyCode.DownArrow)) moveDir -= forwardDir; 
             if (Input.GetKey(KeyCode.PageUp)) moveDir += Vector3.up;
             if (Input.GetKey(KeyCode.PageDown)) moveDir -= Vector3.up;
-            PreciseOffset += moveDir * dt * 2f;
+            float multi = Input.GetKey(KeyCode.LeftShift) ? 6f : 2f;
+            PreciseOffset += moveDir * dt * multi;
             __instance.m_placementGhost.transform.position += PreciseOffset;
         }
     }

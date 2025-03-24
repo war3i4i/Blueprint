@@ -118,8 +118,11 @@
         <Reference Include="UnityEngine.UIModule">
           <HintPath>Libs\UnityEngine.UIModule.dll</HintPath>
         </Reference>
-        <Reference Include="YamlDotNet, Version=16.0.0.0, Culture=neutral, PublicKeyToken=ec19458f3c15af5e, processorArchitecture=MSIL">
-          <HintPath>packages\YamlDotNet.16.3.0\lib\net47\YamlDotNet.dll</HintPath>
+        <Reference Include="VYaml">
+          <HintPath>Libs\VYaml.dll</HintPath>
+        </Reference>
+        <Reference Include="VYaml.Annotations">
+          <HintPath>Libs\VYaml.Annotations.dll</HintPath>
         </Reference>
     </ItemGroup>
     <ItemGroup>
