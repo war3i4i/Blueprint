@@ -89,15 +89,6 @@ public class BlueprintCircleCreator(Vector3 pos, float radius, float height) : B
         : Vector3.zero;
 
 }
-[Serializable]
-public class SimpleVector3 
-{
-    public float x;
-    public float y; 
-    public float z;
-    public static implicit operator Vector3(SimpleVector3 v) => new Vector3(v.x, v.y, v.z);
-    public static implicit operator SimpleVector3(Vector3 v) => new SimpleVector3 { x = v.x, y = v.y, z = v.z };
-}
 public class RenameBlueprintRoot(BlueprintRoot root, Action<string> callback) : TextReceiver
 {
     public string GetText() => root.Name;
@@ -151,12 +142,54 @@ public class IntOrStringConverter : IYamlTypeConverter
     public void WriteYaml(IEmitter emitter, object value, Type type, ObjectSerializer serializer) =>
         emitter.Emit(new Scalar(value?.ToString() ?? "ERROR"));
 }
+//converter should be RelativePosition:
+// x: value
+// y: value
+// z: value
+public class UnityVector3Converter : IYamlTypeConverter
+{
+    public bool Accepts(Type type) => type == typeof(Vector3);
+    public object ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer)
+    {
+        parser.Expect<MappingStart>(); 
+        float x = 0f, y = 0f, z = 0f;
+        while (parser.Allow<MappingEnd>() == null)
+        {
+            string key = parser.Consume<Scalar>().Value;
+            switch (key)
+            {
+                case "x":
+                    x = float.Parse(parser.Consume<Scalar>().Value);
+                    break;
+                case "y":
+                    y = float.Parse(parser.Consume<Scalar>().Value);
+                    break;
+                case "z":
+                    z = float.Parse(parser.Consume<Scalar>().Value);
+                    break;
+            }
+        }
+        return new Vector3(x, y, z);
+    } 
+    public void WriteYaml(IEmitter emitter, object value, Type type, ObjectSerializer serializer)
+    {  
+        Vector3 vec = (Vector3)value;
+        emitter.Emit(new MappingStart());
+        emitter.Emit(new Scalar("x"));
+        emitter.Emit(new Scalar(vec.x.ToString()));
+        emitter.Emit(new Scalar("y"));
+        emitter.Emit(new Scalar(vec.y.ToString()));
+        emitter.Emit(new Scalar("z"));
+        emitter.Emit(new Scalar(vec.z.ToString()));
+        emitter.Emit(new MappingEnd());
+    }
+}
 [Serializable]
 public class BlueprintObject
 {
     public IntOrString Id;
-    public SimpleVector3 RelativePosition;
-    public SimpleVector3 Rotation;
+    public Vector3 RelativePosition;
+    public Vector3 Rotation;
     public string ZDOData;
     public string Prefab;
 }
@@ -169,11 +202,11 @@ public class BlueprintRoot : ISerializableParameter
     public string Author;
     public string Description;
     public string Icon;
-    public SimpleVector3 BoxRotation;
+    public Vector3 BoxRotation;
     public BlueprintObject[] Objects;
     public string[] Previews;
     public enum SourceType { None, Native, NativeOptimized, Planbuild, VBuild }
-    public SourceType Source => TryGetFilePath(out string path) ?
+    public SourceType Source() => TryGetFilePath(out string path) ?
         Path.GetExtension(path) switch
         {
             ".yml" => SourceType.Native,
@@ -382,7 +415,7 @@ public class BlueprintRoot : ISerializableParameter
         {
             if (ext == ".yml")
             {
-                string data = new SerializerBuilder().ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitDefaults).WithTypeConverter(new IntOrStringConverter()).Build().Serialize(clone);
+                string data = new SerializerBuilder().ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitDefaults).WithTypeConverter(new IntOrStringConverter()).WithTypeConverter(new UnityVector3Converter()).Build().Serialize(clone);
                 path.WriteNoDupes(data, false);
             }
             else

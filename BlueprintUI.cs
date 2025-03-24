@@ -325,7 +325,9 @@ public static class BlueprintUI
         });
         Main.transform.Find("Buttons/Rename").GetComponent<Button>().onClick.AddListener(() =>
         {
-            if (Current is not { Source: BlueprintRoot.SourceType.Native or BlueprintRoot.SourceType.NativeOptimized }) return;
+            if (Current == null) return;
+            BlueprintRoot.SourceType source = Current.Source();
+            if (source is not BlueprintRoot.SourceType.Native and not BlueprintRoot.SourceType.NativeOptimized) return;
             Hide();
             RenameBlueprintRoot renamer = new(Current, (newName) =>
             {
@@ -568,7 +570,7 @@ public static class BlueprintUI
         if (isForeign) entryName = root.Name;
         else
         {
-            var source = root.Source;
+            var source = root.Source();
             switch (source)
             {
                 case BlueprintRoot.SourceType.Planbuild:
@@ -586,7 +588,7 @@ public static class BlueprintUI
         if (root.Icon.ToIcon() is {} icon) entry.transform.Find("Icon").GetComponent<RawImage>().texture = icon;
         else
         {
-            var source = root.Source;
+            var source = root.Source();
             if (source > BlueprintRoot.SourceType.NativeOptimized) entry.transform.Find("Icon").GetComponent<RawImage>().texture = PlanbuildParser.PB_Icon;
         }
 
@@ -653,7 +655,7 @@ public static class BlueprintUI
         Current = root;
         LastPressedEntry = obj;
         BlueprintName.text = Current.Name + $" ($kg_blueprint_pieces: <color=yellow>{Current.Objects.Length}</color>)".Localize();
-        CopyToClipboardButton.interactable = Current.Source is BlueprintRoot.SourceType.Native or BlueprintRoot.SourceType.NativeOptimized;
+        CopyToClipboardButton.interactable = Current.Source() is BlueprintRoot.SourceType.Native or BlueprintRoot.SourceType.NativeOptimized;
         BlueprintDescription.text = string.IsNullOrWhiteSpace(Current.Description) ? "$kg_blueprint_nodescription".Localize() : Current.Description;
         BlueprintAuthor.text = $"$kg_blueprint_author\n<color=green>{(string.IsNullOrWhiteSpace(Current.Author) ? "$kg_blueprint_noauthor" : Current.Author)}</color>".Localize();
         for (int i = 0; i < 3; ++i) 
@@ -665,7 +667,7 @@ public static class BlueprintUI
         Main.gameObject.SetActive(true);
         IsForeign = isForeign;
         DeleteButton_Foreign.interactable = isForeign;
-        Convert.gameObject.SetActive(Current.Source > BlueprintRoot.SourceType.NativeOptimized);
+        Convert.gameObject.SetActive(Current.Source() > BlueprintRoot.SourceType.NativeOptimized);
         if (ForeignSource == null) SelectButton_Text.text = "$kg_blueprint_select".Localize();
         else  SelectButton_Text.text =  IsForeign ? "$kg_blueprint_copy".Localize() : "$kg_blueprint_add".Localize();
         UpdateCanvases(); 

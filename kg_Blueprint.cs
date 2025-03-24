@@ -145,9 +145,9 @@ public class kg_Blueprint : BaseUnityPlugin
         Task.Run(() =>
         {
             try
-            {
+            { 
                 token.ThrowIfCancellationRequested();
-                Stopwatch stopwatch = Stopwatch.StartNew();
+                Stopwatch stopwatch = Stopwatch.StartNew(); 
                 string[] search = Directory.GetFiles(BlueprintsPath, "*.yml", SearchOption.AllDirectories)
                     .Concat(Directory.GetFiles(BlueprintsPath, "*.blueprint", SearchOption.AllDirectories))
                     .Concat(Directory.GetFiles(BlueprintsPath, "*.vbuild", SearchOption.AllDirectories))
@@ -156,22 +156,22 @@ public class kg_Blueprint : BaseUnityPlugin
                 Logger.LogDebug($"Found {search.Length} blueprints");
                 List<BlueprintRoot> Blueprints = new(search.Length);
                 if (Configs.UseMultithreadIO.Value)
-                {   
-                    const int maxproc = 4; 
+                {
+                    int maxproc = Configs.UseMultithreadIO_Cores.Value;
                     string[][] chunks = search.SplitIntoChunksWeightLoad(maxproc);
-                    int maxChunkSize = chunks.Max(x => x.Length);
+                    int maxChunkSize = chunks.Max(x => x.Length); 
                     Logger.LogDebug($"Using multithread IO with {maxproc} threads and chunk size {maxChunkSize}. Chunk count: {chunks.Length}");
                     Parallel.ForEach(chunks, new ParallelOptions { CancellationToken = token}, files =>
                     {
                         List<BlueprintRoot> chunkBlueprints = new List<BlueprintRoot>(maxChunkSize);
-                        IDeserializer deserializer = new DeserializerBuilder().WithTypeConverter(new IntOrStringConverter()).Build();
+                        IDeserializer deserializer = new DeserializerBuilder().WithTypeConverter(new IntOrStringConverter()).WithTypeConverter(new UnityVector3Converter()).Build();
                         ProcessBlueprints(files, chunkBlueprints, deserializer);
                         lock (_lock) Blueprints.AddRange(chunkBlueprints);
                     });
                 }
                 else
-                {
-                    IDeserializer deserializer = new DeserializerBuilder().WithTypeConverter(new IntOrStringConverter()).Build();
+                { 
+                    IDeserializer deserializer = new DeserializerBuilder().WithTypeConverter(new IntOrStringConverter()).WithTypeConverter(new UnityVector3Converter()).Build();
                     ProcessBlueprints(search, Blueprints, deserializer);
                 }
                 kg_Blueprint.Logger.LogDebug($"[Multithread] Loaded blueprints in {stopwatch.ElapsedMilliseconds}ms. Blueprint count: {Blueprints.Count}");
@@ -186,31 +186,52 @@ public class kg_Blueprint : BaseUnityPlugin
             }
         }, token);
     }
+    private enum ClipboardDataType { NativeText, NativeBytes, NativeBytesOptimized }
     public static void TryLoadFromClipboard()
-    {
-        string clipboard = ClipboardUtils.GetText();
-        if (string.IsNullOrWhiteSpace(clipboard)) return;
+    { 
+        string clipboard = ClipboardUtils.GetText(); 
+        if (string.IsNullOrWhiteSpace(clipboard) || clipboard.Length < 5) return; 
+        ClipboardDataType type = ClipboardDataType.NativeText;
+        if (clipboard[0] == 'k' && clipboard[1] == 'g' && clipboard[2] == 'b' && clipboard[3] == 'p')
+        {
+            type = (ClipboardDataType)clipboard[4];
+            clipboard = clipboard.Substring(5);
+        }
         Task.Run(() =>
         {
-            byte[] bytes;
-            try { bytes = Convert.FromBase64String(clipboard); }
-            catch (Exception) { bytes = null; }
             try
-            { 
-                string data = bytes == null ? clipboard : Encoding.UTF8.GetString(bytes);
-                BlueprintRoot root = new DeserializerBuilder().WithTypeConverter(new IntOrStringConverter()).Build().Deserialize<BlueprintRoot>(data);
-                if (!root.IsValid(out string reason))
+            {
+                BlueprintRoot root = null;
+                switch (type)
+                {
+                    case ClipboardDataType.NativeBytes:
+                        root = new DeserializerBuilder().WithTypeConverter(new IntOrStringConverter()).WithTypeConverter(new UnityVector3Converter()).Build().Deserialize<BlueprintRoot>(Encoding.UTF8.GetString(Convert.FromBase64String(clipboard)));
+                        break;
+                    case ClipboardDataType.NativeBytesOptimized:
+                        root = new BlueprintRoot();
+                        root.DeserializeFull(Convert.FromBase64String(clipboard));
+                        break;
+                    case ClipboardDataType.NativeText:
+                        root = new DeserializerBuilder().WithTypeConverter(new IntOrStringConverter()).WithTypeConverter(new UnityVector3Converter()).Build().Deserialize<BlueprintRoot>(clipboard);
+                        break;
+                }
+                if (root == null) 
+                {
+                    Logger.LogError("Error loading blueprint from clipboard");
+                    return;
+                }
+                if (!root.IsValid(out string reason)) 
                 {
                     Logger.LogError($"Blueprint from clipboard is invalid: {reason}");
                     return;
-                } 
+                }
                 root.AssignPath(Path.Combine(kg_Blueprint.BlueprintsPath, root.Name + ".yml"), false);
                 root.Save(false);
                 ThreadingHelper.Instance.StartSyncInvoke(() => BlueprintUI.AddEntry(root, true, true));
-            }
-            catch (Exception e)
-            { 
-                Logger.LogError($"Error loading blueprint from clipboard: {e}");
+            } 
+            catch (Exception ex)
+            {
+                Logger.LogError($"Error loading blueprint from clipboard: {ex}");
             }
         });
     }
@@ -221,8 +242,14 @@ public class kg_Blueprint : BaseUnityPlugin
         {
             try
             {
-                if (!File.Exists(path)) return;
-                string data = Convert.ToBase64String(File.ReadAllBytes(path));
+                if (!File.Exists(path)) return; 
+                string data = Convert.ToBase64String(File.ReadAllBytes(path));  
+                ClipboardDataType type = root.Source() switch
+                {
+                    BlueprintRoot.SourceType.Native => ClipboardDataType.NativeBytes,
+                    BlueprintRoot.SourceType.NativeOptimized => ClipboardDataType.NativeBytesOptimized,
+                };
+                data = $"kgbp{(int)type}{data}";
                 ThreadingHelper.Instance.StartSyncInvoke(() => GUIUtility.systemCopyBuffer = data);
             }
             catch(Exception e)
