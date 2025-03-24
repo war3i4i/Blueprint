@@ -5,10 +5,7 @@
 			<InputAssemblies Include="$(TargetPath)"/>
 			<InputAssemblies Include="$(OutputPath)\YamlDotNet.dll" />
 		</ItemGroup>
-
 		        <ILRepack Parallel="true" DebugInfo="true" Internalize="true" InputAssemblies="@(InputAssemblies)" OutputFile="$(TargetPath)"
                   TargetKind="SameAsPrimaryAssembly" LibraryPath="$(OutputPath)" RepackDropAttribute="RepackDropAttribute"/>
 	</Target>
-	
-	
 </Project>

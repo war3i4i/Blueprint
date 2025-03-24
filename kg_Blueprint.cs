@@ -146,12 +146,12 @@ public class kg_Blueprint : BaseUnityPlugin
                                 {
                                     Logger.LogError($"Blueprint {file} is invalid: {reason}");
                                     return;
-                                } 
+                                }  
                                 root.AssignPath(file, true);
                                 chunkBlueprints.Add(root);
                             }
                             catch (Exception e)
-                            {
+                            { 
                                 Logger.LogError($"Error reading blueprint {file}: {e}");
                             } 
                         }
