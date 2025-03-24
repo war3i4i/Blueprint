@@ -90,39 +90,52 @@ public class kg_Blueprint : BaseUnityPlugin
     }
     private static CancellationTokenSource _cts = new CancellationTokenSource();
     private static object _lock = new object();
-    private static BlueprintRoot ProcessBlueprint(string file, IDeserializer deserializer)
+    private static void ProcessBlueprints(string[] files, List<BlueprintRoot> list, IDeserializer deserializer)
     {
-        string ext = Path.GetExtension(file);
-        BlueprintRoot root = null;
-        switch (ext)
+        for (int i = 0; i < files.Length; ++i)
         {
-            case ".blueprint": 
-                root = PlanbuildParser.Parse(File.ReadAllLines(file));
-                root.SetCategory(".blueprint#4e82ea");
-                break;
-            case ".vbuild":
-                string fNameNoExt = Path.GetFileNameWithoutExtension(file);
-                root = VBuildParser.Parse(fNameNoExt, File.ReadAllLines(file));
-                root.SetCategory(".vbuild#f48b75");
-                break; 
-            case ".yml":
-                root = deserializer.Deserialize<BlueprintRoot>(File.ReadAllText(file));
-                string parentFolderName = Path.GetFileName(Path.GetDirectoryName(file));
-                if (parentFolderName != "Blueprints") root.SetCategory(parentFolderName);
-                break;
-            case ".oprint":
-                root = new();
-                root.DeserializeFull(File.ReadAllBytes(file));
-                parentFolderName = Path.GetFileName(Path.GetDirectoryName(file));
-                if (parentFolderName != "Blueprints") root.SetCategory(parentFolderName);
-                break;
+            string file = files[i];
+            try
+            {
+                string ext = Path.GetExtension(file);
+                BlueprintRoot root = null;
+                switch (ext)
+                {
+                    case ".blueprint":
+                        root = PlanbuildParser.Parse(File.ReadAllLines(file));
+                        root.SetCategory(".blueprint#4e82ea");
+                        break;
+                    case ".vbuild":
+                        string fNameNoExt = Path.GetFileNameWithoutExtension(file);
+                        root = VBuildParser.Parse(fNameNoExt, File.ReadAllLines(file));
+                        root.SetCategory(".vbuild#f48b75");
+                        break;
+                    case ".yml":
+                        root = deserializer.Deserialize<BlueprintRoot>(File.ReadAllText(file));
+                        string parentFolderName = Path.GetFileName(Path.GetDirectoryName(file));
+                        if (parentFolderName != "Blueprints") root.SetCategory(parentFolderName);
+                        break;
+                    case ".oprint":
+                        root = new();
+                        root.DeserializeFull(File.ReadAllBytes(file));
+                        parentFolderName = Path.GetFileName(Path.GetDirectoryName(file));
+                        if (parentFolderName != "Blueprints") root.SetCategory(parentFolderName);
+                        break;
+                }
+                if (!root.IsValid(out string reason))
+                {
+                    Logger.LogError($"Blueprint {file} is invalid: {reason}");
+                    continue;
+                }
+
+                root.AssignPath(file, true);
+                list.Add(root);
+            }
+            catch (Exception ex)
+            {
+                kg_Blueprint.Logger.LogError($"Error loading blueprint {file}: {ex}");
+            }
         }
-        if (!root.IsValid(out string reason))
-        {
-            Logger.LogError($"Blueprint {file} is invalid: {reason}");
-            return null;
-        }
-        return root;
     }
     public static void ReadBlueprints()
     {
@@ -143,7 +156,7 @@ public class kg_Blueprint : BaseUnityPlugin
                 Logger.LogDebug($"Found {search.Length} blueprints");
                 List<BlueprintRoot> Blueprints = new(search.Length);
                 if (Configs.UseMultithreadIO.Value)
-                {
+                {   
                     const int maxproc = 4; 
                     string[][] chunks = search.SplitIntoChunksWeightLoad(maxproc);
                     int maxChunkSize = chunks.Max(x => x.Length);
@@ -152,42 +165,14 @@ public class kg_Blueprint : BaseUnityPlugin
                     {
                         List<BlueprintRoot> chunkBlueprints = new List<BlueprintRoot>(maxChunkSize);
                         IDeserializer deserializer = new DeserializerBuilder().WithTypeConverter(new IntOrStringConverter()).Build();
-                        foreach (string file in files)
-                        {
-                            token.ThrowIfCancellationRequested();
-                            try 
-                            {
-                                BlueprintRoot root = ProcessBlueprint(file, deserializer);
-                                if (root == null) continue;
-                                root.AssignPath(file, true);
-                                chunkBlueprints.Add(root);
-                            }
-                            catch (Exception e)
-                            {
-                                Logger.LogError($"Error reading blueprint {file}: {e}");
-                            }
-                        }
+                        ProcessBlueprints(files, chunkBlueprints, deserializer);
                         lock (_lock) Blueprints.AddRange(chunkBlueprints);
                     });
                 }
                 else
                 {
                     IDeserializer deserializer = new DeserializerBuilder().WithTypeConverter(new IntOrStringConverter()).Build();
-                    for (int i = 0; i < search.Length; i++)
-                    {
-                        token.ThrowIfCancellationRequested();
-                        string file = search[i];
-                        try
-                        {
-                            BlueprintRoot root = ProcessBlueprint(file, deserializer);
-                            if (root == null) continue;
-                            root.AssignPath(file, true);
-                        }
-                        catch (Exception e)
-                        {
-                            Logger.LogError($"Error reading blueprint {file}: {e}");
-                        }
-                    }
+                    ProcessBlueprints(search, Blueprints, deserializer);
                 }
                 kg_Blueprint.Logger.LogDebug($"[Multithread] Loaded blueprints in {stopwatch.ElapsedMilliseconds}ms. Blueprint count: {Blueprints.Count}");
                 token.ThrowIfCancellationRequested();
