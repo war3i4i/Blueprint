@@ -14,6 +14,7 @@ public static class Configs
     private static void UpdateHashset() => SaveZDOHashset = [..SaveZDOForPrefabs.Value.Replace(" ", "").Split(',').Select(x => x.GetStableHashCode())];
     public static ConfigEntry<bool> IncludeTrees, IncludeDestructibles;
     public static ConfigEntry<bool> UseMultithreadIO;
+    public static ConfigEntry<bool> UseOptimizedFileFormat;
     public static void Init()
     { 
         //synced
@@ -32,6 +33,7 @@ public static class Configs
         MaxCreateNewSize = kg_Blueprint._thistype.Config.Bind("General", "MaxCreateNewSize", 60, "Max radius of creating new blueprint");
         RemoveBlueprintPlacementOnUnequip = kg_Blueprint._thistype.Config.Bind("General", "RemoveBlueprintPlacementOnUnequip", false, "Remove the ghost object when the blueprint is unequipped");
         UseMultithreadIO = kg_Blueprint._thistype.Config.Bind("General", "UseMultithreadIO", true, "Use multithreaded yml read for loading blueprints");
+        UseOptimizedFileFormat = kg_Blueprint._thistype.Config.Bind("General", "UseOptimizedFileFormat", true, "Use optimized file format for saving blueprints");
     }
     [HarmonyPatch(typeof(FejdStartup), nameof(FejdStartup.Awake))]
     static class Menu_Start_Patch

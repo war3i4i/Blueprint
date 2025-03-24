@@ -137,6 +137,7 @@ public readonly struct IntOrString
     public static explicit operator int(IntOrString value) => value._intValue;
     public static implicit operator IntOrString(int value) => new(value);
     public static implicit operator IntOrString(string value) => new(value);
+    public bool IsString => _strValue != null;
     public override string ToString() => _strValue ?? _intValue.ToString();
 } 
 public class IntOrStringConverter : IYamlTypeConverter
@@ -171,8 +172,15 @@ public class BlueprintRoot : ISerializableParameter
     public SimpleVector3 BoxRotation;
     public BlueprintObject[] Objects;
     public string[] Previews;
-    public enum SourceType { Native, Planbuild, VBuild }
-    public SourceType Source = SourceType.Native;
+    public enum SourceType { None, Native, NativeOptimized, Planbuild, VBuild }
+    public SourceType Source => TryGetFilePath(out string path) ?
+        Path.GetExtension(path) switch
+        {
+            ".yml" => SourceType.Native,
+            ".oprint" => SourceType.NativeOptimized,
+            ".blueprint" => SourceType.Planbuild,
+            ".vbuild" => SourceType.VBuild,
+        } : SourceType.None;
     private string Category;
     public void SetCategory(string category) => Category = category;
     public string GetCategory() => Category;
@@ -188,6 +196,8 @@ public class BlueprintRoot : ISerializableParameter
         string directory = Path.GetDirectoryName(path)!;
         string fileNameNoExt = Path.GetFileNameWithoutExtension(path);
         string ext = Path.GetExtension(path);
+        if (Configs.UseOptimizedFileFormat.Value) ext = ".oprint";
+        path = Path.Combine(directory, $"{fileNameNoExt}{ext}");
         int increment = 1;
         while (File.Exists(path)) path = Path.Combine(directory, $"{fileNameNoExt} ({increment++}){ext}");
         FilePath = path;
@@ -364,18 +374,24 @@ public class BlueprintRoot : ISerializableParameter
     public void Save(bool forget = true) 
     {
         if (!TryGetFilePath(out string path)) return;
+        string ext = Path.GetExtension(path);
+        if (string.IsNullOrWhiteSpace(ext)) return;
+        if (ext != ".yml" && ext != ".oprint") return;
         BlueprintRoot clone = (BlueprintRoot)MemberwiseClone();
-        if (forget)
-            Task.Run(() =>
-            {  
+        void _Internal_Save()
+        {
+            if (ext == ".yml")
+            {
                 string data = new SerializerBuilder().ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitDefaults).WithTypeConverter(new IntOrStringConverter()).Build().Serialize(clone);
                 path.WriteNoDupes(data, false);
-            });
-        else
-        {
-            string data = new SerializerBuilder().ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitDefaults).WithTypeConverter(new IntOrStringConverter()).Build().Serialize(clone);
-            path.WriteNoDupes(data, false);
+            }
+            else
+            {
+                path.WriteNoDupes(clone.SerializeFull(), false);
+            }
         }
+        if (forget) Task.Run(_Internal_Save);
+        else _Internal_Save();
     }
     public void Serialize(ref ZPackage pkg)
     {
@@ -413,6 +429,60 @@ public class BlueprintRoot : ISerializableParameter
                 ZDOData = pkg.ReadBool() ? pkg.ReadString() : null
             };
         }
+    }
+
+    public byte[] SerializeFull()
+    {
+        using MemoryStream ms = new MemoryStream();
+        using BinaryWriter pkg = new BinaryWriter(ms);
+        pkg.Write(Name ?? "");
+        pkg.Write(Author ?? "");
+        pkg.Write(Description ?? "");
+        pkg.Write(BoxRotation);
+        pkg.Write(Objects.Length);
+        for (int i = 0; i < Objects.Length; ++i)
+        {
+            bool isString = Objects[i].Id.IsString;
+            pkg.Write(isString);
+            if (isString) pkg.Write(Objects[i].Id.ToString());
+            else pkg.Write((int)Objects[i].Id);
+            pkg.Write(Objects[i].RelativePosition);
+            pkg.Write(Objects[i].Rotation);
+            pkg.Write(Objects[i].ZDOData != null);
+            if (Objects[i].ZDOData != null) pkg.Write(Objects[i].ZDOData);
+        }
+        pkg.Write(Previews.Length);
+        foreach (string preview in Previews) pkg.Write(preview);
+        pkg.Write(Icon ?? "");
+        return ms.ToArray();
+    }
+    
+    public void DeserializeFull(byte[] arr)
+    {
+        using MemoryStream ms = new(arr);
+        using BinaryReader pkg = new(ms);
+        Name = pkg.ReadString();
+        Author = pkg.ReadString();
+        Description = pkg.ReadString();
+        if (string.IsNullOrEmpty(Name)) Name = "Unnamed";
+        if (string.IsNullOrEmpty(Author)) Author = null;
+        if (string.IsNullOrEmpty(Description)) Description = null;
+        BoxRotation = pkg.ReadVector3();
+        Objects = new BlueprintObject[pkg.ReadInt32()];
+        for (int i = 0; i < Objects.Length; ++i)
+        {
+            bool isString = pkg.ReadBoolean();
+            Objects[i] = new BlueprintObject
+            {
+                Id = isString ? pkg.ReadString() : pkg.ReadInt32(),
+                RelativePosition = pkg.ReadVector3(),
+                Rotation = pkg.ReadVector3(),
+                ZDOData = pkg.ReadBoolean() ? pkg.ReadString() : null
+            };
+        }
+        Previews = new string[pkg.ReadInt32()];
+        for (int i = 0; i < Previews.Length; ++i) Previews[i] = pkg.ReadString();
+        Icon = pkg.ReadString();
     }
 
     public override string ToString() => $"BlueprintRoot: {Name}, Objects: {Objects.Length}";

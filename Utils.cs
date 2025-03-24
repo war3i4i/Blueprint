@@ -36,6 +36,11 @@ public static class Utils
         string msg = $"{caller}({line})";
         return Path.GetInvalidPathChars().Aggregate(path, (current, c) => current.Replace(c.ToString(), string.Empty));
     }
+    public static void WriteNoDupes(this string path, byte[] data, bool forget)
+    {
+        if (forget) Task.Run(() => File.WriteAllBytes(path, data));
+        else File.WriteAllBytes(path, data);
+    }
     public static void WriteNoDupes(this string path, string data, bool forget)
     {
         if (forget) Task.Run(() => File.WriteAllText(path, data));
@@ -479,7 +484,7 @@ public static class Utils
             throw new ArgumentNullException(nameof(filePaths));
         if (desiredChunks <= 0)
             throw new ArgumentOutOfRangeException(nameof(desiredChunks), "Chunk count must be positive");
-        int totalItems = filePaths.Length;
+        int totalItems = filePaths.Length; 
         if (totalItems == 0 || desiredChunks == 1)
             return new string[][] { filePaths };
         int baseChunkSize = totalItems / desiredChunks;

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using ItemDataManager;
@@ -89,6 +90,35 @@ public class kg_Blueprint : BaseUnityPlugin
     }
     private static CancellationTokenSource _cts = new CancellationTokenSource();
     private static object _lock = new object();
+    private static BlueprintRoot ProcessBlueprint(string file, IDeserializer deserializer)
+    {
+        string ext = Path.GetExtension(file);
+        BlueprintRoot root = null;
+        switch (ext)
+        {
+            case ".blueprint": 
+                root = PlanbuildParser.Parse(File.ReadAllLines(file));
+                root.SetCategory(".blueprint#4e82ea");
+                break;
+            case ".vbuild":
+                string fNameNoExt = Path.GetFileNameWithoutExtension(file);
+                root = VBuildParser.Parse(fNameNoExt, File.ReadAllLines(file));
+                root.SetCategory(".vbuild#f48b75");
+                break; 
+            case ".yml":
+                root = deserializer.Deserialize<BlueprintRoot>(File.ReadAllText(file));
+                string parentFolderName = Path.GetFileName(Path.GetDirectoryName(file));
+                if (parentFolderName != "Blueprints") root.SetCategory(parentFolderName);
+                break;
+            case ".oprint":
+                root = new();
+                root.DeserializeFull(File.ReadAllBytes(file));
+                parentFolderName = Path.GetFileName(Path.GetDirectoryName(file));
+                if (parentFolderName != "Blueprints") root.SetCategory(parentFolderName);
+                break;
+        }
+        return root;
+    }
     public static void ReadBlueprints()
     {
         _cts.Cancel();
@@ -102,58 +132,39 @@ public class kg_Blueprint : BaseUnityPlugin
                 Stopwatch stopwatch = Stopwatch.StartNew();
                 string[] search = Directory.GetFiles(BlueprintsPath, "*.yml", SearchOption.AllDirectories)
                     .Concat(Directory.GetFiles(BlueprintsPath, "*.blueprint", SearchOption.AllDirectories))
-                    .Concat(Directory.GetFiles(BlueprintsPath, "*.vbuild", SearchOption.AllDirectories)).ToArray();
+                    .Concat(Directory.GetFiles(BlueprintsPath, "*.vbuild", SearchOption.AllDirectories))
+                    .Concat(Directory.GetFiles(BlueprintsPath, "*.oprint", SearchOption.AllDirectories))
+                    .ToArray();
                 Logger.LogDebug($"Found {search.Length} blueprints");
                 List<BlueprintRoot> Blueprints = new(search.Length);
                 if (Configs.UseMultithreadIO.Value)
                 {
-                    const int maxproc = 4;
+                    const int maxproc = 4; 
                     string[][] chunks = search.SplitIntoChunksWeightLoad(maxproc);
                     int maxChunkSize = chunks.Max(x => x.Length);
                     Logger.LogDebug($"Using multithread IO with {maxproc} threads and chunk size {maxChunkSize}. Chunk count: {chunks.Length}");
                     Parallel.ForEach(chunks, new ParallelOptions { CancellationToken = token}, files =>
-                    { 
+                    {
                         List<BlueprintRoot> chunkBlueprints = new List<BlueprintRoot>(maxChunkSize);
                         IDeserializer deserializer = new DeserializerBuilder().WithTypeConverter(new IntOrStringConverter()).Build();
                         foreach (string file in files)
                         {
                             token.ThrowIfCancellationRequested();
-                            try
+                            try 
                             {
-                                string ext = Path.GetExtension(file);
-                                BlueprintRoot root = null;
-                                switch (ext)
-                                {
-                                    case ".blueprint": 
-                                        root = PlanbuildParser.Parse(File.ReadAllLines(file));
-                                        root.Source = BlueprintRoot.SourceType.Planbuild; 
-                                        root.SetCategory(".blueprint#4e82ea");
-                                        break; 
-                                    case ".vbuild":
-                                        string fNameNoExt = Path.GetFileNameWithoutExtension(file);
-                                        root = VBuildParser.Parse(fNameNoExt, File.ReadAllLines(file));  
-                                        root.Source = BlueprintRoot.SourceType.VBuild;
-                                        root.SetCategory(".vbuild#f48b75");
-                                        break;
-                                    default: 
-                                        root = deserializer.Deserialize<BlueprintRoot>(File.ReadAllText(file));
-                                        root.Source = BlueprintRoot.SourceType.Native;
-                                        string parentFolderName = Path.GetFileName(Path.GetDirectoryName(file));
-                                        if (parentFolderName != "Blueprints") root.SetCategory(parentFolderName);
-                                        break;
-                                }
+                                BlueprintRoot root = ProcessBlueprint(file, deserializer);
                                 if (!root.IsValid(out string reason))
                                 {
                                     Logger.LogError($"Blueprint {file} is invalid: {reason}");
                                     return;
-                                }  
+                                }
                                 root.AssignPath(file, true);
                                 chunkBlueprints.Add(root);
                             }
                             catch (Exception e)
-                            { 
+                            {
                                 Logger.LogError($"Error reading blueprint {file}: {e}");
-                            } 
+                            }
                         }
                         lock (_lock) Blueprints.AddRange(chunkBlueprints);
                     });
@@ -167,32 +178,11 @@ public class kg_Blueprint : BaseUnityPlugin
                         string file = search[i];
                         try
                         {
-                            string content = File.ReadAllText(file);
-                            string ext = Path.GetExtension(file);
-                            BlueprintRoot root = null;
-                            switch (ext)
-                            {
-                                case ".blueprint":
-                                    root = PlanbuildParser.Parse(File.ReadAllLines(file));
-                                    root.Source = BlueprintRoot.SourceType.Planbuild; root.SetCategory(".blueprint#4e82ea");
-                                    break;
-                                case ".vbuild":
-                                    string fNameNoExt = Path.GetFileNameWithoutExtension(file);
-                                    root = VBuildParser.Parse(fNameNoExt, File.ReadAllLines(file));
-                                    root.Source = BlueprintRoot.SourceType.VBuild;
-                                    root.SetCategory(".vbuild#f48b75");
-                                    break;
-                                default:
-                                    root = deserializer.Deserialize<BlueprintRoot>(content);
-                                    root.Source = BlueprintRoot.SourceType.Native;
-                                    string parentFolderName = Path.GetFileName(Path.GetDirectoryName(file));
-                                    if (parentFolderName != "Blueprints") root.SetCategory(parentFolderName);
-                                    break;
-                            }
+                            BlueprintRoot root = ProcessBlueprint(file, deserializer);
                             if (!root.IsValid(out string reason))
                             {
                                 Logger.LogError($"Blueprint {file} is invalid: {reason}");
-                                continue;
+                                return;
                             }
                             root.AssignPath(file, true);
                         }
@@ -202,7 +192,7 @@ public class kg_Blueprint : BaseUnityPlugin
                         }
                     }
                 }
-                kg_Blueprint.Logger.LogDebug($"[Multithread] Loaded blueprints in {stopwatch.ElapsedMilliseconds}ms.");
+                kg_Blueprint.Logger.LogDebug($"[Multithread] Loaded blueprints in {stopwatch.ElapsedMilliseconds}ms. Blueprint count: {Blueprints.Count}");
                 token.ThrowIfCancellationRequested();
                 ThreadingHelper.Instance.StartSyncInvoke(() => BlueprintUI.Load(Blueprints));
             }

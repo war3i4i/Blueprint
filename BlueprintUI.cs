@@ -290,7 +290,6 @@ public static class BlueprintUI
         { 
             if (Current == null || ForeignSource != null) return;
             BlueprintRoot clone = Current.Clone();
-            clone.Source = BlueprintRoot.SourceType.Native;
             AddFromForeign(clone);
             ResetMain();
         });
@@ -326,7 +325,7 @@ public static class BlueprintUI
         });
         Main.transform.Find("Buttons/Rename").GetComponent<Button>().onClick.AddListener(() =>
         {
-            if (Current is not { Source: BlueprintRoot.SourceType.Native }) return;
+            if (Current is not { Source: BlueprintRoot.SourceType.Native or BlueprintRoot.SourceType.NativeOptimized }) return;
             Hide();
             RenameBlueprintRoot renamer = new(Current, (newName) =>
             {
@@ -578,7 +577,7 @@ public static class BlueprintUI
                  case BlueprintRoot.SourceType.VBuild:
                     entryName = $"<color=#808080>[.VB]</color> {root.Name}";
                     break;
-                case BlueprintRoot.SourceType.Native:
+                default:
                     entryName = root.Name;
                     break;
             }
@@ -588,7 +587,7 @@ public static class BlueprintUI
         else
         {
             var source = root.Source;
-            if (source != BlueprintRoot.SourceType.Native) entry.transform.Find("Icon").GetComponent<RawImage>().texture = PlanbuildParser.PB_Icon;
+            if (source > BlueprintRoot.SourceType.NativeOptimized) entry.transform.Find("Icon").GetComponent<RawImage>().texture = PlanbuildParser.PB_Icon;
         }
 
         UIInputHandler handler = entry.GetComponent<UIInputHandler>();
@@ -654,7 +653,7 @@ public static class BlueprintUI
         Current = root;
         LastPressedEntry = obj;
         BlueprintName.text = Current.Name + $" ($kg_blueprint_pieces: <color=yellow>{Current.Objects.Length}</color>)".Localize();
-        CopyToClipboardButton.interactable = Current.Source == BlueprintRoot.SourceType.Native;
+        CopyToClipboardButton.interactable = Current.Source is BlueprintRoot.SourceType.Native or BlueprintRoot.SourceType.NativeOptimized;
         BlueprintDescription.text = string.IsNullOrWhiteSpace(Current.Description) ? "$kg_blueprint_nodescription".Localize() : Current.Description;
         BlueprintAuthor.text = $"$kg_blueprint_author\n<color=green>{(string.IsNullOrWhiteSpace(Current.Author) ? "$kg_blueprint_noauthor" : Current.Author)}</color>".Localize();
         for (int i = 0; i < 3; ++i) 
@@ -666,7 +665,7 @@ public static class BlueprintUI
         Main.gameObject.SetActive(true);
         IsForeign = isForeign;
         DeleteButton_Foreign.interactable = isForeign;
-        Convert.gameObject.SetActive(Current.Source != BlueprintRoot.SourceType.Native);
+        Convert.gameObject.SetActive(Current.Source > BlueprintRoot.SourceType.NativeOptimized);
         if (ForeignSource == null) SelectButton_Text.text = "$kg_blueprint_select".Localize();
         else  SelectButton_Text.text =  IsForeign ? "$kg_blueprint_copy".Localize() : "$kg_blueprint_add".Localize();
         UpdateCanvases(); 
