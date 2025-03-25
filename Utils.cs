@@ -5,6 +5,7 @@ using System.Threading;
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 using CompressionLevel = UnityEngine.CompressionLevel;
+using Debug = UnityEngine.Debug;
 
 namespace kg_Blueprint;
 
@@ -524,5 +525,48 @@ public static class Utils
         string[][] result = new string[desiredChunks][];
         for (int i = 0; i < desiredChunks; ++i) result[i] = chunks[i].ToArray();
         return result;
+    }
+
+    public static void BlueprintLog(object obj, LogLevel level, ConsoleColor color = ConsoleColor.DarkCyan)
+    {
+        if ((level & ConsoleLogListener.ConfigConsoleDisplayedLevel.Value) == 0) return;
+        if (Application.platform == RuntimePlatform.WindowsPlayer)
+        {
+            ConsoleManager.SetConsoleColor(color);
+            ConsoleManager.StandardOutStream.WriteLine($"[{DateTime.Now}] [Blueprint] {obj}");
+            ConsoleManager.SetConsoleColor(ConsoleColor.White);
+            foreach (ILogListener logListener in BepInEx.Logging.Logger.Listeners)
+                if (logListener is DiskLogListener { LogWriter: not null } bepinexlog)
+                    bepinexlog.LogWriter.WriteLine($"[{DateTime.Now}] [Blueprint] {obj}");
+        }
+        else Debug.Log($"[{DateTime.Now}] [Blueprint] {obj}");
+    }
+    
+    [HarmonyPatch(typeof(ConsoleLogListener),nameof(ConsoleLogListener.LogEvent))]
+    private static class ConsoleLogListener_LogEvent_Patch
+    {
+        private static void Redirect(LogEventArgs eventArgs)
+        {
+            if ((eventArgs.Level & ConsoleLogListener.ConfigConsoleDisplayedLevel.Value) == LogLevel.None) return;
+            ConsoleColor color = eventArgs.Level switch
+            {
+                LogLevel.Error => ConsoleColor.DarkRed,
+                LogLevel.Warning => ConsoleColor.DarkYellow,
+                _ => ConsoleColor.DarkCyan
+            };
+            ConsoleManager.SetConsoleColor(color);
+            TextWriter consoleStream = ConsoleManager.ConsoleStream;
+            if (consoleStream != null) consoleStream.Write(eventArgs.ToStringLine());
+            ConsoleManager.SetConsoleColor(ConsoleColor.Gray);
+        }
+        private static bool Prefix(object sender, LogEventArgs eventArgs)
+        {
+            if (sender == kg_Blueprint.Logger)
+            {
+                Redirect(eventArgs);
+                return false;
+            }
+            return true;
+        }
     }
 }

@@ -10,6 +10,7 @@ using PieceManager;
 using ServerSync;
 using CraftingTable = ItemManager.CraftingTable;
 using Debug = System.Diagnostics.Debug;
+using Harmony = HarmonyLib.Harmony;
 
 namespace kg_Blueprint;
 
@@ -19,12 +20,12 @@ public class kg_Blueprint : BaseUnityPlugin
     public static kg_Blueprint _thistype;
     private const string GUID = "kg.Blueprint";
     private const string NAME = "Blueprint";
-    private const string VERSION = "1.5.0";
-    public new static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(GUID);
+    private const string VERSION = "1.6.0";
     public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");
     public static readonly string BlueprintsPath = Path.Combine(Paths.ConfigPath, "Blueprints");
     private static readonly List<GameObject> ReplaceMaterials = [];  
-    private static readonly List<GameObject> ReplaceShaders = []; 
+    public new static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(GUID);
+    private static readonly List<GameObject> ReplaceShaders = [];
     private static readonly ConfigSync configSync = new ServerSync.ConfigSync(GUID) { DisplayName = NAME, CurrentVersion = VERSION, MinimumRequiredVersion = VERSION, ModRequired = false, IsLocked = true};
     private static ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description, bool synchronizedSetting = true)
     {
@@ -40,6 +41,7 @@ public class kg_Blueprint : BaseUnityPlugin
         _thistype = this; 
         Localizer.Load();
         LoadAsm("kg_BlueprintScripts");
+        Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), GUID);
         PlanbuildParser.CreateIcon();
         BuildPiece blueprintBox = new BuildPiece(Asset, "kg_BlueprintBox");
         blueprintBox.RequiredItems.Add("Grausten", 20, false); 
@@ -72,8 +74,7 @@ public class kg_Blueprint : BaseUnityPlugin
         if (!Directory.Exists(BlueprintsPath)) Directory.CreateDirectory(BlueprintsPath); 
         BlueprintUI.Init(); 
         BuildProgress.Init(); 
-        ReadBlueprints();  
-        new Harmony(GUID).PatchAll();
+        ReadBlueprints();
     }
     private void FixedUpdate() => PlayerState.Update();
     private void Update()
@@ -194,7 +195,7 @@ public class kg_Blueprint : BaseUnityPlugin
         ClipboardDataType type = ClipboardDataType.NativeText;
         if (clipboard[0] == 'k' && clipboard[1] == 'g' && clipboard[2] == 'b' && clipboard[3] == 'p')
         {
-            type = (ClipboardDataType)clipboard[4];
+            type = (ClipboardDataType)int.Parse(clipboard[4].ToString());
             clipboard = clipboard.Substring(5);
         }
         Task.Run(() =>
@@ -240,7 +241,7 @@ public class kg_Blueprint : BaseUnityPlugin
         if (root == null || !root.TryGetFilePath(out string path)) return;
         Task.Run(() =>
         {
-            try
+            try 
             {
                 if (!File.Exists(path)) return; 
                 string data = Convert.ToBase64String(File.ReadAllBytes(path));  
