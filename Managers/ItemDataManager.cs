@@ -13,6 +13,7 @@ using HarmonyLib;
 using JetBrains.Annotations;
 using kg_Blueprint;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 namespace ItemDataManager;
 

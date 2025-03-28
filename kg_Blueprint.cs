@@ -17,20 +17,20 @@ namespace kg_Blueprint;
 [BepInPlugin(GUID, NAME, VERSION)] 
 public class kg_Blueprint : BaseUnityPlugin 
 { 
-    public static kg_Blueprint _thistype;
+    public static kg_Blueprint _thistype; 
     private const string GUID = "kg.Blueprint";
-    private const string NAME = "Blueprint";
-    private const string VERSION = "1.6.0";
+    private const string NAME = "Blueprint"; 
+    private const string VERSION = "1.6.2";
     public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");
     public static readonly string BlueprintsPath = Path.Combine(Paths.ConfigPath, "Blueprints");
-    private static readonly List<GameObject> ReplaceMaterials = [];  
+    private static readonly List<GameObject> ReplaceMaterials = [];
     public new static readonly ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource(GUID);
     private static readonly List<GameObject> ReplaceShaders = [];
     private static readonly ConfigSync configSync = new ServerSync.ConfigSync(GUID) { DisplayName = NAME, CurrentVersion = VERSION, MinimumRequiredVersion = VERSION, ModRequired = false, IsLocked = true};
     private static ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description, bool synchronizedSetting = true)
     {
         ConfigEntry<T> configEntry = _thistype.Config.Bind(group, name, value, description);
-        SyncedConfigEntry<T> syncedConfigEntry = configSync.AddConfigEntry(configEntry); 
+        SyncedConfigEntry<T> syncedConfigEntry = configSync.AddConfigEntry(configEntry);
         syncedConfigEntry.SynchronizedConfig = synchronizedSetting; 
         return configEntry;
     }
@@ -41,7 +41,7 @@ public class kg_Blueprint : BaseUnityPlugin
         _thistype = this; 
         Localizer.Load();
         LoadAsm("kg_BlueprintScripts");
-        Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), GUID);
+        
         PlanbuildParser.CreateIcon();
         BuildPiece blueprintBox = new BuildPiece(Asset, "kg_BlueprintBox");
         blueprintBox.RequiredItems.Add("Grausten", 20, false); 
@@ -71,6 +71,7 @@ public class kg_Blueprint : BaseUnityPlugin
         blueprintBook.Crafting.Add(CraftingTable.Inventory, 1);*/
         Configs.Init(); 
         if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null) return;
+        Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), GUID);
         if (!Directory.Exists(BlueprintsPath)) Directory.CreateDirectory(BlueprintsPath); 
         BlueprintUI.Init(); 
         BuildProgress.Init(); 
@@ -159,14 +160,14 @@ public class kg_Blueprint : BaseUnityPlugin
                 if (Configs.UseMultithreadIO.Value)
                 {
                     int maxproc = Configs.UseMultithreadIO_Cores.Value;
-                    string[][] chunks = search.SplitIntoChunksWeightLoad(maxproc);
+                    string[][] chunks = search.SplitIntoChunksWeightLoad(maxproc); 
                     int maxChunkSize = chunks.Max(x => x.Length); 
                     Logger.LogDebug($"Using multithread IO with {maxproc} threads and chunk size {maxChunkSize}. Chunk count: {chunks.Length}");
                     Parallel.ForEach(chunks, new ParallelOptions { CancellationToken = token}, files =>
                     {
                         List<BlueprintRoot> chunkBlueprints = new List<BlueprintRoot>(maxChunkSize);
                         IDeserializer deserializer = new DeserializerBuilder().WithTypeConverter(new IntOrStringConverter()).WithTypeConverter(new UnityVector3Converter()).Build();
-                        ProcessBlueprints(files, chunkBlueprints, deserializer);
+                        ProcessBlueprints(files, chunkBlueprints, deserializer); 
                         lock (_lock) Blueprints.AddRange(chunkBlueprints);
                     });
                 }

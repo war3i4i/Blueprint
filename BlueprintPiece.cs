@@ -296,7 +296,7 @@ public static class Player_TryPlacePiece_Patch
             return false;
         }
         try
-        {
+        { 
             _skip = true;
             __instance.TryPlacePiece(piece);
             _skip = false;
@@ -318,7 +318,7 @@ public static class Hud_Awake_Patch
         go.SetActive(false); 
         ChildNumber = __instance.m_pieceIconPrefab.transform.childCount - 1;
         go.transform.SetAsLastSibling(); 
-    } 
+    }
 }
 [HarmonyPatch(typeof(Piece),nameof(Piece.Awake))]
 public static class Piece_Awake_Patch

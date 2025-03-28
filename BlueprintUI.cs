@@ -126,7 +126,7 @@ public static class InteractionUI
             Piece.Requirement req = reqs[i];
             GameObject entry = Object.Instantiate(ResourceEntry, ReqsContent); 
             entry.SetActive(true);
-            entry.transform.Find("Icon").GetComponent<Image>().sprite = req.m_resItem.m_itemData.GetIcon();
+            entry.transform.Find("Icon").GetComponent<Image>().sprite = req.m_resItem.m_itemData.Icon(BlueprintUI.NoIcon);
             entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{req.m_resItem.m_itemData.m_shared.m_name} x{req.m_amount}".Localize();
         }
     }
@@ -189,7 +189,7 @@ public static class InteractionUI
         private static bool done;
         [UsedImplicitly] private static void Postfix(FejdStartup __instance)
         {
-            if (done) return;
+            if (done /*|| SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null*/) return;
             done = true;
             if (__instance.transform.Find("StartGame/Panel/JoinPanel/serverCount")?.GetComponent<TextMeshProUGUI>() is not { } tmp) return;
             foreach (TMP_Text componentsInChild in UI.GetComponentsInChildren<TMP_Text>(true)) componentsInChild.font = tmp.font;
@@ -777,7 +777,7 @@ public static class BlueprintUI
             string text = $"{req.m_resItem.m_itemData.m_shared.m_name} x{req.m_amount}";
             GameObject entry = Object.Instantiate(ResourceEntry, ResourceContent);
             entry.SetActive(true);
-            entry.transform.Find("Icon").GetComponent<Image>().sprite = req.m_resItem.m_itemData.GetIcon();
+            entry.transform.Find("Icon").GetComponent<Image>().sprite = req.m_resItem.m_itemData.Icon(NoIcon);
             entry.transform.Find("Name").GetComponent<TMP_Text>().text = text.Localize();
             entry.transform.Find("Name").GetComponent<TMP_Text>().color = Player.m_localPlayer.HaveRequirementItems(temp, false, 1) ? Color.green : Color.red;
         }

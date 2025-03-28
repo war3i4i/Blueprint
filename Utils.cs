@@ -526,21 +526,6 @@ public static class Utils
         for (int i = 0; i < desiredChunks; ++i) result[i] = chunks[i].ToArray();
         return result;
     }
-
-    public static void BlueprintLog(object obj, LogLevel level, ConsoleColor color = ConsoleColor.DarkCyan)
-    {
-        if ((level & ConsoleLogListener.ConfigConsoleDisplayedLevel.Value) == 0) return;
-        if (Application.platform == RuntimePlatform.WindowsPlayer)
-        {
-            ConsoleManager.SetConsoleColor(color);
-            ConsoleManager.StandardOutStream.WriteLine($"[{DateTime.Now}] [Blueprint] {obj}");
-            ConsoleManager.SetConsoleColor(ConsoleColor.White);
-            foreach (ILogListener logListener in BepInEx.Logging.Logger.Listeners)
-                if (logListener is DiskLogListener { LogWriter: not null } bepinexlog)
-                    bepinexlog.LogWriter.WriteLine($"[{DateTime.Now}] [Blueprint] {obj}");
-        }
-        else Debug.Log($"[{DateTime.Now}] [Blueprint] {obj}");
-    }
     
     [HarmonyPatch(typeof(ConsoleLogListener),nameof(ConsoleLogListener.LogEvent))]
     private static class ConsoleLogListener_LogEvent_Patch
@@ -568,5 +553,11 @@ public static class Utils
             }
             return true;
         }
+    }
+
+    public static Sprite Icon(this ItemDrop.ItemData data, Sprite fallback)
+    {
+        if (data.m_shared.m_icons == null || data.m_shared.m_icons.Length == 0) return fallback;
+        return data.m_shared.m_icons[0];
     }
 }
