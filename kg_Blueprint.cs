@@ -19,8 +19,8 @@ public class kg_Blueprint : BaseUnityPlugin
 { 
     public static kg_Blueprint _thistype; 
     private const string GUID = "kg.Blueprint";
-    private const string NAME = "Blueprint"; 
-    private const string VERSION = "1.6.2";
+    private const string NAME = "Blueprint";  
+    private const string VERSION = "1.6.3";
     public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");
     public static readonly string BlueprintsPath = Path.Combine(Paths.ConfigPath, "Blueprints");
     private static readonly List<GameObject> ReplaceMaterials = [];
@@ -28,7 +28,7 @@ public class kg_Blueprint : BaseUnityPlugin
     private static readonly List<GameObject> ReplaceShaders = [];
     private static readonly ConfigSync configSync = new ServerSync.ConfigSync(GUID) { DisplayName = NAME, CurrentVersion = VERSION, MinimumRequiredVersion = VERSION, ModRequired = false, IsLocked = true};
     private static ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description, bool synchronizedSetting = true)
-    {
+    { 
         ConfigEntry<T> configEntry = _thistype.Config.Bind(group, name, value, description);
         SyncedConfigEntry<T> syncedConfigEntry = configSync.AddConfigEntry(configEntry);
         syncedConfigEntry.SynchronizedConfig = synchronizedSetting; 

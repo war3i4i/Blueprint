@@ -100,7 +100,7 @@ public static class InteractionUI
         if (Current.CreateBlueprint(GetExcludedObjects(), name, description, Game.instance.m_playerProfile.m_playerName, icon, out string reason)) MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, $"<color=green>{name}</color> $kg_blueprint_saved".Localize());
         else MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, reason.Localize());
         Current = null;
-    }
+    } 
     private static HashSet<string> GetExcludedObjects()
     {
         HashSet<string> excludeObjects = [];

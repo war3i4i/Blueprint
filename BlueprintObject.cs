@@ -78,15 +78,13 @@ public class BlueprintCircleCreator(Vector3 pos, float radius, float height) : B
             Quaternion.Euler(23f, 51f, 25.8f) * Quaternion.Euler(0f, addRot, 0f),
             Quaternion.Euler(23f, 51f, 25.8f) * Quaternion.Euler(0f, addRot + 180f, 0f));
         for (int i = 0; i < inside.Length; ++i) inside[i].transform.SetParent(null);
-        Object.Destroy(empty);
+        Object.Destroy(empty); 
         return previews; 
     }
-    
+     
     public GameObject[] GetObjectedInside => Utils.GetObjectsInsideCylinder(pos, radius, height, null, [typeof(BlueprintPiece)], typeof(Piece), Configs.IncludeTrees.Value ? typeof(TreeBase) : null, Configs.IncludeDestructibles.Value ? typeof(Destructible) : null);
     public Vector3 StartPoint => pos;
-    public Vector3 Rotation => Player.m_localPlayer 
-        ? new Vector3(0f, Mathf.Repeat(Mathf.Atan2(Player.m_localPlayer.transform.position.x - pos.x, pos.z - Player.m_localPlayer.transform.position.z) * Mathf.Rad2Deg, 360f) + 45f, 0f) 
-        : Vector3.zero;
+    public Vector3 Rotation => Quaternion.identity.eulerAngles;
 
 }
 public class RenameBlueprintRoot(BlueprintRoot root, Action<string> callback) : TextReceiver
