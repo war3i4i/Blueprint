@@ -83,9 +83,17 @@ public class BlueprintCircleCreator(Vector3 pos, float radius, float height) : B
     }
      
     public GameObject[] GetObjectedInside => Utils.GetObjectsInsideCylinder(pos, radius, height, null, [typeof(BlueprintPiece)], typeof(Piece), Configs.IncludeTrees.Value ? typeof(TreeBase) : null, Configs.IncludeDestructibles.Value ? typeof(Destructible) : null);
-    public Vector3 StartPoint => pos;
-    public Vector3 Rotation => Quaternion.identity.eulerAngles;
-
+    public Vector3 StartPoint => pos; 
+    public Vector3 Rotation
+    {
+        get 
+        {
+            if (!Player.m_localPlayer) return Quaternion.identity.eulerAngles; 
+            var result = new Vector3(0f, Mathf.Repeat(Mathf.Atan2(Player.m_localPlayer.transform.position.x - pos.x, pos.z - Player.m_localPlayer.transform.position.z) * Mathf.Rad2Deg, 360f) + 45f, 0f);
+            result.y = (int)Mathf.Round(result.y / Player.m_localPlayer.m_placeRotationDegrees) * Player.m_localPlayer.m_placeRotationDegrees;
+            return result;
+        }
+    }
 }
 public class RenameBlueprintRoot(BlueprintRoot root, Action<string> callback) : TextReceiver
 {
