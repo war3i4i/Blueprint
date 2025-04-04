@@ -132,7 +132,6 @@
         <Compile Include="BlueprintObject.cs" />
         <Compile Include="BlueprintPiece.cs" />
         <Compile Include="BlueprintUI.cs" />
-        <Compile Include="BuildProgress.cs" />
         <Compile Include="ClipboardUtils.cs" />
         <Compile Include="Configs.cs" />
         <Compile Include="GlobalUsings.cs" />

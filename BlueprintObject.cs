@@ -358,8 +358,8 @@ public class BlueprintRoot : ISerializableParameter
     }
     public Piece.Requirement[] GetRequirements() => Objects.Select(x => x.Id).ToArray().GetRequirements();
     public IOrderedEnumerable<KeyValuePair<string, Utils.NumberedData>> GetPiecesNumbered() => Objects.Select(x => x.Id).ToArray().GetPiecesNumbered();
-    public void Apply(Vector3 center, Quaternion rootRot, bool deactivate) => ZNetScene.instance.StartCoroutine(Internal_Apply(!Configs.UseDelayedBuildProgress.Value, center, rootRot, deactivate));
-    private IEnumerator Internal_Apply(bool instantBuild, Vector3 center, Quaternion rootRot, bool deactivate)
+    public void Apply(Vector3 center, Quaternion rootRot, bool deactivate) => ZNetScene.instance.StartCoroutine(Internal_Apply(center, rootRot, deactivate));
+    private IEnumerator Internal_Apply(Vector3 center, Quaternion rootRot, bool deactivate)
     {
         for (int i = 0; i < Objects.Length; ++i)
         {
@@ -371,40 +371,29 @@ public class BlueprintRoot : ISerializableParameter
             } 
             if (prefab.GetComponent<TreeBase>() && !Configs.IncludeTrees.Value) continue;
             if (prefab.GetComponent<Destructible>() && !Configs.IncludeDestructibles.Value) continue;
-            
+
             Quaternion deltaRotation = rootRot * Quaternion.Inverse(Quaternion.Euler(BoxRotation));
             Vector3 pos = center + deltaRotation * Objects[i].RelativePosition;
             if (deactivate && !BlueprintPiece.IsInside(pos)) continue;
-            Quaternion rot = deltaRotation * Quaternion.Euler(Objects[i].Rotation); 
-            if (instantBuild || deactivate)
-            { 
-                
-                GameObject newObj = Object.Instantiate(prefab, pos, rot);
-                Piece p = newObj.GetComponent<Piece>();
-                if (p) 
-                {
-                    p.m_placeEffect.Create(pos, rot, p.transform);
-                    p.SetCreator(Game.instance.m_playerProfile.m_playerID);
-                    if (p.GetComponent<ItemDrop>() is {} item) item.MakePiece(true);
-                    if (deactivate && !Configs.SaveZDOHashset.Contains((int)Objects[i].Id))
-                    {
-                        p.m_nview.m_zdo.Set("kg_Blueprint", true);
-                        Piece_Awake_Patch.DeactivatePiece(p);
-                    }
-                }
-                try
-                {
-                    if (!string.IsNullOrEmpty(Objects[i].ZDOData) && newObj.GetComponent<ZNetView>() is {} znv && Configs.SaveZDOHashset.Contains((int)Objects[i].Id))
-                    {
-                        znv.m_zdo.DeserializeZDO(new(Objects[i].ZDOData));
-                    }
-                } catch (Exception e) { kg_Blueprint.Logger.LogError(e); }
-            } 
-            else
+            Quaternion rot = deltaRotation * Quaternion.Euler(Objects[i].Rotation);
+            GameObject newObj = Object.Instantiate(prefab, pos, rot);
+            Piece p = newObj.GetComponent<Piece>();
+            if (p)
             {
-                BuildProgress.BuildProgressComponent component = Object.Instantiate(BuildProgress._piece, pos, rot).GetComponent<BuildProgress.BuildProgressComponent>();
-                component.Setup(prefab.name, Game.instance.m_playerProfile.m_playerID, Mathf.Max(1f, Configs.BuildTime.Value), Objects[i].ZDOData);
-            } 
+                p.m_placeEffect.Create(pos, rot, p.transform);
+                p.SetCreator(Game.instance.m_playerProfile.m_playerID);
+                if (p.GetComponent<ItemDrop>() is { } item) item.MakePiece(true);
+                if (deactivate && !Configs.SaveZDOHashset.Contains((int)Objects[i].Id))
+                {
+                    p.m_nview.m_zdo.Set("kg_Blueprint", true);
+                    Piece_Awake_Patch.DeactivatePiece(p);
+                }
+            }
+            try
+            {
+                if (!string.IsNullOrEmpty(Objects[i].ZDOData) && newObj.GetComponent<ZNetView>() is { } znv && Configs.SaveZDOHashset.Contains((int)Objects[i].Id))
+                    znv.m_zdo.DeserializeZDO(new(Objects[i].ZDOData));
+            }catch (Exception e) { kg_Blueprint.Logger.LogError(e); }
             int frameSkip = Configs.BlueprintBuildFrameSkip.Value;
             if (frameSkip > 0) yield return Utils.WaitFrames(Configs.BlueprintBuildFrameSkip.Value);
         } 

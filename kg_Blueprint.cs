@@ -20,7 +20,7 @@ public class kg_Blueprint : BaseUnityPlugin
     public static kg_Blueprint _thistype; 
     private const string GUID = "kg.Blueprint";
     private const string NAME = "Blueprint";   
-    private const string VERSION = "1.6.3";
+    private const string VERSION = "1.6.4";
     public static readonly AssetBundle Asset = GetAssetBundle("kg_blueprint");
     public static readonly string BlueprintsPath = Path.Combine(Paths.ConfigPath, "Blueprints");
     private static readonly List<GameObject> ReplaceMaterials = [];
@@ -73,8 +73,7 @@ public class kg_Blueprint : BaseUnityPlugin
         if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null) return;
         Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), GUID);
         if (!Directory.Exists(BlueprintsPath)) Directory.CreateDirectory(BlueprintsPath); 
-        BlueprintUI.Init(); 
-        BuildProgress.Init(); 
+        BlueprintUI.Init();
         ReadBlueprints();
     }
     private void FixedUpdate() => PlayerState.Update();

@@ -5,7 +5,6 @@ namespace kg_Blueprint;
 
 public static class Configs
 {
-    public static ConfigEntry<bool> UseDelayedBuildProgress;
     public static ConfigEntry<int> BuildTime;
     public static ConfigEntry<int> BlueprintLoadFrameSkip, BlueprintBuildFrameSkip, LoadViewMaxPerFrame, GhostmentPlaceMaxPerFrame, MaxCreateNewSize;
     public static ConfigEntry<bool> RemoveBlueprintPlacementOnUnequip;
@@ -20,7 +19,6 @@ public static class Configs
     public static void Init()
     { 
         //synced
-        UseDelayedBuildProgress = kg_Blueprint.config("General", "UseDelayedBuildProgress", false, "Instantly build blueprints when they are placed or use a build progress ghost object");
         BuildTime = kg_Blueprint.config("General", "BuildTime", 30, "Time in seconds it takes to build a blueprint (if UseDelayedBuildProgress is false)");
         SaveZDOForPrefabs = kg_Blueprint.config("General", "SaveZDOForPrefabs", "MarketPlaceNPC,sign", "Save ZDOs for prefabs with the given name (comma separated)");
         IncludeTrees = kg_Blueprint.config("General", "IncludeTrees", true, "Include trees in blueprints");
