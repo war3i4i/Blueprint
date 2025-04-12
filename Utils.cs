@@ -360,7 +360,7 @@ public static class Utils
             }
         }
 
-        return requirements.Select(x => new Piece.Requirement() { m_resItem = x.Key, m_amount = x.Value }).ToArray();
+        return requirements.Select(x => new Piece.Requirement() { m_resItem = x.Key, m_amount = x.Value}).ToArray();
     }
     public class NumberedData
     {

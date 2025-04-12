@@ -507,7 +507,7 @@ public class ItemInfo : IEnumerable<ItemData>
 		if (ItemExtensions.itemInfo.TryGetValue(__instance, out ItemInfo info))
 		{
 			__result.Data().isCloned = new HashSet<string>(info.data.Values.Select(i => i.CustomDataKey));
-		} 
+		}
 	}
 
 	private static void ItemDataClonePostfixDelayed(ItemDrop.ItemData __result)
@@ -522,8 +522,8 @@ public class ItemInfo : IEnumerable<ItemData>
 		 {
 			 ItemDataManager.ItemData data = (ItemDataManager.ItemData)kv.Value.Invoke(item.Data(), [""]);
 			 if (data == null) continue;
-			 __result = data.Description;
-		 }
+			 __result = data.Description; 
+		 } 
 	}
 
 	private static void RegisterForceLoadedTypesOnPlayerLoaded(Player __instance)

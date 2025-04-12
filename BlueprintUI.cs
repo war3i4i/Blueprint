@@ -771,7 +771,7 @@ public static class BlueprintUI
         temp.name = "kg_Blueprint_Temp";
         temp.m_resources = new Piece.Requirement[1];
         for (int i = 0; i < reqs.Length; i++)
-        { 
+        {
             Piece.Requirement req = reqs[i];
             temp.m_resources[0] = req;
             string text = $"{req.m_resItem.m_itemData.m_shared.m_name} x{req.m_amount}";
@@ -790,7 +790,7 @@ public static class BlueprintUI
             entry.transform.Find("Icon").GetComponent<Image>().sprite = pair.Value.Icon ?? NoIcon;
             entry.transform.Find("Name").GetComponent<TMP_Text>().text = $"{pair.Value.PrefabName} x{pair.Value.Amount}".Localize();
         }
-    }
+    } 
 
     public static void Show(ForeignBlueprintSource foreignSource = null)
     {
@@ -801,6 +801,7 @@ public static class BlueprintUI
         if (ForeignSource != null) Load((List<BlueprintRoot>)ForeignSource.Blueprints, true);
         UI.transform.Find("Canvas/UI/Create").gameObject.SetActive(ForeignSource == null);
         UI.SetActive(true);
+        if (Current != null) ShowResources(Current);
     }
     private static void StopPreview()
     { 
